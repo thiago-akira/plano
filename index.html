@@ -700,6 +700,8 @@
   .pf-head{display:flex;gap:14px;align-items:flex-end;margin-bottom:4px}
   .pf-av{width:54px;height:54px;border-radius:13px;background:var(--ink);color:#fff;display:grid;place-items:center;
     font-size:22px;font-weight:800;flex:0 0 auto;background-position:center;background-size:cover}
+  .pf-photo{display:flex;gap:8px;align-items:center} .pf-photo .um-in{flex:1}
+  .pf-file{flex:0 0 auto;cursor:pointer;white-space:nowrap}
   .um-actions{display:flex;align-items:center;gap:12px;margin-top:14px}
   .um-msg{font-size:12.5px;font-weight:600;color:var(--muted)} .um-msg.ok{color:var(--green)} .um-msg.err{color:var(--magenta)}
   .um-note{font-size:12.5px;color:var(--muted);margin:12px 0 0}
@@ -1902,6 +1904,28 @@ async function seedTeamIfNeeded(u){
 function fbUser(){ return (CLOUD && fbAuth && fbAuth.currentUser) ? fbAuth.currentUser : null; }
 function roleOptsHtml(sel){ const roles=(TEAM&&TEAM.roles)||{}; return Object.entries(roles).map(([id,r])=>`<option value="${id}" ${id===sel?'selected':''}>${esc(r.name)}</option>`).join(''); }
 function slug(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'papel'; }
+/* lê um arquivo de imagem e devolve um avatar 128×128 (JPEG data URL) — sem precisar de Storage */
+function fileToAvatar(file, cb){
+  if(!file || !/^image\//.test(file.type)) return cb(null);
+  const reader=new FileReader();
+  reader.onerror=()=>cb(null);
+  reader.onload=()=>{
+    const img=new Image();
+    img.onerror=()=>cb(null);
+    img.onload=()=>{
+      try{
+        const S=128, c=document.createElement("canvas"); c.width=S; c.height=S;
+        const ctx=c.getContext("2d");
+        const scale=Math.max(S/img.width, S/img.height);
+        const w=img.width*scale, h=img.height*scale;
+        ctx.drawImage(img,(S-w)/2,(S-h)/2,w,h);
+        cb(c.toDataURL("image/jpeg",0.85));
+      }catch(_){ cb(null); }
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+}
 
 function openUserMenu(initial){
   recomputeMe();
@@ -1922,7 +1946,11 @@ function profileTabHtml(){
   const fu=fbUser();
   return `<div class="pf-head"><div class="pf-av" id="pfAv">${ME.photoURL?'':esc((ME.name||'?').charAt(0).toUpperCase())}</div>
       <div style="flex:1"><label class="um-l">Nome</label><input class="um-in" id="pfName" value="${esc(ME.name||'')}"></div></div>
-    <label class="um-l">Foto (URL da imagem)</label><input class="um-in" id="pfPhoto" value="${esc(ME.photoURL||'')}" placeholder="https://…">
+    <label class="um-l">Foto</label>
+    <div class="pf-photo">
+      <input class="um-in" id="pfPhoto" value="${esc(ME.photoURL||'')}" placeholder="cole uma URL ou envie um arquivo">
+      <label class="gt-btn ghost pf-file">📷 Enviar<input type="file" id="pfFile" accept="image/*" hidden></label>
+    </div>
     <label class="um-l">E-mail</label><input class="um-in" id="pfEmail" value="${esc(ME.email||'')}" ${fu?'':'disabled'}>
     <label class="um-l">Nova senha</label><input class="um-in" id="pfPass" type="password" placeholder="${fu?'deixe em branco para manter':'indisponível no modo demonstração'}" ${fu?'':'disabled'}>
     <div class="um-actions"><button class="gt-btn accent" id="pfSave">Salvar</button><span class="um-msg" id="pfMsg"></span></div>
@@ -1954,16 +1982,31 @@ function rolesTabHtml(){
 }
 function wireUserTab(id, card){
   if(id==='perfil'){
-    const av=$("#pfAv",card); if(ME.photoURL){ av.style.backgroundImage=`url("${ME.photoURL}")`; av.style.backgroundSize="cover"; }
+    const av=$("#pfAv",card);
+    const setAv=url=>{ if(url){ av.style.backgroundImage=`url("${url}")`; av.style.backgroundSize="cover"; av.textContent=""; } else { av.style.backgroundImage=""; av.textContent=esc((($("#pfName",card).value||ME.name||'?').charAt(0)||'?').toUpperCase()); } };
+    setAv(ME.photoURL);
+    $("#pfFile",card).addEventListener("change", e=>{
+      const f=e.target.files&&e.target.files[0]; if(!f) return;
+      const msg=$("#pfMsg",card); msg.textContent="Processando imagem…"; msg.className="um-msg";
+      fileToAvatar(f, dataUrl=>{
+        if(!dataUrl){ msg.textContent="Não consegui ler a imagem."; msg.className="um-msg err"; return; }
+        $("#pfPhoto",card).value=dataUrl; setAv(dataUrl);
+        msg.textContent="Foto pronta — clique em Salvar."; msg.className="um-msg ok";
+      });
+    });
     $("#pfSave",card).addEventListener("click", async ()=>{
       const fu=fbUser(), msg=$("#pfMsg",card);
       const name=$("#pfName",card).value.trim(), photo=$("#pfPhoto",card).value.trim(),
             email=$("#pfEmail",card).value.trim(), pass=$("#pfPass",card).value;
       msg.textContent="Salvando…"; msg.className="um-msg";
       try{
-        if(fu){ await fu.updateProfile({displayName:name, photoURL:photo||null});
+        if(fu){
+          await fu.updateProfile({displayName:name});
+          // o Auth só aceita URL curta; data URL (upload) fica só no banco da equipe
+          if(photo && /^https?:/i.test(photo) && photo.length<1500){ try{ await fu.updateProfile({photoURL:photo}); }catch(_){} }
           if(email && email!==fu.email) await fu.updateEmail(email);
-          if(pass) await fu.updatePassword(pass); }
+          if(pass) await fu.updatePassword(pass);
+        }
         if(TEAM && ME.uid){ TEAM.members=TEAM.members||{}; TEAM.members[ME.uid]=Object.assign({roleId:'admin',active:true}, TEAM.members[ME.uid], {name, email:email||ME.email, photoURL:photo}); teamPush(); }
         recomputeMe(); refreshIdentity();
         msg.textContent="Salvo ✓"; msg.className="um-msg ok";
