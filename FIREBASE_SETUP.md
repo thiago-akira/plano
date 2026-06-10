@@ -92,3 +92,50 @@ ficar **online em tempo real** no link do GitHub Pages, para todos.
 - **E upload de vídeo/foto?** É a próxima etapa (Firebase Storage), ainda não incluída.
 - **Esqueci a senha do admin:** Authentication → Users → reset, ou crie outro usuário com o mesmo e-mail
   das regras.
+
+---
+
+# Fase 3b — equipe, papéis e convites (multi-usuário)
+
+A interface de **Conta & Equipe** (menu no seu nome, no rodapé do menu lateral) já existe: você cria
+papéis (Gerente, Colaborador…), marca permissões, lista a equipe e registra convites. Para que outras
+pessoas **realmente entrem e editem conforme a permissão**, faça os passos abaixo.
+
+> Você (o e-mail admin) é **superusuário fixo** nas regras — nunca se tranca pra fora.
+
+## 1. Habilitar login por link de e-mail (para convites)
+1. **Authentication → Sign-in method → Add new provider →** ative **E-mail/senha** (já feito) e marque
+   também **"Link de e-mail (login sem senha)"** → **Salvar**.
+2. **Authentication → Settings → Authorized domains:** confirme que **`thiago-akira.github.io`** está na
+   lista (o GitHub Pages). Se não estiver, **Add domain**.
+
+## 2. Trocar as regras do Firestore (papéis + permissões)
+**Firestore → Regras**, apague e cole (troque `SEU_EMAIL_ADMIN@exemplo.com` pelo seu e-mail admin):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function admin(){ return request.auth != null && request.auth.token.email == 'SEU_EMAIL_ADMIN@exemplo.com'; }
+    function team(){ return get(/databases/$(db)/documents/plano/team).data; }
+    function mem(){ return team().members[request.auth.uid]; }
+    function can(p){ return admin() || (request.auth != null && mem() != null
+      && team().roles[mem().roleId].perms[p] == true); }
+    match /plano/state { allow read: if true; allow write: if can('editContent') || can('editLayout'); }
+    match /plano/team  { allow read: if true; allow write: if admin() || can('manageUsers'); }
+  }
+}
+```
+**Publicar.**
+
+## 3. (Opcional) Storage para foto de perfil
+Hoje a foto é por **URL** (cole o link de uma imagem). Para upload de arquivo:
+**Storage → Começar → modo de produção**; depois me avise que eu ligo o upload no app.
+
+## Como funciona o convite
+1. No app: **menu do seu nome → Equipe → Convidar** (e-mail + papel). O Firebase envia um link de acesso.
+2. A pessoa abre o link → entra → vira membro com o papel que você definiu → define uma senha para os
+   próximos acessos.
+3. Você pode trocar o papel de alguém ou cancelar convites a qualquer momento na aba **Equipe**.
+
+> Permissões: **Editar conteúdo** (textos/status), **Organizar widgets** (mover/redimensionar/cores),
+> **Exportar**, **Gerenciar usuários**. Só quem tem *Gerenciar usuários* (ou você) convida e mexe em papéis.

@@ -678,6 +678,43 @@
   /* moldura do canvas simulado */
   .gridwrap.device-frame{border:2px solid var(--line);border-radius:18px;padding:10px;background:var(--paper);
     box-shadow:var(--shadow);transition:max-width .2s}
+  /* gating por permissão */
+  body:not(.can-layout) .gtile-tools,
+  body:not(.can-layout) .resize, body:not(.can-layout) .resize-r, body:not(.can-layout) .resize-b,
+  body:not(.can-layout) [data-gadd], body:not(.can-layout) [data-gdeactivate]{display:none!important}
+  body:not(.can-export) [data-gexport]{display:none!important}
+  /* botão de usuário (rodapé) */
+  .side-foot .user{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--line);
+    background:#fff;border-radius:11px;padding:7px 9px;cursor:pointer;text-align:left;transition:border-color .12s}
+  .side-foot .user:hover{border-color:var(--ink)}
+  .side-foot .user .um-caret{margin-left:auto;color:var(--muted);font-weight:800;flex:0 0 auto}
+  .avatar{background-position:center}
+  /* menu de conta/equipe/papéis */
+  .um-tabs{display:flex;gap:6px;margin:-4px 0 14px;border-bottom:1px solid var(--line)}
+  .um-tab{border:none;background:none;padding:9px 12px;font-weight:700;font-size:13.5px;color:var(--muted);
+    border-bottom:2px solid transparent;margin-bottom:-1px}
+  .um-tab.active{color:var(--ink);border-bottom-color:var(--orange)}
+  .um-l{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin:11px 0 4px;text-transform:uppercase;letter-spacing:.03em}
+  .um-in{width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;color:var(--ink2);font-family:inherit}
+  .um-in:focus{outline:none;border-color:var(--orange)}
+  .pf-head{display:flex;gap:14px;align-items:flex-end;margin-bottom:4px}
+  .pf-av{width:54px;height:54px;border-radius:13px;background:var(--ink);color:#fff;display:grid;place-items:center;
+    font-size:22px;font-weight:800;flex:0 0 auto;background-position:center;background-size:cover}
+  .um-actions{display:flex;align-items:center;gap:12px;margin-top:14px}
+  .um-msg{font-size:12.5px;font-weight:600;color:var(--muted)} .um-msg.ok{color:var(--green)} .um-msg.err{color:var(--magenta)}
+  .um-note{font-size:12.5px;color:var(--muted);margin:12px 0 0}
+  .um-h5{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px}
+  .tm-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px}
+  .tm-info{flex:1;min-width:0} .tm-info b{display:block;color:var(--ink);font-size:13.5px} .tm-info span{font-size:11.5px;color:var(--muted)}
+  .tm-role{padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;color:var(--ink2)}
+  .inv-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center} .inv-form .um-in{flex:1;min-width:140px;width:auto}
+  .role-card{border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px}
+  .role-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .role-head .role-name{flex:1;font-weight:700;color:var(--ink)}
+  .role-tag{font-size:10.5px;font-weight:800;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:2px 8px}
+  .role-del{border:1px solid var(--line);background:#fff;color:var(--magenta);border-radius:8px;width:28px;height:28px;font-size:16px;font-weight:800}
+  .role-perms{display:flex;flex-direction:column;gap:6px}
+  .role-perms label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
   @media (max-width:820px){
     .side-toggle{display:none}
     body.sidebar-collapsed #sidebar{width:var(--sidebar)}
@@ -780,13 +817,14 @@
     </div>
     <nav class="side-nav" id="nav"></nav>
     <div class="side-foot">
-      <div class="user">
+      <button class="user" id="userMenuBtn" title="Meu perfil e equipe" style="display:none">
         <div class="avatar" id="avatar">C</div>
-        <div style="min-width:0">
+        <div style="min-width:0;text-align:left">
           <div class="uname" id="uname">Cliente</div>
           <div class="urole" id="urole">Visualização</div>
         </div>
-      </div>
+        <span class="um-caret">⋯</span>
+      </button>
       <button class="icon-btn" id="logoutBtn">Sair</button>
     </div>
   </aside>
@@ -871,7 +909,8 @@ if(CLOUD){
     fbAuth = firebase.auth();
   }catch(e){ console.error("Falha ao iniciar Firebase:", e); }
 }
-const CLOUD_DOC = "plano/state"; // documento compartilhado
+const CLOUD_DOC = "plano/state"; // documento compartilhado (conteúdo)
+const TEAM_DOC  = "plano/team";  // documento de equipe (usuários, papéis, convites)
 
 /* =========================================================================
    PLANO — modelo de dados (conteúdo). Trocar este objeto = trocar o plano.
@@ -1778,16 +1817,180 @@ function cloudInit(){
     if(snap.metadata.hasPendingWrites) return;   // ignora o eco da própria escrita
     if(snap.exists) applyRemote(snap.data());
   }, err=> console.warn("onSnapshot:", err.code||err));
-  // 2) sessão do admin (Firebase Auth)
+  teamInit();
+  // 2) sessão do usuário (Firebase Auth)
   fbAuth.onAuthStateChanged(async u=>{
     if(!u) return;
-    AUTH={ user:u.email, role:"admin", name:(u.email||"Admin").split("@")[0] };
+    AUTH={ user:u.email, role:"admin", name:(u.displayName||u.email||"Admin").split("@")[0] };
     try{
       const ref=db.doc(CLOUD_DOC), cur=await ref.get();
       if(!cur.exists){ await ref.set(cloudPayload()); } // semeia com baked + cache
     }catch(e){ console.warn("seed:", e.code||e); }
+    await seedTeamIfNeeded(u);
     startApp();
   });
+}
+
+/* =========================================================================
+   EQUIPE — usuários, papéis e permissões (Fase 3)
+   ========================================================================= */
+let TEAM = null, ME = { perms:{}, role:'cliente' };
+let _teamTimer=null, _applyingTeam=false;
+const PERMS = [
+  {k:'editContent', label:'Editar conteúdo (textos e status)'},
+  {k:'editLayout',  label:'Organizar widgets (mover, redimensionar, adicionar, cores)'},
+  {k:'export',      label:'Exportar para o PLAN'},
+  {k:'manageUsers', label:'Gerenciar usuários e papéis'}
+];
+const BUILTIN_ROLES = {
+  admin:  { name:'Administrador', perms:{editContent:true,editLayout:true,export:true,manageUsers:true}, builtin:true },
+  editor: { name:'Editor',        perms:{editContent:true,editLayout:true,export:true}, builtin:true },
+  viewer: { name:'Visualizador',  perms:{}, builtin:true }
+};
+function teamDefault(email){ return { adminEmail: email||null, roles: JSON.parse(JSON.stringify(BUILTIN_ROLES)), members:{}, invites:{} }; }
+function recomputeMe(){
+  const fu = (CLOUD && fbAuth && fbAuth.currentUser) ? fbAuth.currentUser : null;
+  if(!fu){
+    const isAdmin = AUTH && AUTH.role==='admin';
+    ME = { name:(AUTH&&AUTH.name)||'', email:(AUTH&&AUTH.user)||'', role:(AUTH&&AUTH.role)||'cliente',
+      perms: isAdmin ? {editContent:true,editLayout:true,export:true,manageUsers:true} : {} };
+    return;
+  }
+  const email=fu.email, uid=fu.uid;
+  const isSuper = TEAM ? (email && email===TEAM.adminEmail) : true;
+  const mem = (TEAM && TEAM.members && TEAM.members[uid]) || null;
+  let perms = {};
+  if(isSuper) perms = {editContent:true,editLayout:true,export:true,manageUsers:true};
+  else if(mem){ const r=TEAM&&TEAM.roles&&TEAM.roles[mem.roleId]; perms=(r&&r.perms)||{}; }
+  ME = { uid, email, name:(mem&&mem.name)||fu.displayName||email, photoURL:(mem&&mem.photoURL)||fu.photoURL||'',
+    roleId: mem?mem.roleId:(isSuper?'admin':null), perms, isSuper, role:'admin' };
+}
+function can(p){ return !!(ME && ME.perms && ME.perms[p]); }
+function teamPush(){
+  if(!CLOUD || !db || _applyingTeam || !(ME&&(ME.isSuper||can('manageUsers')))) return;
+  clearTimeout(_teamTimer);
+  _teamTimer=setTimeout(()=>{ db.doc(TEAM_DOC).set(TEAM,{merge:true}).catch(e=>console.warn('teamPush:',e.code||e)); }, 300);
+}
+function teamInit(){
+  if(!CLOUD || !db) return;
+  db.doc(TEAM_DOC).onSnapshot(snap=>{
+    if(snap.metadata.hasPendingWrites) return;
+    if(snap.exists){ _applyingTeam=true; TEAM=snap.data(); _applyingTeam=false; recomputeMe();
+      if($("#app") && !$("#app").classList.contains("hidden")){ refreshIdentity(); applyEdit(); } }
+  }, err=> console.warn('team onSnapshot:', err.code||err));
+}
+async function seedTeamIfNeeded(u){
+  try{
+    const ref=db.doc(TEAM_DOC), cur=await ref.get();
+    if(!cur.exists){
+      TEAM=teamDefault(u.email);
+      TEAM.members[u.uid]={ name:u.displayName||u.email, email:u.email, photoURL:u.photoURL||'', roleId:'admin', active:true };
+      await ref.set(TEAM);
+    } else {
+      TEAM=cur.data();
+      if(TEAM.adminEmail===u.email && (!TEAM.members || !TEAM.members[u.uid])){
+        TEAM.members=TEAM.members||{};
+        TEAM.members[u.uid]={ name:u.displayName||u.email, email:u.email, photoURL:u.photoURL||'', roleId:'admin', active:true };
+        await ref.set(TEAM,{merge:true});
+      }
+    }
+    recomputeMe();
+  }catch(e){ console.warn('seedTeam:', e.code||e); }
+}
+
+/* ---- UI: menu de conta / perfil / equipe / papéis ---- */
+function fbUser(){ return (CLOUD && fbAuth && fbAuth.currentUser) ? fbAuth.currentUser : null; }
+function roleOptsHtml(sel){ const roles=(TEAM&&TEAM.roles)||{}; return Object.entries(roles).map(([id,r])=>`<option value="${id}" ${id===sel?'selected':''}>${esc(r.name)}</option>`).join(''); }
+function slug(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'papel'; }
+
+function openUserMenu(initial){
+  recomputeMe();
+  const tabs=[{id:'perfil',label:'Meu perfil'}];
+  if(can('manageUsers')) tabs.push({id:'equipe',label:'Equipe'},{id:'papeis',label:'Papéis'});
+  const card=showModal("Conta & Equipe",
+    `<div class="um-tabs">${tabs.map((t,i)=>`<button class="um-tab ${i===0?'active':''}" data-tab="${t.id}">${esc(t.label)}</button>`).join('')}</div><div class="um-panel" id="umPanel"></div>`);
+  const renderTab=id=>{
+    $$(".um-tab",card).forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
+    const panel=$("#umPanel",card);
+    panel.innerHTML = id==='equipe'?teamTabHtml() : id==='papeis'?rolesTabHtml() : profileTabHtml();
+    wireUserTab(id, card);
+  };
+  $$(".um-tab",card).forEach(b=>b.addEventListener("click",()=>renderTab(b.dataset.tab)));
+  renderTab(tabs.find(t=>t.id===initial)?initial:'perfil');
+}
+function profileTabHtml(){
+  const fu=fbUser();
+  return `<div class="pf-head"><div class="pf-av" id="pfAv">${ME.photoURL?'':esc((ME.name||'?').charAt(0).toUpperCase())}</div>
+      <div style="flex:1"><label class="um-l">Nome</label><input class="um-in" id="pfName" value="${esc(ME.name||'')}"></div></div>
+    <label class="um-l">Foto (URL da imagem)</label><input class="um-in" id="pfPhoto" value="${esc(ME.photoURL||'')}" placeholder="https://…">
+    <label class="um-l">E-mail</label><input class="um-in" id="pfEmail" value="${esc(ME.email||'')}" ${fu?'':'disabled'}>
+    <label class="um-l">Nova senha</label><input class="um-in" id="pfPass" type="password" placeholder="${fu?'deixe em branco para manter':'indisponível no modo demonstração'}" ${fu?'':'disabled'}>
+    <div class="um-actions"><button class="gt-btn accent" id="pfSave">Salvar</button><span class="um-msg" id="pfMsg"></span></div>
+    ${fu?'':'<p class="um-note">No modo demonstração não há conta de login para editar.</p>'}`;
+}
+function teamTabHtml(){
+  const members=(TEAM&&TEAM.members)||{}, invites=(TEAM&&TEAM.invites)||{};
+  const rows=Object.entries(members).map(([uid,m])=>`<div class="tm-row"><div class="tm-info"><b>${esc(m.name||m.email)}</b><span>${esc(m.email||'')}</span></div>
+    <select class="tm-role" data-uid="${uid}" ${uid===ME.uid?'disabled':''}>${roleOptsHtml(m.roleId)}</select></div>`).join('') || '<p class="um-note">Você é a única pessoa por enquanto.</p>';
+  const inv=Object.entries(invites).map(([k,iv])=>`<div class="tm-row"><div class="tm-info"><b>${esc(iv.email)}</b><span>convite pendente · ${esc((TEAM.roles[iv.roleId]||{}).name||'')}</span></div>
+    <button class="gt-btn ghost tm-uninvite" data-k="${k}">Cancelar</button></div>`).join('');
+  return `<div class="tm-list">${rows}</div>
+    <h5 class="um-h5">Convidar pessoa</h5>
+    <div class="inv-form"><input class="um-in" id="invEmail" type="email" placeholder="email@pessoa.com">
+      <select class="um-in" id="invRole">${roleOptsHtml('editor')}</select>
+      <button class="gt-btn accent" id="invSend">Convidar</button></div>
+    <span class="um-msg" id="invMsg"></span>
+    ${inv?`<h5 class="um-h5">Convites pendentes</h5>${inv}`:''}`;
+}
+function rolesTabHtml(){
+  const roles=(TEAM&&TEAM.roles)||{};
+  const rows=Object.entries(roles).map(([id,r])=>`<div class="role-card"><div class="role-head">
+      <input class="role-name um-in" data-id="${id}" value="${esc(r.name)}" ${r.builtin?'disabled':''}>
+      ${r.builtin?'<span class="role-tag">padrão</span>':`<button class="role-del" data-id="${id}" title="Excluir papel">×</button>`}</div>
+      <div class="role-perms">${PERMS.map(p=>`<label><input type="checkbox" class="role-perm" data-id="${id}" data-perm="${p.k}" ${r.perms&&r.perms[p.k]?'checked':''} ${id==='admin'?'disabled':''}> ${esc(p.label)}</label>`).join('')}</div></div>`).join('');
+  return `<div class="roles-list">${rows}</div>
+    <div class="inv-form"><input class="um-in" id="newRoleName" placeholder="Nome do novo papel (ex.: Gerente)">
+      <button class="gt-btn accent" id="addRole">Criar papel</button></div>`;
+}
+function wireUserTab(id, card){
+  if(id==='perfil'){
+    const av=$("#pfAv",card); if(ME.photoURL){ av.style.backgroundImage=`url("${ME.photoURL}")`; av.style.backgroundSize="cover"; }
+    $("#pfSave",card).addEventListener("click", async ()=>{
+      const fu=fbUser(), msg=$("#pfMsg",card);
+      const name=$("#pfName",card).value.trim(), photo=$("#pfPhoto",card).value.trim(),
+            email=$("#pfEmail",card).value.trim(), pass=$("#pfPass",card).value;
+      msg.textContent="Salvando…"; msg.className="um-msg";
+      try{
+        if(fu){ await fu.updateProfile({displayName:name, photoURL:photo||null});
+          if(email && email!==fu.email) await fu.updateEmail(email);
+          if(pass) await fu.updatePassword(pass); }
+        if(TEAM && ME.uid){ TEAM.members=TEAM.members||{}; TEAM.members[ME.uid]=Object.assign({roleId:'admin',active:true}, TEAM.members[ME.uid], {name, email:email||ME.email, photoURL:photo}); teamPush(); }
+        recomputeMe(); refreshIdentity();
+        msg.textContent="Salvo ✓"; msg.className="um-msg ok";
+      }catch(e){ msg.textContent = e.code==='auth/requires-recent-login' ? "Saia e entre de novo para alterar e-mail/senha." : ("Erro: "+(e.code||e.message)); msg.className="um-msg err"; }
+    });
+  } else if(id==='equipe'){
+    $$(".tm-role",card).forEach(s=>s.addEventListener("change",()=>{ if(TEAM.members[s.dataset.uid]){ TEAM.members[s.dataset.uid].roleId=s.value; teamPush(); } }));
+    $$(".tm-uninvite",card).forEach(b=>b.addEventListener("click",()=>{ delete TEAM.invites[b.dataset.k]; teamPush(); openUserMenu('equipe'); }));
+    $("#invSend",card).addEventListener("click", async ()=>{
+      const email=$("#invEmail",card).value.trim().toLowerCase(), roleId=$("#invRole",card).value, msg=$("#invMsg",card);
+      if(!email||email.indexOf("@")<0){ msg.textContent="Informe um e-mail válido."; msg.className="um-msg err"; return; }
+      TEAM.invites=TEAM.invites||{}; TEAM.invites[slug(email)]={ email, roleId };
+      teamPush();
+      // tenta enviar o link de e-mail (funciona após habilitar "Link de e-mail" no Console — etapa 3b)
+      let sent=false;
+      try{ if(fbUser()){ await fbAuth.sendSignInLinkToEmail(email, {url:location.origin+location.pathname, handleCodeInApp:true}); sent=true; } }catch(_){}
+      msg.textContent = sent ? "Convite enviado por e-mail ✓" : "Convite registrado. (O envio automático de e-mail é ativado na configuração — Fase 3b.)";
+      msg.className="um-msg ok"; openUserMenu('equipe');
+    });
+  } else {
+    $$(".role-perm",card).forEach(c=>c.addEventListener("change",()=>{ const r=TEAM.roles[c.dataset.id]; r.perms=r.perms||{}; r.perms[c.dataset.perm]=c.checked; teamPush(); recomputeMe(); refreshIdentity(); }));
+    $$(".role-name",card).forEach(i=>i.addEventListener("change",()=>{ if(TEAM.roles[i.dataset.id]){ TEAM.roles[i.dataset.id].name=i.value.trim()||"Papel"; teamPush(); } }));
+    $$(".role-del",card).forEach(b=>b.addEventListener("click",()=>{ delete TEAM.roles[b.dataset.id]; teamPush(); openUserMenu('papeis'); }));
+    $("#addRole",card).addEventListener("click",()=>{ const nm=$("#newRoleName",card).value.trim(); if(!nm) return;
+      let id=slug(nm), n=1; while(TEAM.roles[id]){ id=slug(nm)+'_'+(++n); }
+      TEAM.roles[id]={ name:nm, perms:{editContent:true} }; teamPush(); openUserMenu('papeis'); });
+  }
 }
 
 /* =========================================================================
@@ -1937,17 +2140,31 @@ function startApp(){
   $("#shDestino").textContent=PLAN.meta.destino;
   $("#shTitulo").textContent=PLAN.meta.titulo;
   $("#shPeriodo").textContent=PLAN.meta.periodo;
-  $("#uname").textContent=AUTH.name;
-  $("#avatar").textContent=AUTH.name.charAt(0).toUpperCase();
-  const isAdmin = AUTH.role==="admin";
-  $("#urole").textContent = isAdmin ? "Consultor · edição" : "Visualização";
-  $("#editBtn").style.display = isAdmin ? "flex" : "none";
+  recomputeMe();
+  refreshIdentity();
   ensureBlockIds();
   histInit();
   applySideCollapsed();
   buildNav();
   render();
   buildAiSuggest();
+}
+/* atualiza nome/avatar/papel no rodapé + permissões de chrome */
+function refreshIdentity(){
+  recomputeMe();
+  const nm=ME.name||AUTH&&AUTH.name||"", roleName = ME.role==='cliente' ? "Visualização"
+    : (ME.isSuper?"Administrador":(TEAM&&ME.roleId&&TEAM.roles[ME.roleId]?TEAM.roles[ME.roleId].name:"Consultor"));
+  $("#uname").textContent=nm;
+  $("#urole").textContent=roleName;
+  const av=$("#avatar");
+  if(ME.photoURL){ av.style.backgroundImage=`url("${ME.photoURL}")`; av.style.backgroundSize="cover"; av.textContent=""; }
+  else { av.style.backgroundImage=""; av.textContent=(nm||"?").charAt(0).toUpperCase(); }
+  const canEdit = can('editContent')||can('editLayout');
+  $("#editBtn").style.display = canEdit ? "flex" : "none";
+  document.body.classList.toggle("can-layout", can('editLayout'));
+  document.body.classList.toggle("can-export", can('export'));
+  document.body.classList.toggle("can-users", can('manageUsers'));
+  const umb=$("#userMenuBtn"); if(umb) umb.style.display="flex";
 }
 
 /* =========================================================================
@@ -2011,7 +2228,7 @@ function render(){
   const key = secKey();
   let layout = effectiveLayout(sec, key);
   // Editar já ativa a grade de TODOS os widgets: auto-semeia a seção (mede e converte)
-  if(!layout && EDIT){ layout = autoSeedLayout(sec, key); }
+  if(!layout && EDIT && can('editLayout')){ layout = autoSeedLayout(sec, key); }
   h += `<div class="section"><h3>${esc(sec.titulo)}</h3>`;
   h += secProgressHtml(ch, CUR.section);
   _lastDevice = deviceForWidth(window.innerWidth);
@@ -2405,10 +2622,11 @@ function wireBlockEvents(){
 
 /* edição inline (somente admin) */
 function applyEdit(){
-  document.body.classList.toggle("editing", EDIT);
-  document.body.classList.toggle("grid-edit", EDIT);
+  const textEdit = EDIT && can('editContent');
+  document.body.classList.toggle("editing", textEdit);
+  document.body.classList.toggle("grid-edit", EDIT && can('editLayout'));
   $$("[data-ed]").forEach(el=>{
-    if(EDIT){ el.setAttribute("contenteditable","true"); }
+    if(textEdit){ el.setAttribute("contenteditable","true"); }
     else { el.removeAttribute("contenteditable"); }
   });
 }
@@ -2868,7 +3086,7 @@ $("#sideToggle").addEventListener("click",()=>{ STATE.sideCollapsed=!STATE.sideC
 
 /* cluster de edição no topo (desfazer/refazer/histórico) — só admin em edição */
 function updateEditChrome(){
-  const on = EDIT && AUTH && AUTH.role==="admin";
+  const on = EDIT && (can('editContent')||can('editLayout'));
   const c=$("#editCluster"); if(c) c.style.display = on ? "flex" : "none";
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
@@ -2880,11 +3098,12 @@ $("#undoBtn").addEventListener("click", ()=>undo());
 $("#redoBtn").addEventListener("click", ()=>redo());
 $("#histBtn").addEventListener("click", ()=>openHistory());
 $$("#devSwitch .dev-btn").forEach(b=> b.addEventListener("click",()=>{ EDIT_DEVICE=b.dataset.dev; render(); }));
+$("#userMenuBtn").addEventListener("click", ()=>openUserMenu());
 
 /* indicador de autosave */
 function setSaveStatus(s){
   const p=$("#savePill"); if(!p) return;
-  if(!(EDIT && AUTH && AUTH.role==="admin")){ p.textContent=""; p.className="save-pill"; return; }
+  if(!(EDIT && (can('editContent')||can('editLayout')))){ p.textContent=""; p.className="save-pill"; return; }
   if(s==='saving'){ p.textContent="Salvando…"; p.className="save-pill saving"; }
   else if(s==='saved'){ p.textContent="Salvo ✓ "+nowHM(); p.className="save-pill saved"; }
 }
