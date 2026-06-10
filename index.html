@@ -533,6 +533,85 @@
   .signature{margin:18px 0 4px;font-size:15px;color:var(--ink)}
   .signature b{font-size:18px;display:block;margin-top:3px}
 
+  /* ================= EDITOR MODULAR (grid 2D) ================= */
+  .gridwrap{margin-top:14px}
+  .gridcanvas{position:relative;width:100%;min-height:120px}
+  .gtile{position:absolute;box-sizing:border-box;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);overflow:hidden;
+    transition:left .14s ease,top .14s ease,width .14s ease,height .14s ease}
+  .gtile.dragging,.gtile.resizing{transition:none;z-index:30}
+  .gtile-body{width:100%;height:100%;overflow:auto;padding:14px}
+  /* dentro do tile, anular as margens de topo dos blocos pra encaixar na caixa */
+  .gtile-body > .block:first-child,.gtile-body > .p:first-child{margin-top:0}
+  .gtile-body .section h3{margin-top:0}
+  /* ferramentas (só admin em edição) */
+  .gtile-tools{position:absolute;top:6px;right:6px;display:none;gap:5px;z-index:5}
+  body.grid-edit .gtile-tools{display:flex}
+  body.grid-edit .gtile{cursor:default}
+  .t-move{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;color:var(--muted);font-size:14px;display:grid;place-items:center;
+    cursor:grab;touch-action:none;user-select:none;box-shadow:var(--shadow)}
+  body.grid-edit .gtile.dragging .t-move{cursor:grabbing}
+  .gtile-del{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;color:var(--magenta);font-size:16px;font-weight:800;line-height:1;
+    display:grid;place-items:center;box-shadow:var(--shadow)}
+  .gtile-del:hover{background:var(--magenta);color:#fff;border-color:var(--magenta)}
+  /* alças de redimensionar */
+  body.grid-edit .resize,body.grid-edit .resize-r,body.grid-edit .resize-b{position:absolute;display:block;z-index:4}
+  .resize,.resize-r,.resize-b{display:none}
+  .resize{right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;
+    background:linear-gradient(135deg,transparent 50%,var(--orange) 50%);border-bottom-right-radius:13px}
+  .resize-r{top:30%;bottom:30%;right:0;width:10px;cursor:ew-resize}
+  .resize-b{left:30%;right:30%;bottom:0;height:10px;cursor:ns-resize}
+  /* ghost de pré-visualização */
+  .tile-ghost{position:absolute;z-index:1;box-sizing:border-box;border:2px dashed var(--cyan);
+    border-radius:14px;background:color-mix(in srgb,var(--cyan) 12%,transparent);pointer-events:none;
+    transition:left .07s ease,top .07s ease,width .07s ease,height .07s ease}
+  .tile-ghost.bad{border-color:var(--magenta);background:color-mix(in srgb,var(--magenta) 14%,transparent)}
+  .gtile.reorder-target{box-shadow:0 -3px 0 0 var(--cyan)}
+  /* barra de ferramentas do grid */
+  .gtoolbar{display:none;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 2px;
+    padding:10px 12px;background:var(--ink);border-radius:12px}
+  body.grid-edit .gtoolbar{display:flex}
+  .gtoolbar .gt-info{color:#cfc9ee;font-size:12.5px;font-weight:600;margin-right:auto}
+  .gt-btn{border:none;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:700;
+    background:#fff;color:var(--ink);display:flex;align-items:center;gap:6px}
+  .gt-btn.accent{background:var(--orange);color:#fff}
+  .gt-btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+  /* banner "ativar grade" quando seção ainda é pilha */
+  .grid-activate{display:none;margin:10px 0;padding:12px 14px;border:1.5px dashed var(--cyan);
+    border-radius:12px;background:color-mix(in srgb,var(--cyan) 7%,transparent);
+    align-items:center;gap:12px;font-size:13.5px;color:var(--ink2)}
+  body.grid-edit .grid-activate{display:flex}
+  .grid-activate b{color:var(--ink)}
+  /* modais (paleta + export) */
+  .gmodal{position:fixed;inset:0;background:rgba(36,26,110,.45);z-index:60;display:none;
+    align-items:center;justify-content:center;padding:20px}
+  .gmodal.open{display:flex}
+  .gmodal-card{background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:84vh;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(36,26,110,.3)}
+  .gmodal-head{background:var(--ink);color:#fff;padding:15px 18px;display:flex;align-items:center;gap:10px}
+  .gmodal-head .gm-t{font-weight:800;font-size:15px;flex:1}
+  .gmodal-head .close{background:none;border:none;color:#fff;font-size:22px;line-height:1}
+  .gmodal-body{padding:16px 18px;overflow:auto}
+  .palette-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .palette-item{border:1.5px solid var(--line);border-radius:11px;padding:12px;text-align:left;
+    background:#fff;display:flex;flex-direction:column;gap:4px;transition:all .12s}
+  .palette-item:hover{border-color:var(--orange);box-shadow:var(--shadow)}
+  .palette-item .pi-ic{font-size:20px}
+  .palette-item .pi-t{font-weight:700;color:var(--ink);font-size:13.5px}
+  .palette-item .pi-d{font-size:11.5px;color:var(--muted);line-height:1.35}
+  .export-ta{width:100%;height:340px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    border:1.5px solid var(--line);border-radius:10px;padding:12px;resize:vertical;color:var(--ink2)}
+  .export-hint{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .export-hint b{color:var(--ink)}
+  @media (max-width:820px){
+    .gridcanvas{height:auto!important;display:flex;flex-direction:column;gap:12px}
+    .gtile{position:relative!important;left:auto!important;top:auto!important;width:100%!important;
+      transition:none}
+    body.grid-edit .resize,body.grid-edit .resize-r{display:none!important}
+  }
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -1535,10 +1614,48 @@ function loadAuth(){ try{ return JSON.parse(localStorage.getItem(LS_AUTH)) }catc
 STATE.overrides = STATE.overrides || {};
 STATE.statuses  = STATE.statuses  || {};
 STATE.media     = STATE.media     || {};
+STATE.layout    = STATE.layout    || {};   // { [secKey]: { cols, cellH, items:[{id,x,y,w,h,add?}] } }
 if(STATE.ui){ CUR = STATE.ui; }
 
 function txt(key, def){ return (key && STATE.overrides[key]!=null) ? STATE.overrides[key] : def; }
 function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* =========================================================================
+   EDITOR MODULAR — modelo de dados do layout (grid 2D)
+   Precedência: STATE.layout[secKey] (edição viva) > block.grid (baked) > pilha
+   ========================================================================= */
+const GRID_COLS=12, GRID_CELLH=110;
+let _addSeq = STATE._addSeq || 0;
+
+function secKey(){ return String(CUR.chapter)+'/'+CUR.section; }
+
+/* garante _id estável e determinístico em todo bloco do PLAN */
+function ensureBlockIds(){
+  const tag=(ch,ci)=> ch.sections.forEach((s,si)=>
+    s.blocks.forEach((b,bi)=>{ if(!b._id) b._id=ci+'/'+si+'#'+bi; }));
+  tag(PLAN.onboarding,'onb');
+  PLAN.chapters.forEach((c,i)=> tag(c,i));
+}
+
+/* layout efetivo da seção atual, ou null se deve renderizar como pilha */
+function effectiveLayout(sec, key){
+  const L=STATE.layout[key];
+  if(L) return { cols:L.cols||GRID_COLS, cellH:L.cellH||GRID_CELLH, items:(L.items||[]).slice(), live:true };
+  if(sec.blocks.some(b=>b.grid)){           // baked no PLAN (após export+commit)
+    let y=0; const items=sec.blocks.map(b=>{
+      if(b.grid) return { id:b._id, x:b.grid.x, y:b.grid.y, w:b.grid.w, h:b.grid.h };
+      const it={ id:b._id, x:0, y, w:GRID_COLS, h:3 }; y+=3; return it;
+    });
+    return { cols:GRID_COLS, cellH:GRID_CELLH, items, live:false };
+  }
+  return null;
+}
+
+/* resolve um item do layout -> o objeto bloco (base no PLAN ou inline 'add') */
+function blockOfItem(sec, item){
+  if(item.add) return item.add;
+  return sec.blocks.find(b=>b._id===item.id) || null;
+}
 
 /* =========================================================================
    LOGIN
@@ -1581,6 +1698,7 @@ function startApp(){
   const isAdmin = AUTH.role==="admin";
   $("#urole").textContent = isAdmin ? "Consultor · edição" : "Visualização";
   $("#editBtn").style.display = isAdmin ? "flex" : "none";
+  ensureBlockIds();
   buildNav();
   render();
   buildAiSuggest();
@@ -1643,8 +1761,26 @@ function render(){
   }
 
   const sec = ch.sections[CUR.section] || ch.sections[0];
+  const key = secKey();
+  const layout = effectiveLayout(sec, key);
   h += `<div class="section"><h3>${esc(sec.titulo)}</h3>`;
-  sec.blocks.forEach((b,bi)=> h += renderBlock(b, sec, bi));
+  if(layout){
+    h += gridToolbarHtml(key);
+    h += `<div class="gridwrap"><div class="gridcanvas" data-seckey="${key}" data-cols="${layout.cols}" data-cellh="${layout.cellH}">`;
+    layout.items.forEach(item=>{
+      const blk = blockOfItem(sec, item);
+      if(!blk) return;
+      h += `<div class="gtile" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}">
+              <div class="gtile-tools"><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
+              <div class="gtile-body">${renderBlock(blk)}</div>
+              <div class="resize-r"></div><div class="resize-b"></div><div class="resize"></div>
+            </div>`;
+    });
+    h += `</div></div>`;
+  } else {
+    h += `<div class="grid-activate"><span>📐 <b>Editor de grade:</b> organize os widgets desta seção arrastando-os livremente, como no dashboard.</span><button class="gt-btn accent" id="gridActivate">Ativar grade nesta seção</button></div>`;
+    sec.blocks.forEach((b,bi)=> h += renderBlock(b, sec, bi));
+  }
   h += `</div>`;
 
   $("#view").innerHTML=h;
@@ -1654,8 +1790,10 @@ function render(){
     CUR.section=parseInt(t.dataset.sec,10); persistUi(); render();
   }));
   wireBlockEvents();
+  wireGridEvents(sec, key, layout);
   applyEdit();
   updateProgress();
+  if($(".gridcanvas")) layoutTiles();
 }
 
 function renderBlock(b, sec, bi){
@@ -2007,6 +2145,7 @@ function wireBlockEvents(){
 /* edição inline (somente admin) */
 function applyEdit(){
   document.body.classList.toggle("editing", EDIT);
+  document.body.classList.toggle("grid-edit", EDIT);
   $$("[data-ed]").forEach(el=>{
     if(EDIT){ el.setAttribute("contenteditable","true"); }
     else { el.removeAttribute("contenteditable"); }
@@ -2024,9 +2163,291 @@ $("#editBtn").addEventListener("click",()=>{
   EDIT=!EDIT;
   $("#editBtn").classList.toggle("on",EDIT);
   $("#editBtn").querySelector(".lbl").textContent = EDIT ? "Salvar" : "Editar";
-  applyEdit();
   if(!EDIT){ saveState(); }
+  render();   // re-render para inserir/remover alças, toolbar e banner de grade
 });
+
+/* =========================================================================
+   EDITOR MODULAR — toolbar, posicionamento, drag/resize, paleta e export
+   ========================================================================= */
+function isMobileGrid(){ return window.innerWidth<=820; }
+
+function gridToolbarHtml(key){
+  return `<div class="gtoolbar" data-seckey="${key}">
+    <span class="gt-info">Modo grade · arraste pela alça ⠿ · redimensione pelas bordas</span>
+    <button class="gt-btn accent" data-gadd>＋ Widget</button>
+    <button class="gt-btn ghost" data-gexport>⤓ Exportar p/ PLAN</button>
+    <button class="gt-btn ghost" data-gdeactivate>↺ Desativar grade</button>
+  </div>`;
+}
+
+/* posiciona os tiles em px a partir das unidades de grade nos data-attrs */
+function gridMetrics(){
+  const canvas=$(".gridcanvas"); if(!canvas) return null;
+  const cols=+canvas.dataset.cols||GRID_COLS, cellH=+canvas.dataset.cellh||GRID_CELLH;
+  return { canvas, cols, cellH, cellW: canvas.clientWidth/cols, key:canvas.dataset.seckey };
+}
+function layoutTiles(){
+  const m=gridMetrics(); if(!m) return;
+  let maxB=0;
+  $$(".gtile",m.canvas).forEach(el=>{
+    const x=+el.dataset.gx, y=+el.dataset.gy, w=+el.dataset.gw, hh=+el.dataset.gh;
+    el.style.left=(x*m.cellW)+"px"; el.style.top=(y*m.cellH)+"px";
+    el.style.width=(w*m.cellW)+"px"; el.style.height=(hh*m.cellH)+"px";
+    maxB=Math.max(maxB,(y+hh)*m.cellH);
+  });
+  m.canvas.style.height = isMobileGrid()? "" : (maxB+10)+"px";
+}
+let _gridResizeBound=false;
+function bindGridResize(){
+  if(_gridResizeBound) return; _gridResizeBound=true;
+  let t; window.addEventListener("resize",()=>{ clearTimeout(t); t=setTimeout(()=>{ if($(".gridcanvas")) layoutTiles(); },120); });
+}
+
+/* materializa o layout efetivo em STATE.layout (baked/pilha -> editável) */
+function liveItems(key, layout){
+  if(!STATE.layout[key]){
+    STATE.layout[key]={ cols:layout?layout.cols:GRID_COLS, cellH:layout?layout.cellH:GRID_CELLH,
+      items:(layout?layout.items:[]).map(o=>Object.assign({},o)) };
+  }
+  return STATE.layout[key].items;
+}
+function layoutItemsOf(key){ return (STATE.layout[key]&&STATE.layout[key].items)||[]; }
+
+/* colisão (em unidades de grade) */
+function tilesOverlap(a,b){ return !(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y); }
+function collidesAny(box,ignoreId,items){ return items.some(o=>o.id!==ignoreId && tilesOverlap(box,o)); }
+function findFreeSpot(box,ignoreId,items,cols){
+  const ok=b=> b.x>=0 && b.y>=0 && (b.x+b.w)<=cols && !collidesAny(b,ignoreId,items);
+  if(ok(box)) return {x:box.x,y:box.y};
+  for(let r=1;r<400;r++){
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
+      const nx=box.x+dx, ny=box.y+dy;
+      if(ok({x:nx,y:ny,w:box.w,h:box.h})) return {x:nx,y:ny};
+    }
+  }
+  return {x:Math.max(0,Math.min(box.x,cols-box.w)), y:box.y};
+}
+function makeGhost(canvas){ const g=document.createElement("div"); g.className="tile-ghost"; canvas.appendChild(g); return g; }
+function setGhost(g,m,x,y,w,h,bad){ if(!g) return;
+  g.style.left=(x*m.cellW)+"px"; g.style.top=(y*m.cellH)+"px";
+  g.style.width=(w*m.cellW)+"px"; g.style.height=(h*m.cellH)+"px";
+  g.style.display=""; g.classList.toggle("bad",!!bad); }
+
+/* ----- drag / resize ----- */
+let GDRAG=null;
+function bindGridDrag(canvas, key, layout){
+  if(canvas._dragBound) return; canvas._dragBound=true;
+  bindGridResize(); bindGridGlobal();
+  canvas.addEventListener("pointerdown", e=>{
+    if(!EDIT) return;
+    const tileEl=e.target.closest(".gtile"); if(!tileEl) return;
+    const onMove=!!e.target.closest(".t-move");
+    const rEl=e.target.closest(".resize, .resize-r, .resize-b");
+    if(!onMove && !rEl) return;            // só inicia pela alça ou pelos resizers
+    const m=gridMetrics(); if(!m) return;
+    const items=liveItems(key, layout);
+    const item=items.find(it=>it.id===tileEl.dataset.id); if(!item) return;
+    if(isMobileGrid()){
+      if(onMove){ GDRAG={mode:"reorder",key,item,el:tileEl,startY:e.clientY,over:null}; tileEl.classList.add("dragging"); tileEl.style.pointerEvents="none"; }
+      else if(rEl.classList.contains("resize-b")){ GDRAG={mode:"resizeH",key,item,el:tileEl,m,startY:e.clientY,oh:item.h}; tileEl.classList.add("resizing"); }
+      else return;
+      e.preventDefault(); return;
+    }
+    GDRAG={ mode: rEl?"resize":"move", key, item, el:tileEl, m,
+            rdir: rEl? (rEl.classList.contains("resize-r")?"x":rEl.classList.contains("resize-b")?"y":"xy") : null,
+            startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y, ow:item.w, oh:item.h };
+    tileEl.classList.add(rEl?"resizing":"dragging");
+    GDRAG.ghost=makeGhost(m.canvas);
+    setGhost(GDRAG.ghost,m,item.x,item.y,item.w,item.h,false);
+    e.preventDefault();
+  });
+}
+let _gridGlobalBound=false;
+function bindGridGlobal(){
+  if(_gridGlobalBound) return; _gridGlobalBound=true;
+  window.addEventListener("pointermove", onGridMove);
+  window.addEventListener("pointerup", onGridUp);
+}
+function onGridMove(e){
+  if(!GDRAG) return; const d=GDRAG, m=d.m;
+  if(d.mode==="reorder"){
+    d.el.style.transform="translateY("+(e.clientY-d.startY)+"px)";
+    const under=document.elementFromPoint(e.clientX,e.clientY);
+    const ov=under&&under.closest(".gtile");
+    $$(".gtile.reorder-target").forEach(x=>x.classList.remove("reorder-target"));
+    if(ov&&ov!==d.el){ ov.classList.add("reorder-target"); d.over=ov.dataset.id; } else d.over=null;
+    return;
+  }
+  if(d.mode==="resizeH"){ d.el.style.height=Math.max(m.cellH, d.oh*m.cellH+(e.clientY-d.startY))+"px"; return; }
+  const dx=e.clientX-d.startX, dy=e.clientY-d.startY, items=layoutItemsOf(d.key);
+  if(d.mode==="resize"){
+    if(d.rdir!=="y") d.el.style.width=Math.max(m.cellW,(d.ow*m.cellW+dx))+"px";
+    if(d.rdir!=="x") d.el.style.height=Math.max(m.cellH,(d.oh*m.cellH+dy))+"px";
+    const nw=Math.max(1,Math.min(m.cols-d.item.x,Math.round(parseFloat(d.el.style.width)/m.cellW)));
+    const nh=Math.max(1,Math.round(parseFloat(d.el.style.height)/m.cellH));
+    d._nw=nw; d._nh=nh;
+    setGhost(d.ghost,m,d.item.x,d.item.y,nw,nh, collidesAny({x:d.item.x,y:d.item.y,w:nw,h:nh},d.item.id,items));
+  } else {
+    d.el.style.left=Math.max(0,d.ox*m.cellW+dx)+"px";
+    d.el.style.top=Math.max(0,d.oy*m.cellH+dy)+"px";
+    const gx=Math.max(0,Math.min(m.cols-d.item.w, Math.round(parseFloat(d.el.style.left)/m.cellW)));
+    const gy=Math.max(0,Math.round(parseFloat(d.el.style.top)/m.cellH));
+    d._gx=gx; d._gy=gy;
+    setGhost(d.ghost,m,gx,gy,d.item.w,d.item.h, collidesAny({x:gx,y:gy,w:d.item.w,h:d.item.h},d.item.id,items));
+  }
+}
+function onGridUp(){
+  if(!GDRAG) return; const d=GDRAG, m=d.m;
+  if(d.mode==="reorder"){
+    $$(".gtile.reorder-target").forEach(x=>x.classList.remove("reorder-target"));
+    if(d.over){
+      const items=layoutItemsOf(d.key);
+      const from=items.indexOf(d.item), to=items.findIndex(it=>it.id===d.over);
+      if(from>-1&&to>-1){ items.splice(from,1); items.splice(to,0,d.item); }
+    }
+    GDRAG=null; saveState(); render(); return;
+  }
+  if(d.mode==="resizeH"){
+    d.item.h=Math.max(1,Math.round(parseFloat(d.el.style.height)/m.cellH));
+    GDRAG=null; saveState(); render(); return;
+  }
+  if(d.ghost) d.ghost.remove();
+  if(d.mode==="resize"){ d.item.w=d._nw||d.item.w; d.item.h=d._nh||d.item.h; }
+  else {
+    const items=layoutItemsOf(d.key);
+    const spot=findFreeSpot({x:d._gx!=null?d._gx:d.item.x, y:d._gy!=null?d._gy:d.item.y, w:d.item.w, h:d.item.h}, d.item.id, items, m.cols);
+    d.item.x=spot.x; d.item.y=spot.y;
+  }
+  GDRAG=null; saveState(); render();
+}
+
+/* ----- ativar / desativar / remover ----- */
+function seedLayout(sec, key){
+  const cols=GRID_COLS, cellH=GRID_CELLH;
+  const sectionEl=$(".section");
+  const blockEls=$$(":scope > *", sectionEl).filter(el=> !el.classList.contains("grid-activate") && el.tagName!=="H3");
+  const items=[]; let y=0;
+  sec.blocks.forEach((b,i)=>{
+    const el=blockEls[i];
+    const hh=el?Math.max(2,Math.round(el.offsetHeight/cellH)):3;
+    items.push({ id:b._id, x:0, y, w:cols, h:hh }); y+=hh;
+  });
+  STATE.layout[key]={ cols, cellH, items }; saveState(); render();
+}
+function deactivateGrid(key){
+  if(!confirm("Desativar a grade desta seção? Os widgets voltam ao empilhamento padrão (o conteúdo é preservado).")) return;
+  delete STATE.layout[key]; saveState(); render();
+}
+function deleteTile(key, id){
+  const L=STATE.layout[key]; if(!L) return;
+  L.items=L.items.filter(it=>it.id!==id);
+  saveState(); render();
+}
+
+/* ----- paleta de widgets (adicionar) ----- */
+function newAddId(){ _addSeq++; STATE._addSeq=_addSeq; return "add#"+_addSeq; }
+const WIDGET_CATALOG=[
+  {ic:"¶", label:"Parágrafo", desc:"Texto corrido", make:id=>({type:"paragraph", _id:id, key:id+"/t", text:"Novo parágrafo. Entre em Editar para alterar o texto."})},
+  {ic:"❝", label:"Lead", desc:"Frase de abertura", make:id=>({type:"lead", _id:id, key:id+"/t", text:"Frase de abertura em destaque."})},
+  {ic:"▌", label:"Callout", desc:"Caixa colorida", make:id=>({type:"callout", _id:id, ttl:"Título do destaque", color:"var(--orange)", key:id+"/t", text:"Conteúdo do destaque."})},
+  {ic:"▥", label:"Grade de callouts", desc:"Vários destaques", make:id=>({type:"calloutGrid", _id:id, items:[{ttl:"Ponto 1", color:"var(--cyan)", key:id+"/a", text:"..."},{ttl:"Ponto 2", color:"var(--green)", key:id+"/b", text:"..."}]})},
+  {ic:"☰", label:"Lista", desc:"Lista de itens", make:id=>({type:"list", _id:id, key:id+"/l", items:["Primeiro item","Segundo item","Terceiro item"]})},
+  {ic:"▤", label:"Cards", desc:"Cartões título+texto", make:id=>({type:"cards", _id:id, items:[{key:id+"/c1", titulo:"Card 1", text:"..."},{key:id+"/c2", titulo:"Card 2", text:"..."}]})},
+  {ic:"№", label:"Indicadores", desc:"Números em linha", make:id=>({type:"statRow", _id:id, items:[{v:"100%", l:"Meta"},{v:"3x", l:"Crescimento"},{v:"12", l:"Ações"}]})},
+  {ic:"◍", label:"Chips", desc:"Etiquetas coloridas", make:id=>({type:"chips", _id:id, items:[{t:"Tag A", color:"var(--cyan)"},{t:"Tag B", color:"var(--magenta)"},{t:"Tag C", color:"var(--green)"}]})},
+  {ic:"▦", label:"Tabela", desc:"Tabela simples", make:id=>({type:"table", _id:id, cols:["Coluna A","Coluna B"], rows:[["Linha 1","..."],["Linha 2","..."]]})},
+  {ic:"🖼", label:"Imagem", desc:"Imagem com legenda", make:id=>({type:"image", _id:id, src:"", caption:"Legenda da imagem"})},
+  {ic:"❓", label:"FAQ", desc:"Perguntas e respostas", make:id=>({type:"faq", _id:id, key:id+"/f", items:[{q:"Pergunta de exemplo?", a:"Resposta de exemplo."}]})},
+  {ic:"▶", label:"Vídeo", desc:"Player de vídeo", make:id=>({type:"video", _id:id, key:id+"/v", caption:"Vídeo"})},
+  {ic:"✓", label:"Ação", desc:"Item do plano de ação", make:id=>({type:"action", _id:id, id:id, num:"•", titulo:"Nova ação", prioridade:"Média", desc:"Descreva a ação aqui."})},
+];
+function openPalette(key, layout){
+  const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
+    <span class="pi-ic">${w.ic}</span><span class="pi-t">${esc(w.label)}</span><span class="pi-d">${esc(w.desc)}</span></button>`).join("");
+  const card=showModal("Adicionar widget", `<div class="palette-grid">${cells}</div>`);
+  $$(".palette-item",card).forEach(b=> b.addEventListener("click",()=>{
+    addBlock(key, layout, WIDGET_CATALOG[+b.dataset.wi]); closeModal();
+  }));
+}
+function addBlock(key, layout, w){
+  const items=liveItems(key, layout);
+  const id=newAddId();
+  const blk=w.make(id); blk._id=id;
+  const cols=(STATE.layout[key].cols)||GRID_COLS;
+  const wide=Math.min(cols,6), tall=3;
+  const maxY=items.length?Math.max(...items.map(it=>it.y+it.h)):0;
+  const spot=findFreeSpot({x:0,y:0,w:wide,h:tall}, null, items, cols);
+  items.push({ id, x:spot.x, y:spot.y, w:wide, h:tall, add:blk });
+  saveState(); render();
+}
+
+/* ----- exportar para o PLAN ----- */
+function exportSection(sec, key){
+  const layout=effectiveLayout(sec, key); if(!layout){ alert("Esta seção ainda não tem grade."); return; }
+  const out=layout.items.map(item=>{
+    const base=blockOfItem(sec, item); if(!base) return null;
+    const clone=JSON.parse(JSON.stringify(base));
+    delete clone._id;
+    clone.grid={ x:item.x, y:item.y, w:item.w, h:item.h };
+    return clone;
+  }).filter(Boolean);
+  const js="blocks: "+pretty(out)+",";
+  const card=showModal("Exportar para o PLAN", `
+    <p class="export-hint">Copie o array abaixo e <b>substitua o <code>blocks: [...]</code></b> da seção
+    «${esc(sec.titulo)}» no <b>index.html</b>, depois faça <b>commit</b>. O arranjo (campo <code>grid</code>)
+    passa a valer para todos, sem depender do localStorage.</p>
+    <textarea class="export-ta" spellcheck="false">${esc(js)}</textarea>
+    <div style="margin-top:10px;display:flex;gap:8px"><button class="gt-btn accent" id="expCopy">Copiar</button></div>`);
+  const ta=$(".export-ta",card);
+  $("#expCopy",card).addEventListener("click",()=>{
+    ta.select();
+    try{ navigator.clipboard.writeText(ta.value); }catch(_){ document.execCommand("copy"); }
+    $("#expCopy",card).textContent="Copiado ✓";
+  });
+}
+/* serializador JS legível (chaves sem aspas quando possível, cores var() preservadas) */
+function pretty(v, ind){
+  ind=ind||"  ";
+  if(Array.isArray(v)){
+    if(!v.length) return "[]";
+    return "[\n"+v.map(x=> ind+"  "+pretty(x, ind+"  ")).join(",\n")+"\n"+ind+"]";
+  }
+  if(v&&typeof v==="object"){
+    const ks=Object.keys(v);
+    return "{ "+ks.map(k=>{
+      const kk=/^[A-Za-z_$][\w$]*$/.test(k)?k:JSON.stringify(k);
+      return kk+":"+pretty(v[k], ind);
+    }).join(", ")+" }";
+  }
+  return JSON.stringify(v);
+}
+
+/* ----- modal genérico ----- */
+function showModal(title, bodyHtml){
+  closeModal();
+  const m=document.createElement("div"); m.className="gmodal open"; m.id="gmodal";
+  m.innerHTML=`<div class="gmodal-card"><div class="gmodal-head"><span class="gm-t">${esc(title)}</span>
+    <button class="close" id="gmClose">×</button></div><div class="gmodal-body">${bodyHtml}</div></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",e=>{ if(e.target===m) closeModal(); });
+  $("#gmClose",m).addEventListener("click", closeModal);
+  return m;
+}
+function closeModal(){ const m=$("#gmodal"); if(m) m.remove(); }
+
+/* liga os controles do grid após cada render */
+function wireGridEvents(sec, key, layout){
+  const act=$("#gridActivate"); if(act) act.addEventListener("click",()=> seedLayout(sec, key));
+  const add=$("[data-gadd]"); if(add) add.addEventListener("click",()=> openPalette(key, layout));
+  const exp=$("[data-gexport]"); if(exp) exp.addEventListener("click",()=> exportSection(sec, key));
+  const deact=$("[data-gdeactivate]"); if(deact) deact.addEventListener("click",()=> deactivateGrid(key));
+  $$(".gtile-del").forEach(btn=> btn.addEventListener("click",e=>{
+    e.stopPropagation(); deleteTile(key, btn.closest(".gtile").dataset.id);
+  }));
+  const canvas=$(".gridcanvas"); if(canvas) bindGridDrag(canvas, key, layout);
+}
 
 /* =========================================================================
    PROGRESSO (evolução do plano de ação)
