@@ -643,11 +643,40 @@
   .hist-item.cur .hi-dot{background:var(--orange)}
   .hist-item .hi-lbl{font-weight:700;color:var(--ink);font-size:13.5px}
   .hist-item .hi-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+  /* sidebar recolhível */
+  .side-toggle{border:1px solid var(--line);background:#fff;border-radius:9px;width:30px;height:30px;
+    font-size:17px;color:var(--ink);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  #sidebar{transition:flex-basis .2s,width .2s}
+  body.sidebar-collapsed #sidebar{flex:0 0 0;width:0;min-width:0;padding:0;border:none;overflow:hidden}
+  /* cluster de edição no topo */
+  .edit-cluster{display:flex;align-items:center;gap:6px}
+  .tb-icon{border:1px solid var(--line);background:#fff;border-radius:9px;width:34px;height:34px;
+    font-size:16px;color:var(--ink2);font-weight:700;display:flex;align-items:center;justify-content:center}
+  .tb-icon[disabled]{opacity:.38;pointer-events:none}
+  .save-pill{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;padding:0 4px;min-width:54px}
+  .save-pill.saving{color:var(--orange)} .save-pill.saved{color:var(--green)}
+  /* progresso na nav lateral */
+  .nav-item .nav-prog{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--muted);
+    background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:1px 7px;flex:0 0 auto}
+  .nav-item .nav-prog.done{color:#fff;background:var(--green);border-color:var(--green)}
+  .nav-item{display:flex;align-items:center;gap:8px}
+  /* barra de progresso no topo da aba */
+  .sec-progress{display:flex;align-items:center;gap:10px;margin:6px 0 14px;padding:9px 13px;
+    background:var(--card);border:1px solid var(--line);border-radius:11px}
+  .sec-progress .spbar{flex:1;height:8px;border-radius:6px;background:var(--paper);overflow:hidden;min-width:80px}
+  .sec-progress .spbar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:6px;transition:width .3s}
+  .sec-progress .sptxt{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+  /* botão recuperar no histórico */
+  .hist-item .hi-recover{margin-left:auto;flex:0 0 auto;border:1px solid var(--green);color:var(--green);
+    background:#fff;border-radius:8px;font-size:11.5px;font-weight:700;padding:4px 8px;align-self:center}
+  .hist-item .hi-recover:hover{background:var(--green);color:#fff}
   @media (max-width:820px){
     .gridcanvas{height:auto!important;display:flex;flex-direction:column;gap:12px}
     .gtile{position:relative!important;left:auto!important;top:auto!important;width:100%!important;
       transition:none}
     body.grid-edit .resize,body.grid-edit .resize-r{display:none!important}
+    .side-toggle{display:none}
+    body.sidebar-collapsed #sidebar{width:var(--sidebar)}
   }
 
   /* AI panel */
@@ -761,7 +790,14 @@
   <div id="main">
     <div class="topbar">
       <button class="hamburger" id="hamburger">☰</button>
+      <button class="side-toggle" id="sideToggle" title="Recolher menu">‹</button>
       <div class="tb-title" id="tbTitle">Onboarding</div>
+      <div class="edit-cluster" id="editCluster" style="display:none">
+        <button class="tb-icon" id="undoBtn" title="Desfazer" disabled>↶</button>
+        <button class="tb-icon" id="redoBtn" title="Refazer" disabled>↷</button>
+        <button class="tb-icon" id="histBtn" title="Histórico de alterações">🕘</button>
+        <span class="save-pill" id="savePill"></span>
+      </div>
       <div class="progress-pill" title="Progresso do plano de ação">
         <span class="ring" id="ring"><b id="ringTxt">0%</b></span>
         <span class="ptxt">execução</span>
@@ -1674,7 +1710,11 @@ let CUR = { chapter:"onb", section:0 }; // onb = onboarding; senão índice do c
 let EDIT = false;
 
 function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_STATE)) || {} }catch(e){ return {} } }
-function saveState(){ localStorage.setItem(LS_STATE, JSON.stringify(STATE)); cloudPush(); }
+function saveState(){
+  localStorage.setItem(LS_STATE, JSON.stringify(STATE));
+  if(typeof setSaveStatus==="function"){ setSaveStatus((CLOUD && isCloudAdmin())?'saving':'saved'); }
+  cloudPush();
+}
 function loadAuth(){ try{ return JSON.parse(localStorage.getItem(LS_AUTH)) }catch(e){ return null } }
 STATE.overrides = STATE.overrides || {};
 STATE.statuses  = STATE.statuses  || {};
@@ -1701,6 +1741,7 @@ function cloudPush(){
   clearTimeout(_cloudTimer);
   _cloudTimer=setTimeout(()=>{
     db.doc(CLOUD_DOC).set(cloudPayload(), {merge:true})
+      .then(()=>{ if(typeof setSaveStatus==="function") setSaveStatus('saved'); })
       .catch(e=> console.warn("cloudPush falhou:", e.code||e));
   }, 400);
 }
@@ -1838,6 +1879,7 @@ function startApp(){
   $("#editBtn").style.display = isAdmin ? "flex" : "none";
   ensureBlockIds();
   histInit();
+  applySideCollapsed();
   buildNav();
   render();
   buildAiSuggest();
@@ -1864,6 +1906,7 @@ function buildNav(){
     CUR={ chapter: ch==='onb'?'onb':parseInt(ch,10), section:0 };
     persistUi(); render(); closeDrawer();
   }));
+  updateNavProgress();
 }
 function persistUi(){ STATE.ui=CUR; saveState(); }
 
@@ -1905,6 +1948,7 @@ function render(){
   // Editar já ativa a grade de TODOS os widgets: auto-semeia a seção (mede e converte)
   if(!layout && EDIT){ layout = autoSeedLayout(sec, key); }
   h += `<div class="section"><h3>${esc(sec.titulo)}</h3>`;
+  h += secProgressHtml(ch, CUR.section);
   if(layout){
     h += gridToolbarHtml(key);
     h += `<div class="gridwrap"><div class="gridcanvas" data-seckey="${key}" data-cols="${layout.cols}" data-cellh="${layout.cellH}">`;
@@ -1938,6 +1982,7 @@ function render(){
   wireGridEvents(sec, key, layout);
   applyEdit();
   updateProgress();
+  updateEditChrome();
   if($(".gridcanvas")) layoutTiles();
 }
 
@@ -2323,11 +2368,7 @@ $("#editBtn").addEventListener("click",()=>{
 function isMobileGrid(){ return window.innerWidth<=820; }
 
 function gridToolbarHtml(key){
-  const canUndo=HI>0, canRedo=HI<HIST.length-1;
   return `<div class="gtoolbar" data-seckey="${key}">
-    <button class="gt-btn icon" data-gundo ${canUndo?'':'disabled'} title="Desfazer">↶</button>
-    <button class="gt-btn icon" data-gredo ${canRedo?'':'disabled'} title="Refazer">↷</button>
-    <button class="gt-btn ghost" data-ghist title="Histórico de alterações">🕘 Histórico</button>
     <span class="gt-info">arraste pela alça ⠿ · redimensione pelas bordas · 🎨 cores</span>
     <button class="gt-btn accent" data-gadd>＋ Widget</button>
     <button class="gt-btn ghost" data-gexport>⤓ Exportar</button>
@@ -2651,13 +2692,17 @@ function undo(){ if(HI>0) restoreSnapshot(HI-1); }
 function redo(){ if(HI<HIST.length-1) restoreSnapshot(HI+1); }
 function openHistory(){
   histInit();
-  const rows=HMETA.map((m,i)=>({m,i})).reverse().map(({m,i})=>`
-    <button class="hist-item ${i===HI?'cur':''}" data-hi="${i}">
+  const rows=HMETA.map((m,i)=>({m,i})).reverse().map(({m,i})=>{
+    const del=/Removeu/i.test(m.label);
+    const rec = del && i>0 ? `<button class="hi-recover" data-rec="${i-1}" title="Recuperar o que foi apagado">↩ Recuperar</button>` : "";
+    return `<div class="hist-item ${i===HI?'cur':''}" data-hi="${i}">
       <span class="hi-dot"></span>
       <span><span class="hi-lbl">${esc(m.label)}</span>
-      <span class="hi-meta">${esc([m.ctx,m.widget].filter(Boolean).join(' › '))}${m.ts?' · '+m.ts:''}</span></span>
-    </button>`).join("");
+      <span class="hi-meta">${esc([m.ctx,m.widget].filter(Boolean).join(' › '))}${m.ts?' · '+m.ts:''}</span></span>${rec}
+    </div>`;
+  }).join("");
   const card=showModal("Histórico de alterações", `<div class="hist-list">${rows}</div>`);
+  $$(".hi-recover",card).forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); restoreSnapshot(+b.dataset.rec); closeModal(); }));
   $$(".hist-item",card).forEach(b=> b.addEventListener("click",()=>{ restoreSnapshot(+b.dataset.hi); closeModal(); }));
 }
 
@@ -2716,9 +2761,6 @@ function wireGridEvents(sec, key, layout){
   const add=$("[data-gadd]"); if(add) add.addEventListener("click",()=> openPalette(key, layout));
   const exp=$("[data-gexport]"); if(exp) exp.addEventListener("click",()=> exportSection(sec, key));
   const deact=$("[data-gdeactivate]"); if(deact) deact.addEventListener("click",()=> deactivateGrid(key));
-  const u=$("[data-gundo]"); if(u) u.addEventListener("click", undo);
-  const r=$("[data-gredo]"); if(r) r.addEventListener("click", redo);
-  const hb=$("[data-ghist]"); if(hb) hb.addEventListener("click", openHistory);
   $$(".gtile-del").forEach(btn=> btn.addEventListener("click",e=>{
     e.stopPropagation(); deleteTile(key, btn.closest(".gtile").dataset.id);
   }));
@@ -2732,8 +2774,8 @@ function wireGridEvents(sec, key, layout){
    PROGRESSO (evolução do plano de ação)
    ========================================================================= */
 function allActions(){
-  let ids=[];
-  PLAN.chapters.forEach(c=> c.sections.forEach(s=> s.blocks.forEach(b=>{ if(b.type==="action") ids.push(b.id); })));
+  let ids=chapterActionIds(PLAN.onboarding);
+  PLAN.chapters.forEach(c=> ids=ids.concat(chapterActionIds(c)));
   return ids;
 }
 function updateProgress(){
@@ -2742,6 +2784,67 @@ function updateProgress(){
   const pct = ids.length? Math.round(done/ids.length*100) : 0;
   const ring=$("#ring"); ring.style.setProperty("--p",pct);
   $("#ringTxt").textContent=pct+"%";
+  updateNavProgress();
+}
+
+/* =========================================================================
+   FASE 1 — sidebar recolhível, cromo de edição no topo, autosave, progresso
+   ========================================================================= */
+function applySideCollapsed(){
+  document.body.classList.toggle("sidebar-collapsed", !!STATE.sideCollapsed);
+  const t=$("#sideToggle");
+  if(t){ t.textContent=STATE.sideCollapsed?"›":"‹"; t.title=STATE.sideCollapsed?"Expandir menu":"Recolher menu"; }
+}
+$("#sideToggle").addEventListener("click",()=>{ STATE.sideCollapsed=!STATE.sideCollapsed; localStorage.setItem(LS_STATE,JSON.stringify(STATE)); applySideCollapsed(); });
+
+/* cluster de edição no topo (desfazer/refazer/histórico) — só admin em edição */
+function updateEditChrome(){
+  const on = EDIT && AUTH && AUTH.role==="admin";
+  const c=$("#editCluster"); if(c) c.style.display = on ? "flex" : "none";
+  const u=$("#undoBtn"), r=$("#redoBtn");
+  if(u) u.disabled = !(HI>0);
+  if(r) r.disabled = !(HI<HIST.length-1);
+  if(!on){ const p=$("#savePill"); if(p){ p.textContent=""; p.className="save-pill"; } }
+}
+$("#undoBtn").addEventListener("click", ()=>undo());
+$("#redoBtn").addEventListener("click", ()=>redo());
+$("#histBtn").addEventListener("click", ()=>openHistory());
+
+/* indicador de autosave */
+function setSaveStatus(s){
+  const p=$("#savePill"); if(!p) return;
+  if(!(EDIT && AUTH && AUTH.role==="admin")){ p.textContent=""; p.className="save-pill"; return; }
+  if(s==='saving'){ p.textContent="Salvando…"; p.className="save-pill saving"; }
+  else if(s==='saved'){ p.textContent="Salvo ✓ "+nowHM(); p.className="save-pill saved"; }
+}
+
+/* progresso de ações por seção / capítulo */
+function sectionActionIds(chRef, si){
+  const ids=[]; const sec=chRef.sections[si]; if(!sec) return ids;
+  sec.blocks.forEach(b=>{ if(b.type==="action"&&b.id) ids.push(b.id); });
+  const key=(chRef===PLAN.onboarding?'onb':PLAN.chapters.indexOf(chRef))+'/'+si;
+  const L=STATE.layout[key];
+  if(L&&L.items) L.items.forEach(it=>{ if(it.add&&it.add.type==="action"&&it.add.id) ids.push(it.add.id); });
+  return ids;
+}
+function chapterActionIds(chRef){ let ids=[]; chRef.sections.forEach((s,si)=> ids=ids.concat(sectionActionIds(chRef,si))); return ids; }
+function progOf(ids){ const total=ids.length, done=ids.filter(id=>STATE.statuses[id]==="done").length; return {done,total,pct: total?Math.round(done/total*100):0}; }
+function secProgressHtml(chRef, si){
+  const p=progOf(sectionActionIds(chRef,si)); if(!p.total) return "";
+  return `<div class="sec-progress"><span class="sptxt">✓ ${p.done} de ${p.total} ações</span>
+    <span class="spbar"><i style="width:${p.pct}%"></i></span><span class="sptxt">${p.pct}%</span></div>`;
+}
+function updateNavProgress(){
+  $$(".nav-item").forEach(b=>{
+    const v=b.dataset.ch; const chRef = v==='onb'?PLAN.onboarding:PLAN.chapters[parseInt(v,10)];
+    if(!chRef) return;
+    const p=progOf(chapterActionIds(chRef));
+    let chip=b.querySelector(".nav-prog");
+    if(!p.total){ if(chip) chip.remove(); return; }
+    if(!chip){ chip=document.createElement("span"); chip.className="nav-prog"; b.appendChild(chip); }
+    chip.textContent=`${p.done}/${p.total}`;
+    chip.classList.toggle("done", p.done===p.total);
+  });
 }
 
 /* =========================================================================
