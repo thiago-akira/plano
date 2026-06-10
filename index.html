@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plano de Marketing Turístico — Portal do Cliente</title>
+<!-- Firebase (sincronização online em tempo real). Requer internet. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --ink:#241a6e;        /* indigo estrutura */
@@ -681,8 +685,8 @@
     </div>
     <div class="login-body">
       <div class="field">
-        <label for="lu">Usuário</label>
-        <input id="lu" type="text" autocomplete="username" placeholder="seu usuário">
+        <label for="lu">Usuário ou e-mail</label>
+        <input id="lu" type="text" autocomplete="username" placeholder="usuário (cliente) ou e-mail (consultor)">
       </div>
       <div class="field">
         <label for="lp">Senha</label>
@@ -690,10 +694,10 @@
       </div>
       <button class="btn-primary" id="loginBtn">Entrar</button>
       <div class="login-err" id="loginErr"></div>
-      <div class="login-hint">
-        <b>Acesso de demonstração</b><br>
+      <div class="login-hint" id="loginHint">
+        <b>Acesso</b><br>
         Cliente — usuário <b>cliente</b> · senha <b>amapa</b><br>
-        Consultor (edição) — usuário <b>admin</b> · senha <b>amapa2025</b>
+        Consultor (edição) — entre com seu <b>e-mail</b> e senha.
       </div>
     </div>
   </div>
@@ -763,6 +767,33 @@
 <div id="overlay"></div>
 
 <script>
+/* =========================================================================
+   FIREBASE — sincronização online em tempo real (Firestore + Auth).
+   Cole aqui o config do seu projeto (Console → Project settings → Web app).
+   O apiKey é PÚBLICO por design; a segurança vem das regras do Firestore
+   (só o e-mail admin escreve; resto só lê). Veja FIREBASE_SETUP.md.
+   Enquanto o config for o placeholder, o portal roda em MODO LOCAL
+   (localStorage + login demo), exatamente como antes.
+   ========================================================================= */
+const FIREBASE_CONFIG = {
+  apiKey: "COLE_AQUI",
+  authDomain: "COLE_AQUI",
+  projectId: "COLE_AQUI",
+  storageBucket: "COLE_AQUI",
+  messagingSenderId: "COLE_AQUI",
+  appId: "COLE_AQUI"
+};
+const CLOUD = !!(FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith("COLE") && window.firebase);
+let db=null, fbAuth=null;
+if(CLOUD){
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    fbAuth = firebase.auth();
+  }catch(e){ console.error("Falha ao iniciar Firebase:", e); }
+}
+const CLOUD_DOC = "plano/state"; // documento compartilhado
+
 /* =========================================================================
    PLANO — modelo de dados (conteúdo). Trocar este objeto = trocar o plano.
    Tipos de bloco (renderers): paragraph, lead, callout, calloutGrid,
@@ -1609,7 +1640,7 @@ let CUR = { chapter:"onb", section:0 }; // onb = onboarding; senão índice do c
 let EDIT = false;
 
 function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_STATE)) || {} }catch(e){ return {} } }
-function saveState(){ localStorage.setItem(LS_STATE, JSON.stringify(STATE)); }
+function saveState(){ localStorage.setItem(LS_STATE, JSON.stringify(STATE)); cloudPush(); }
 function loadAuth(){ try{ return JSON.parse(localStorage.getItem(LS_AUTH)) }catch(e){ return null } }
 STATE.overrides = STATE.overrides || {};
 STATE.statuses  = STATE.statuses  || {};
@@ -1619,6 +1650,59 @@ if(STATE.ui){ CUR = STATE.ui; }
 
 function txt(key, def){ return (key && STATE.overrides[key]!=null) ? STATE.overrides[key] : def; }
 function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* =========================================================================
+   FIREBASE — sincronização do estado (fonte da verdade = Firestore)
+   ========================================================================= */
+let _cloudTimer=null, _applyingRemote=false;
+function isCloudAdmin(){ return !!(CLOUD && fbAuth && fbAuth.currentUser); }
+function cloudPayload(){
+  return { overrides:STATE.overrides||{}, statuses:STATE.statuses||{}, media:STATE.media||{},
+    layout:STATE.layout||{}, _addSeq:_addSeq||0,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+}
+function cloudPush(){
+  if(!isCloudAdmin() || _applyingRemote) return;       // só admin grava; ignora eco remoto
+  clearTimeout(_cloudTimer);
+  _cloudTimer=setTimeout(()=>{
+    db.doc(CLOUD_DOC).set(cloudPayload(), {merge:true})
+      .catch(e=> console.warn("cloudPush falhou:", e.code||e));
+  }, 400);
+}
+function applyRemote(data){
+  if(!data) return;
+  _applyingRemote=true;
+  STATE.overrides = data.overrides || {};
+  STATE.statuses  = data.statuses  || {};
+  STATE.media     = data.media     || {};
+  STATE.layout    = data.layout    || {};
+  _addSeq = Math.max(_addSeq||0, data._addSeq||0); STATE._addSeq=_addSeq;
+  localStorage.setItem(LS_STATE, JSON.stringify(STATE));   // cache local
+  _applyingRemote=false;
+  // re-render ao vivo — mas não enquanto o admin digita (preserva o cursor)
+  if($("#app") && !$("#app").classList.contains("hidden")){
+    const ae=document.activeElement;
+    if(!(ae && ae.isContentEditable)){ render(); }
+  }
+}
+function cloudInit(){
+  if(!CLOUD || !db) return;
+  // 1) updates em tempo real (cliente e admin recebem)
+  db.doc(CLOUD_DOC).onSnapshot(snap=>{
+    if(snap.metadata.hasPendingWrites) return;   // ignora o eco da própria escrita
+    if(snap.exists) applyRemote(snap.data());
+  }, err=> console.warn("onSnapshot:", err.code||err));
+  // 2) sessão do admin (Firebase Auth)
+  fbAuth.onAuthStateChanged(async u=>{
+    if(!u) return;
+    AUTH={ user:u.email, role:"admin", name:(u.email||"Admin").split("@")[0] };
+    try{
+      const ref=db.doc(CLOUD_DOC), cur=await ref.get();
+      if(!cur.exists){ await ref.set(cloudPayload()); } // semeia com baked + cache
+    }catch(e){ console.warn("seed:", e.code||e); }
+    startApp();
+  });
+}
 
 /* =========================================================================
    EDITOR MODULAR — modelo de dados do layout (grid 2D)
@@ -1664,12 +1748,29 @@ const $=(s,el=document)=>el.querySelector(s);
 const $$=(s,el=document)=>[...el.querySelectorAll(s)];
 
 function doLogin(){
-  const u=$("#lu").value.trim().toLowerCase(), p=$("#lp").value;
+  const raw=$("#lu").value.trim(), p=$("#lp").value;
+  const u=raw.toLowerCase();
+  $("#loginErr").textContent="";
+  // Admin via Firebase Auth quando em modo nuvem e o usuário é um e-mail
+  if(CLOUD && raw.includes("@")){
+    $("#loginErr").textContent="Entrando…";
+    fbAuth.signInWithEmailAndPassword(raw, p)
+      .then(()=>{ $("#loginErr").textContent=""; /* onAuthStateChanged chama startApp */ })
+      .catch(err=>{
+        const m=err.code==="auth/invalid-credential"||err.code==="auth/wrong-password"||err.code==="auth/user-not-found"
+          ? "E-mail ou senha inválidos." : ("Falha no login: "+(err.code||err.message));
+        $("#loginErr").textContent=m;
+      });
+    return;
+  }
+  // Cliente (e admin demo só em modo local) — login client-side
   const acc=DEMO[u];
-  if(acc && acc.pass===p){
+  if(acc && acc.pass===p && (acc.role==="cliente" || !CLOUD)){
     AUTH={ user:u, role:acc.role, name:acc.name };
     localStorage.setItem(LS_AUTH, JSON.stringify(AUTH));
     startApp();
+  } else if(CLOUD && acc && acc.role==="admin"){
+    $("#loginErr").textContent="Admin agora entra com e-mail e senha.";
   } else {
     $("#loginErr").textContent="Usuário ou senha inválidos.";
   }
@@ -1679,6 +1780,7 @@ $("#lp").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 $("#lu").addEventListener("keydown", e=>{ if(e.key==="Enter") $("#lp").focus(); });
 $("#logoutBtn").addEventListener("click", ()=>{
   localStorage.removeItem(LS_AUTH); AUTH=null;
+  if(CLOUD && fbAuth && fbAuth.currentUser){ fbAuth.signOut().catch(()=>{}); }
   $("#app").classList.add("hidden"); $("#login").classList.remove("hidden");
   $("#lp").value="";
 });
@@ -2500,7 +2602,16 @@ $("#aiInput").addEventListener("keydown", e=>{ if(e.key==="Enter") aiSend(); });
 /* =========================================================================
    AUTO-START se já logado
    ========================================================================= */
-if(AUTH && DEMO[AUTH.user]){ startApp(); }
+if(!CLOUD){  // modo local (Firebase não configurado): admin demo volta a valer
+  const h=$("#loginHint");
+  if(h) h.innerHTML='<b>Acesso de demonstração (modo local)</b><br>'+
+    'Cliente — usuário <b>cliente</b> · senha <b>amapa</b><br>'+
+    'Consultor (edição) — usuário <b>admin</b> · senha <b>amapa2025</b>';
+}
+if(CLOUD){ cloudInit(); }   // assina updates em tempo real + sessão do admin
+// Cliente demo persiste por localStorage. Admin demo só auto-inicia em modo local
+// (em modo nuvem o admin entra pelo Firebase Auth, tratado em cloudInit).
+if(AUTH && DEMO[AUTH.user] && (AUTH.role==="cliente" || !CLOUD)){ startApp(); }
 </script>
 </body>
 </html>
