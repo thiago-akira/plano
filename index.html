@@ -670,11 +670,15 @@
   .hist-item .hi-recover{margin-left:auto;flex:0 0 auto;border:1px solid var(--green);color:var(--green);
     background:#fff;border-radius:8px;font-size:11.5px;font-weight:700;padding:4px 8px;align-self:center}
   .hist-item .hi-recover:hover{background:var(--green);color:#fff}
+  /* alternador de dispositivo (editor responsivo) */
+  .dev-switch{display:inline-flex;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px;background:#fff}
+  .dev-btn{border:none;background:none;border-radius:7px;width:30px;height:28px;font-size:14px;
+    display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .dev-btn.active{background:var(--ink);color:#fff}
+  /* moldura do canvas simulado */
+  .gridwrap.device-frame{border:2px solid var(--line);border-radius:18px;padding:10px;background:var(--paper);
+    box-shadow:var(--shadow);transition:max-width .2s}
   @media (max-width:820px){
-    .gridcanvas{height:auto!important;display:flex;flex-direction:column;gap:12px}
-    .gtile{position:relative!important;left:auto!important;top:auto!important;width:100%!important;
-      transition:none}
-    body.grid-edit .resize,body.grid-edit .resize-r{display:none!important}
     .side-toggle{display:none}
     body.sidebar-collapsed #sidebar{width:var(--sidebar)}
   }
@@ -796,6 +800,11 @@
         <button class="tb-icon" id="undoBtn" title="Desfazer" disabled>↶</button>
         <button class="tb-icon" id="redoBtn" title="Refazer" disabled>↷</button>
         <button class="tb-icon" id="histBtn" title="Histórico de alterações">🕘</button>
+        <span class="dev-switch" id="devSwitch" title="Pré-visualizar/editar por dispositivo">
+          <button class="dev-btn" data-dev="desktop" title="Computador">🖥</button>
+          <button class="dev-btn" data-dev="tablet" title="Tablet">▭</button>
+          <button class="dev-btn" data-dev="mobile" title="Celular">▯</button>
+        </span>
         <span class="save-pill" id="savePill"></span>
       </div>
       <div class="progress-pill" title="Progresso do plano de ação">
@@ -1798,18 +1807,74 @@ function ensureBlockIds(){
   PLAN.chapters.forEach((c,i)=> tag(c,i));
 }
 
-/* layout efetivo da seção atual, ou null se deve renderizar como pilha */
-function effectiveLayout(sec, key){
-  const L=STATE.layout[key];
-  if(L) return { cols:L.cols||GRID_COLS, cellH:L.cellH||GRID_CELLH, items:(L.items||[]).slice(), live:true };
-  if(sec.blocks.some(b=>b.grid)){           // baked no PLAN (após export+commit)
+/* -------- dispositivos (layout responsivo estilo Elementor) -------- */
+const DEVICES=[
+  {id:'desktop', icon:'🖥', label:'Computador', w:0},
+  {id:'tablet',  icon:'▭', label:'Tablet',     w:834},
+  {id:'mobile',  icon:'▯', label:'Celular',    w:430}
+];
+let EDIT_DEVICE='desktop';
+function deviceForWidth(w){ return w<768?'mobile':(w<1100?'tablet':'desktop'); }
+function curDevice(){ return EDIT ? EDIT_DEVICE : deviceForWidth(window.innerWidth); }
+
+/* migra o formato antigo (flat {cols,cellH,items}) -> { desktop:{...} } */
+function layoutBag(key){
+  let L=STATE.layout[key];
+  if(!L) return null;
+  if(L.items){ L={ desktop:L }; STATE.layout[key]=L; }
+  return L;
+}
+/* deriva o layout de um device a partir do desktop (tablet=cópia; mobile=empilhado) */
+function deriveVariant(base, dev){
+  if(!base) return null;
+  const cols=base.cols||GRID_COLS, cellH=base.cellH||GRID_CELLH;
+  if(dev!=='mobile') return { cols, cellH, items:base.items.map(o=>Object.assign({},o)) };
+  const ordered=base.items.slice().sort((a,b)=> (a.y-b.y)||(a.x-b.x));
+  let y=0; const items=ordered.map(o=>{ const h=Math.max(2,o.h); const it=Object.assign({},o,{x:0,y,w:cols,h}); y+=h; return it; });
+  return { cols, cellH, items };
+}
+/* baseline desktop: variante explícita, ou baked no PLAN, ou null */
+function desktopBase(sec, bag){
+  if(bag && bag.desktop) return bag.desktop;
+  if(sec.blocks.some(b=>b.grid)){
     let y=0; const items=sec.blocks.map(b=>{
       if(b.grid) return { id:b._id, x:b.grid.x, y:b.grid.y, w:b.grid.w, h:b.grid.h };
-      const it={ id:b._id, x:0, y, w:GRID_COLS, h:3 }; y+=3; return it;
-    });
-    return { cols:GRID_COLS, cellH:GRID_CELLH, items, live:false };
+      const it={ id:b._id, x:0, y, w:GRID_COLS, h:3 }; y+=3; return it; });
+    return { cols:GRID_COLS, cellH:GRID_CELLH, items };
   }
   return null;
+}
+
+/* layout efetivo da seção atual, para o device atual; null => sem grade (pilha/auto-seed) */
+function effectiveLayout(sec, key){
+  const dev=curDevice(), bag=layoutBag(key);
+  if(bag && bag[dev]) return Object.assign({}, bag[dev], {items:bag[dev].items.slice(), live:true, device:dev});
+  const base=desktopBase(sec, bag);
+  if(!base) return null;
+  if(dev==='desktop') return Object.assign({}, base, {items:base.items.slice(), live:!!(bag&&bag.desktop), device:'desktop'});
+  return Object.assign({}, deriveVariant(base, dev), {live:false, derived:true, device:dev});
+}
+/* garante e retorna a variante editável do device atual em STATE.layout[key] */
+function liveVariant(key, sec){
+  const dev=curDevice();
+  let bag=layoutBag(key);
+  if(!bag){ bag=STATE.layout[key]={}; }
+  if(!bag[dev]){
+    const base = bag.desktop || (sec?desktopBase(sec,bag):null);
+    bag[dev] = (base && dev!=='desktop') ? deriveVariant(base, dev)
+             : (base ? {cols:base.cols||GRID_COLS,cellH:base.cellH||GRID_CELLH,items:base.items.map(o=>Object.assign({},o))}
+                     : {cols:GRID_COLS, cellH:GRID_CELLH, items:[]});
+    if(dev!=='desktop' && !bag.desktop && base){ bag.desktop=base; }
+  }
+  return bag[dev];
+}
+/* todas as variantes materializadas (p/ add/delete consistentes entre devices) */
+function allVariants(key){ const bag=layoutBag(key); if(!bag) return []; return DEVICES.map(d=>bag[d.id]).filter(Boolean); }
+
+/* resolve um item do layout -> o objeto bloco (base no PLAN ou inline 'add') */
+function blockOfItem(sec, item){
+  if(item.add) return item.add;
+  return sec.blocks.find(b=>b._id===item.id) || null;
 }
 
 /* resolve um item do layout -> o objeto bloco (base no PLAN ou inline 'add') */
@@ -1949,9 +2014,14 @@ function render(){
   if(!layout && EDIT){ layout = autoSeedLayout(sec, key); }
   h += `<div class="section"><h3>${esc(sec.titulo)}</h3>`;
   h += secProgressHtml(ch, CUR.section);
+  _lastDevice = deviceForWidth(window.innerWidth);
   if(layout){
     h += gridToolbarHtml(key);
-    h += `<div class="gridwrap"><div class="gridcanvas" data-seckey="${key}" data-cols="${layout.cols}" data-cellh="${layout.cellH}">`;
+    const dev=curDevice();
+    const devW = (EDIT && dev!=='desktop') ? (DEVICES.find(d=>d.id===dev)||{}).w : 0;
+    const wrapStyle = devW ? `style="max-width:${devW}px;margin:0 auto"` : '';
+    const frameCls = devW ? ' device-frame' : '';
+    h += `<div class="gridwrap${frameCls}" ${wrapStyle}><div class="gridcanvas" data-seckey="${key}" data-cols="${layout.cols}" data-cellh="${layout.cellH}" data-device="${dev}">`;
     layout.items.forEach(item=>{
       const blk = blockOfItem(sec, item);
       if(!blk) return;
@@ -2392,23 +2462,20 @@ function layoutTiles(){
     el.style.width=Math.max(20,(w*m.cellW - g))+"px"; el.style.height=Math.max(20,(hh*m.cellH - g))+"px";
     maxB=Math.max(maxB,(y+hh)*m.cellH);
   });
-  m.canvas.style.height = isMobileGrid()? "" : (maxB+g)+"px";
+  m.canvas.style.height = (maxB+g)+"px";
 }
-let _gridResizeBound=false;
+let _gridResizeBound=false, _lastDevice=null;
 function bindGridResize(){
   if(_gridResizeBound) return; _gridResizeBound=true;
-  let t; window.addEventListener("resize",()=>{ clearTimeout(t); t=setTimeout(()=>{ if($(".gridcanvas")) layoutTiles(); },120); });
+  let t; window.addEventListener("resize",()=>{ clearTimeout(t); t=setTimeout(()=>{
+    if(!EDIT && deviceForWidth(window.innerWidth)!==_lastDevice){ render(); }   // cliente trocou de breakpoint
+    else if($(".gridcanvas")){ layoutTiles(); }
+  },120); });
 }
 
-/* materializa o layout efetivo em STATE.layout (baked/pilha -> editável) */
-function liveItems(key, layout){
-  if(!STATE.layout[key]){
-    STATE.layout[key]={ cols:layout?layout.cols:GRID_COLS, cellH:layout?layout.cellH:GRID_CELLH,
-      items:(layout?layout.items:[]).map(o=>Object.assign({},o)) };
-  }
-  return STATE.layout[key].items;
-}
-function layoutItemsOf(key){ return (STATE.layout[key]&&STATE.layout[key].items)||[]; }
+/* materializa a variante do device atual e retorna seus itens */
+function liveItems(key, layout, sec){ return liveVariant(key, sec).items; }
+function layoutItemsOf(key){ const v=STATE.layout[key]&&STATE.layout[key][curDevice()]; return (v&&v.items)||[]; }
 
 /* colisão (em unidades de grade) */
 function tilesOverlap(a,b){ return !(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y); }
@@ -2446,12 +2513,6 @@ function bindGridDrag(canvas, key, layout){
     const m=gridMetrics(); if(!m) return;
     const items=liveItems(key, layout);
     const item=items.find(it=>it.id===tileEl.dataset.id); if(!item) return;
-    if(isMobileGrid()){
-      if(onMove){ GDRAG={mode:"reorder",key,item,el:tileEl,startY:e.clientY,over:null}; tileEl.classList.add("dragging"); tileEl.style.pointerEvents="none"; }
-      else if(rEl.classList.contains("resize-b")){ GDRAG={mode:"resizeH",key,item,el:tileEl,m,startY:e.clientY,oh:item.h}; tileEl.classList.add("resizing"); }
-      else return;
-      e.preventDefault(); return;
-    }
     GDRAG={ mode: rEl?"resize":"move", key, item, el:tileEl, m,
             rdir: rEl? (rEl.classList.contains("resize-r")?"x":rEl.classList.contains("resize-b")?"y":"xy") : null,
             startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y, ow:item.w, oh:item.h };
@@ -2544,7 +2605,8 @@ function autoSeedLayout(sec, key){
     items.push({ id:b._id, x:0, y, w:cols, h:hh }); y+=hh;
   });
   probe.remove();
-  STATE.layout[key]={ cols, cellH, items }; saveState();
+  const bag=layoutBag(key)||(STATE.layout[key]={});
+  bag.desktop={ cols, cellH, items }; saveState();   // baseline desktop
   return effectiveLayout(sec, key);
 }
 function seedLayout(sec, key){
@@ -2564,10 +2626,10 @@ function deactivateGrid(key){
   delete STATE.layout[key]; saveState(); render();
 }
 function deleteTile(key, id){
-  const L=STATE.layout[key]; if(!L) return;
-  const it=L.items.find(x=>x.id===id);
-  const nome=it?widgetNameOfItem(it):"";
-  L.items=L.items.filter(x=>x.id!==id);
+  const bag=layoutBag(key); if(!bag) return;
+  let nome="";
+  DEVICES.forEach(d=>{ const v=bag[d.id]; if(v){ const it=v.items.find(x=>x.id===id);
+    if(it&&!nome) nome=widgetNameOfItem(it); v.items=v.items.filter(x=>x.id!==id); } });
   if(STATE.styles[id]) delete STATE.styles[id];
   pushHistory("Removeu widget", nome); saveState(); render();
 }
@@ -2598,20 +2660,27 @@ function openPalette(key, layout){
   }));
 }
 function addBlock(key, layout, w){
-  const items=liveItems(key, layout);
+  const cur=liveVariant(key);
   const id=newAddId();
   const blk=w.make(id); blk._id=id;
-  const cols=(STATE.layout[key].cols)||GRID_COLS;
+  const cols=cur.cols||GRID_COLS;
   const wide=Math.min(cols,12), tall=5;
-  const spot=findFreeSpot({x:0,y:0,w:wide,h:tall}, null, items, cols);
-  items.push({ id, x:spot.x, y:spot.y, w:wide, h:tall, add:blk });
+  const spot=findFreeSpot({x:0,y:0,w:wide,h:tall}, null, cur.items, cols);
+  cur.items.push({ id, x:spot.x, y:spot.y, w:wide, h:tall, add:blk });
+  // propaga o widget para as outras variantes já materializadas (conteúdo é compartilhado)
+  const bag=layoutBag(key);
+  DEVICES.forEach(d=>{ const v=bag[d.id]; if(v && v!==cur && !v.items.find(it=>it.id===id)){
+    const maxY=v.items.length?Math.max(...v.items.map(it=>it.y+it.h)):0;
+    v.items.push({ id, x:0, y:maxY, w:(v.cols||cols), h:tall, add:blk });
+  }});
   pushHistory("Adicionou widget", w.label||blk.type); saveState(); render();
 }
 
 /* ----- exportar para o PLAN ----- */
 function exportSection(sec, key){
-  const layout=effectiveLayout(sec, key); if(!layout){ alert("Esta seção ainda não tem grade."); return; }
-  const out=layout.items.map(item=>{
+  const bag=layoutBag(key); const base=(bag&&bag.desktop)?bag.desktop:desktopBase(sec,bag);
+  if(!base){ alert("Esta seção ainda não tem grade."); return; }
+  const out=base.items.map(item=>{
     const base=blockOfItem(sec, item); if(!base) return null;
     const clone=JSON.parse(JSON.stringify(base));
     delete clone._id;
@@ -2804,11 +2873,13 @@ function updateEditChrome(){
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
   if(r) r.disabled = !(HI<HIST.length-1);
+  $$("#devSwitch .dev-btn").forEach(b=> b.classList.toggle("active", b.dataset.dev===EDIT_DEVICE));
   if(!on){ const p=$("#savePill"); if(p){ p.textContent=""; p.className="save-pill"; } }
 }
 $("#undoBtn").addEventListener("click", ()=>undo());
 $("#redoBtn").addEventListener("click", ()=>redo());
 $("#histBtn").addEventListener("click", ()=>openHistory());
+$$("#devSwitch .dev-btn").forEach(b=> b.addEventListener("click",()=>{ EDIT_DEVICE=b.dataset.dev; render(); }));
 
 /* indicador de autosave */
 function setSaveStatus(s){
@@ -2823,8 +2894,10 @@ function sectionActionIds(chRef, si){
   const ids=[]; const sec=chRef.sections[si]; if(!sec) return ids;
   sec.blocks.forEach(b=>{ if(b.type==="action"&&b.id) ids.push(b.id); });
   const key=(chRef===PLAN.onboarding?'onb':PLAN.chapters.indexOf(chRef))+'/'+si;
-  const L=STATE.layout[key];
-  if(L&&L.items) L.items.forEach(it=>{ if(it.add&&it.add.type==="action"&&it.add.id) ids.push(it.add.id); });
+  const bag=STATE.layout[key];
+  const v = bag ? (bag.desktop || (bag.items?bag:(bag.tablet||bag.mobile))) : null;
+  const seen={};
+  if(v&&v.items) v.items.forEach(it=>{ if(it.add&&it.add.type==="action"&&it.add.id&&!seen[it.add.id]){ seen[it.add.id]=1; ids.push(it.add.id); } });
   return ids;
 }
 function chapterActionIds(chRef){ let ids=[]; chRef.sections.forEach((s,si)=> ids=ids.concat(sectionActionIds(chRef,si))); return ids; }
