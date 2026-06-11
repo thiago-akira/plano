@@ -551,6 +551,11 @@
   /* ferramentas (só admin em edição) */
   .gtile-tools{position:absolute;top:6px;right:6px;display:none;gap:5px;z-index:5}
   body.grid-edit .gtile-tools{display:flex}
+  .gtile-type{position:absolute;top:6px;left:8px;z-index:4;display:none;font-size:9.5px;font-weight:800;
+    letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--ink);opacity:.85;
+    padding:2px 8px;border-radius:20px;pointer-events:none;box-shadow:var(--shadow)}
+  body.grid-edit .gtile-type{display:inline-block}
+  .dev-btn[data-dev="auto"]{font-weight:800;font-size:12px}
   body.grid-edit .gtile{cursor:default}
   .t-move{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
     background:#fff;color:var(--muted);font-size:14px;display:grid;place-items:center;
@@ -893,6 +898,7 @@
         <button class="tb-icon" id="redoBtn" title="Refazer" disabled>↷</button>
         <button class="tb-icon" id="histBtn" title="Histórico de alterações">🕘</button>
         <span class="dev-switch" id="devSwitch" title="Pré-visualizar/editar por dispositivo">
+          <button class="dev-btn" data-dev="auto" title="Automático (tamanho da janela)">A</button>
           <button class="dev-btn" data-dev="desktop" title="Computador">🖥</button>
           <button class="dev-btn" data-dev="tablet" title="Tablet">▭</button>
           <button class="dev-btn" data-dev="mobile" title="Celular">▯</button>
@@ -2117,9 +2123,13 @@ const DEVICES=[
   {id:'tablet',  icon:'▭', label:'Tablet',     w:834},
   {id:'mobile',  icon:'▯', label:'Celular',    w:430}
 ];
-let EDIT_DEVICE='desktop';
+let EDIT_DEVICE='auto';  // 'auto'|'desktop'|'tablet'|'mobile' — vale em edição E visualização
 function deviceForWidth(w){ return w<768?'mobile':(w<1100?'tablet':'desktop'); }
-function curDevice(){ return EDIT ? EDIT_DEVICE : deviceForWidth(window.innerWidth); }
+function curDevice(){
+  if(EDIT_DEVICE!=='auto') return EDIT_DEVICE;        // dispositivo escolhido (edita/preview)
+  return EDIT ? 'desktop' : deviceForWidth(window.innerWidth);
+}
+function simDevice(){ return (EDIT_DEVICE==='tablet'||EDIT_DEVICE==='mobile') ? EDIT_DEVICE : null; } // simular largura
 
 /* migra o formato antigo (flat {cols,cellH,items}) -> { desktop:{...} } */
 function layoutBag(key){
@@ -2394,6 +2404,17 @@ function buildNav(){
 }
 function persistUi(){ STATE.ui=CUR; saveState(); }
 
+/* nome amigável do tipo de widget (identificador visível no editor) */
+const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', calloutGrid:'Grade de callouts',
+  manifesto:'Manifesto', labelTable:'Tabela de rótulos', chips:'Chips', swot:'SWOT', golden:'Golden Circle',
+  cards:'Cards', list:'Lista', action:'Ação', video:'Vídeo', docs:'Documentos', meetings:'Reuniões',
+  statRow:'Indicadores', trendCard:'Tendência', rankList:'Ranking', twoCol:'Duas colunas', phases:'Fases',
+  groupList:'Grupos', table:'Tabela', ladder:'Escada', image:'Imagem', infographic:'Infográfico',
+  gallery:'Galeria', audio:'Áudio', benchmark:'Benchmark', personas:'Personas', persona:'Persona',
+  channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
+  placeholder:'Placeholder' };
+function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
+
 /* =========================================================================
    RENDER
    ========================================================================= */
@@ -2453,7 +2474,7 @@ function render(){
   if(layout){
     h += gridToolbarHtml(key);
     const dev=curDevice();
-    const devW = (EDIT && dev!=='desktop') ? (DEVICES.find(d=>d.id===dev)||{}).w : 0;
+    const devW = simDevice() ? (DEVICES.find(d=>d.id===simDevice())||{}).w : 0;   // simula largura (edição E preview)
     const wrapStyle = devW ? `style="max-width:${devW}px;margin:0 auto"` : '';
     const frameCls = devW ? ' device-frame' : '';
     h += `<div class="gridwrap${frameCls}" ${wrapStyle}><div class="gridcanvas" data-seckey="${key}" data-cols="${layout.cols}" data-cellh="${layout.cellH}" data-device="${dev}">`;
@@ -2466,6 +2487,7 @@ function render(){
       if(st.fg){ sv+="--w-fg:"+st.fg+";"; cls+=" has-fg"; }
       if(st.top){ sv+="--w-top:"+st.top+";"; cls+=" has-top"; }
       h += `<div class="gtile${cls}" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
+              <span class="gtile-type">${esc(widgetLabel(blk.type))}</span>
               <div class="gtile-tools"><button class="gtile-config" title="Configurar (tamanho e cores)">⚙</button><button class="gtile-dup" title="Duplicar widget">⧉</button><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
               <div class="gtile-body">${renderBlock(blk)}</div>
               <div class="resize-r"></div><div class="resize-b"></div><div class="resize"></div>
@@ -2935,6 +2957,18 @@ function findFreeSpot(box,ignoreId,items,cols){
   }
   return {x:Math.max(0,Math.min(box.x,cols-box.w)), y:box.y};
 }
+/* solta o widget ONDE foi largado e reflui os demais para baixo (estilo Elementor) */
+function placeAndReflow(items, moved, gx, gy, cols){
+  moved.x = Math.max(0, Math.min(cols-moved.w, gx));
+  moved.y = Math.max(0, gy);
+  const others=items.filter(i=>i!==moved).sort((a,b)=> (a.y-b.y)||(a.x-b.x));
+  const placed=[moved];
+  others.forEach(it=>{
+    let guard=0;
+    while(placed.some(p=>tilesOverlap(it,p)) && guard++<1000) it.y++;
+    placed.push(it);
+  });
+}
 function makeGhost(canvas){ const g=document.createElement("div"); g.className="tile-ghost"; canvas.appendChild(g); return g; }
 function setGhost(g,m,x,y,w,h,bad){ if(!g) return;
   const gp=GRID_GAP;
@@ -3028,15 +3062,14 @@ function onGridUp(){
   document.body.classList.remove("dragging-grid");
   if(d.pending){ GDRAG=null; return; }   // foi clique, não arrasto
   if(d.ghost) d.ghost.remove();
-  if(d.mode==="resize"){ d.item.w=d._nw||d.item.w; d.item.h=d._nh||d.item.h; }
+  const items=layoutItemsOf(d.key);
+  if(d.mode==="resize"){ d.item.w=d._nw||d.item.w; d.item.h=d._nh||d.item.h; placeAndReflow(items, d.item, d.item.x, d.item.y, m.cols); }
   else if(d.group){
     const gdx=Math.round((d._dx||0)/m.cellW), gdy=Math.round((d._dy||0)/m.cellH);
     d.group.forEach(g=>{ g.it.x=Math.max(0,Math.min(m.cols-g.it.w, g.ox+gdx)); g.it.y=Math.max(0,g.oy+gdy); });
     GDRAG=null; pushHistory("Moveu "+d.group.length+" widgets","grupo"); saveState(); render(); return;
   } else {
-    const items=layoutItemsOf(d.key);
-    const spot=findFreeSpot({x:d._gx!=null?d._gx:d.item.x, y:d._gy!=null?d._gy:d.item.y, w:d.item.w, h:d.item.h}, d.item.id, items, m.cols);
-    d.item.x=spot.x; d.item.y=spot.y;
+    placeAndReflow(items, d.item, (d._gx!=null?d._gx:d.item.x), (d._gy!=null?d._gy:d.item.y), m.cols);
   }
   GDRAG=null; pushHistory(d.mode==="resize"?"Redimensionou widget":"Moveu widget", widgetNameOfItem(d.item)); saveState(); render();
 }
@@ -3503,7 +3536,7 @@ function updateEditChrome(){
   const hasEdit = can('editContent')||can('editLayout');
   // cluster (desfazer/refazer/histórico) sempre visível p/ quem edita; alternador de device só em EDIT
   const c=$("#editCluster"); if(c) c.style.display = hasEdit ? "flex" : "none";
-  const dv=$("#devSwitch"); if(dv) dv.style.display = (hasEdit && EDIT) ? "inline-flex" : "none";
+  const dv=$("#devSwitch"); if(dv) dv.style.display = hasEdit ? "inline-flex" : "none";  // preview por dispositivo em edição E visualização
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
   if(r) r.disabled = !(HI<HIST.length-1);
