@@ -930,8 +930,16 @@
   body.grid-edit .trow:hover .tbl-rowacts, body.grid-edit .grp:hover .tbl-rowacts{opacity:1}
   .tbl-rowacts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:5px;font-size:10px;color:var(--ink2);cursor:pointer}
   .tbl-rowacts button.tbl-pencil{color:var(--orange);font-weight:800}
+  .tbl-rowacts button.tbl-add{color:var(--green);font-weight:800}
   .tbl-rowacts button.danger{color:var(--magenta)}
   body.grid-edit .tbl-rowacts .it-grip{position:static;transform:none}
+  /* ＋ flutuante para inserir linha em qualquer nivel (aparece no hover, no topo da linha) */
+  body.grid-edit .tbl .trow td:first-child, body.grid-edit .tbl .grp td:first-child{position:relative}
+  .tbl-rowins{display:none}
+  body.grid-edit .tbl-rowins{display:inline-grid;place-items:center;position:absolute;top:-11px;left:6px;z-index:6;width:20px;height:20px;border-radius:50%;border:2px solid #fff;
+    background:var(--green);color:#fff;font-size:13px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.28);opacity:0;transition:opacity .1s,transform .1s;padding:0}
+  body.grid-edit .tbl tr:hover .tbl-rowins{opacity:1}
+  body.grid-edit .tbl-rowins:hover{transform:scale(1.18)}
   .bxe-rowacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
   .bxe-rowacts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer}
   .bxe-rowacts button.danger{color:var(--magenta)}
@@ -3307,12 +3315,13 @@ function renderBlock(b, sec, bi){
     }
     case "table":{
       const ncol=b.cols.length;
-      const rowCtrls=(ri)=>`<td class="tbl-ctrl"><span class="tbl-rowacts">${grip(b._id,'rows',ri)}<button class="tbl-pencil" data-rowedit="${b._id}|${ri}" title="Editar linha">✎</button><button data-itemmove="${b._id}|rows|${ri}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|rows|${ri}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|rows|${ri}" title="Apagar linha">×</button></span></td>`;
+      const rowIns=(ri)=>`<button class="tbl-rowins" contenteditable="false" data-rowaddbefore="${b._id}|${ri}" title="Inserir linha aqui">＋</button>`;
+      const rowCtrls=(ri)=>`<td class="tbl-ctrl"><span class="tbl-rowacts">${grip(b._id,'rows',ri)}<button class="tbl-pencil" data-rowedit="${b._id}|${ri}" title="Editar linha">✎</button><button data-itemmove="${b._id}|rows|${ri}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|rows|${ri}|1" title="Descer">▼</button><button class="tbl-add" data-rowaddafter="${b._id}|${ri}" title="Adicionar linha abaixo">＋</button><button class="danger" data-itemdel="${b._id}|rows|${ri}" title="Apagar linha">×</button></span></td>`;
       let head=`<tr>${b.cols.map((c,ci)=>`<th class="ed" data-ed="${b._id}/h/${ci}">${esc(txt(b._id+'/h/'+ci,c))}</th>`).join("")}<th class="tbl-ctrl"></th></tr>`;
       let body="";
       (b.rows||[]).forEach((r,ri)=>{
-        if(r&&r.group!=null){ body+=`<tr class="grp" data-rowidx="${ri}"><td colspan="${ncol}" class="ed" data-ed="${b._id}/${ri}/g">${esc(txt(b._id+'/'+ri+'/g',r.group))}</td>${rowCtrls(ri)}</tr>`; }
-        else { body+=`<tr class="dnd-row trow" data-rowidx="${ri}">${(r||[]).map((cell,ci)=>`<td class="${ci===1?'meta':''} ed" data-ed="${b._id}/${ri}/${ci}">${esc(txt(b._id+'/'+ri+'/'+ci,cell))}</td>`).join("")}${rowCtrls(ri)}</tr>`; }
+        if(r&&r.group!=null){ body+=`<tr class="grp" data-rowidx="${ri}"><td colspan="${ncol}" class="ed" data-ed="${b._id}/${ri}/g">${esc(txt(b._id+'/'+ri+'/g',r.group))}${rowIns(ri)}</td>${rowCtrls(ri)}</tr>`; }
+        else { body+=`<tr class="dnd-row trow" data-rowidx="${ri}">${(r||[]).map((cell,ci)=>`<td class="${ci===1?'meta':''} ed" data-ed="${b._id}/${ri}/${ci}">${esc(txt(b._id+'/'+ri+'/'+ci,cell))}${ci===0?rowIns(ri):''}</td>`).join("")}${rowCtrls(ri)}</tr>`; }
       });
       return `<div class="block tbl-wrap" data-wid="${b._id}" ${dz(b._id,'rows')}><table class="tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>
         <button class="li-plus" data-boxadd="${b._id}|rows" style="margin-top:8px">＋ linha</button>`;
@@ -3821,6 +3830,8 @@ function wireBlockEvents(){
   $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
   // tabela: lápis e clique direito por linha
   $$("[data-rowedit]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const tr=b.closest('tr'); const tile=b.closest('.gtile'); if(tile&&tr) openFieldEditor(tile,null,tr); }));
+  $$("[data-rowaddbefore]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,ri]=b.dataset.rowaddbefore.split('|'); addRowAt(id,+ri-1); }));
+  $$("[data-rowaddafter]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,ri]=b.dataset.rowaddafter.split('|'); addRowAt(id,+ri); }));
   $$(".tbl-wrap tr[data-rowidx]").forEach(tr=> tr.addEventListener("contextmenu",e=>{ if(!(EDIT&&can('editContent'))) return; e.preventDefault(); e.stopPropagation();
     const wrap=tr.closest('[data-wid]'); if(wrap) openRowMenu(e.clientX,e.clientY, wrap.dataset.wid, +tr.dataset.rowidx); }));
   $$(".status-sel").forEach(sel=>{
