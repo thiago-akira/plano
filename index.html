@@ -381,7 +381,17 @@
   /* pilares chips */
   .chips{display:flex;flex-wrap:wrap;gap:10px}
   .chip{padding:11px 18px;border-radius:30px;color:#fff;font-weight:800;font-size:13.5px;
-    letter-spacing:.04em}
+    letter-spacing:.04em;display:inline-flex;align-items:center;gap:5px}
+  .chip .it-grip{color:rgba(255,255,255,.85)}
+  .chip .chip-txt{outline:none}
+  .chip-del{display:none}
+  body.grid-edit .chip-del{display:inline-grid;place-items:center;width:18px;height:18px;border:none;border-radius:50%;
+    background:rgba(255,255,255,.28);color:#fff;font-size:13px;line-height:1;cursor:pointer;margin-left:1px}
+  body.grid-edit .chip-del:hover{background:rgba(255,255,255,.5)}
+  .chip-add{display:none}
+  body.grid-edit .chip-add{display:inline-flex;align-items:center;padding:9px 15px;border:2px dashed var(--line);
+    background:#fff;border-radius:30px;color:var(--ink2);font-weight:800;font-size:13px;cursor:pointer}
+  body.grid-edit .chip-add:hover{border-color:var(--orange);color:var(--orange)}
 
   /* swot */
   .swot{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -3038,8 +3048,9 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "chips":{
-      let x=`<div class="block chips">`;
-      b.items.forEach((it,i)=> x+=`<span class="chip ed" data-ed="${b._id}/${i}" style="background:${it.color}">${esc(txt(b._id+'/'+i,it.t))}</span>`);
+      let x=`<div class="block chips" data-wid="${b._id}" ${dz(b._id,'items')}>`;
+      b.items.forEach((it,i)=> x+=`<span class="chip dnd-row" style="background:${it.color}">${grip(b._id,'items',i)}<span class="ed chip-txt" data-ed="${b._id}/${i}">${esc(txt(b._id+'/'+i,it.t))}</span><button class="chip-del" data-itemdel="${b._id}|items|${i}" title="Apagar">×</button></span>`);
+      x+=`<button class="li-plus chip-add" data-boxadd="${b._id}|items">＋ chip</button>`;
       return x+`</div>`;
     }
     case "swot":{
@@ -3552,6 +3563,8 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'calloutGrid': reseatObj(b,b._id,'items',[['ttl','ttl']]); break;  // texto é por it.key, viaja com o item
   case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
+  case 'chips': { const id=b._id; const a=(b.items||[]).map((it,i)=>{ const n=(it&&typeof it==='object')?Object.assign({},it):{t:it}; n.t=_ovf(id+'/'+i, n.t); return n; });
+    (b.items||[]).forEach((it,i)=>delete STATE.overrides[id+'/'+i]); b.items=a; break; }
   case 'groupList': { const id=b._id;   // grupos + itens internos (tudo por índice → consolida)
     const a=(b.items||[]).map((g,gi)=>{ const n=Object.assign({},g);
       n.titulo=_ovf(id+'/'+gi+'/t', g.titulo);
@@ -3661,6 +3674,7 @@ function addBox(wid, cont){
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
+  else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
 }
@@ -3712,6 +3726,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
+      if(box.classList.contains('chip')) return;   // chip é texto único → edição inline basta
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
