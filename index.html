@@ -870,6 +870,10 @@
     width:20px;height:20px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--orange);font-size:12px;font-weight:800;cursor:pointer;opacity:.45;transition:opacity .12s}
   body.grid-edit .dnd-box:hover .box-edit{opacity:1}
   body.grid-edit .box-edit:hover{border-color:var(--orange)}
+  /* cabeçalho do benchmark: lápis no canto, sem cobrir as tags */
+  body.grid-edit .bm-head{padding-right:30px}
+  body.grid-edit .bm-head > .box-edit{right:4px;top:4px;opacity:.6}
+  body.grid-edit .bm-head:hover > .box-edit{opacity:1}
   /* itens SWOT/benchmark/etc. (controles soltos no li): lápis à esquerda da alça */
   body.grid-edit .editli.dnd-row{padding-right:66px}
   body.grid-edit .editli.dnd-row .box-edit{top:50%;transform:translateY(-50%);right:42px;opacity:0}
@@ -3334,10 +3338,12 @@ function renderBlock(b, sec, bi){
       const pos=(b.fortes||[]).map((t,i)=>`<li class="ed editli dnd-row" data-ed="${b._id}/fortes/${i}">${esc(txt(b._id+'/fortes/'+i,t))}${grip(b._id,'fortes',i)}${liX(b._id,b._id+'/fortes','fortes',i)}</li>`).join("");
       const neg=(b.fracos||[]).map((t,i)=>`<li class="ed editli dnd-row" data-ed="${b._id}/fracos/${i}">${esc(txt(b._id+'/fracos/'+i,t))}${grip(b._id,'fracos',i)}${liX(b._id,b._id+'/fracos','fracos',i)}</li>`).join("");
       return `<div class="bm" data-cat="${cat}">
-        <div class="bh"><span class="bn ed" data-ed="${b._id}/nome">${esc(txt(b._id+'/nome',b.nome))}</span>
-          <span class="tag cat">${catLabel}</span>
-          ${b.escopo?`<span class="tag scope ed" data-ed="${b._id}/escopo">${esc(txt(b._id+'/escopo',b.escopo))}</span>`:''}</div>
-        <p class="bd ed" data-ed="${b.key}">${esc(txt(b.key,b.desc))}</p>
+        <div class="bm-head dnd-box">
+          <div class="bh"><span class="bn ed" data-ed="${b._id}/nome">${esc(txt(b._id+'/nome',b.nome))}</span>
+            <span class="tag cat ed" data-ed="${b._id}/catLabel">${esc(txt(b._id+'/catLabel',catLabel||'Referência'))}</span>
+            <span class="tag scope ed" data-ed="${b._id}/escopo">${esc(txt(b._id+'/escopo',b.escopo||'Escopo'))}</span></div>
+          <p class="bd ed" data-ed="${b.key}">${esc(txt(b.key,b.desc))}</p>
+        </div>
         <div class="bcols"><div class="bcol pos"><h5>Pontos fortes</h5><ul ${dz(b._id,'fortes')}>${pos}</ul>${liPlus(b._id,b._id+'/fortes','fortes')}</div>
           <div class="bcol neg"><h5>Pontos fracos</h5><ul ${dz(b._id,'fracos')}>${neg}</ul>${liPlus(b._id,b._id+'/fracos','fracos')}</div></div></div>`;
     }
