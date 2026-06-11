@@ -601,7 +601,14 @@
   /* phases */
   .phases{display:flex;flex-direction:column;gap:12px}
   .phase{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;
-    box-shadow:var(--shadow);display:flex;gap:14px;align-items:flex-start;border-left:6px solid var(--yellow)}
+    box-shadow:var(--shadow);display:flex;gap:14px;align-items:flex-start;border-left:6px solid var(--yellow);position:relative}
+  .phases .li-acts{display:none}
+  body.grid-edit .phases .li-acts{display:inline-flex;align-items:center;gap:3px;position:absolute;top:8px;right:8px;z-index:3;opacity:.55;transition:opacity .12s}
+  body.grid-edit .phase:hover .li-acts{opacity:1}
+  .phases .li-acts button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .phases .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .phases .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
+  body.grid-edit .phase{padding-right:150px}
   .phase .pn{width:34px;height:34px;border-radius:9px;background:var(--yellow);color:#3a2e00;
     font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 34px;font-size:15px}
   .phase h4{margin:0 0 5px;font-size:15.5px;font-weight:800;color:var(--ink)}
@@ -3271,9 +3278,9 @@ function renderBlock(b, sec, bi){
     case "phases":{
       let x=`<div class="block phases" ${dz(b._id,'items')}>`;
       b.items.forEach((p,i)=> x+=`<div class="phase dnd-row"><div class="pn">${i+1}</div>
-        <div><h4 class="ed" data-ed="${b.key}/${i}/t">${esc(txt(b.key+'/'+i+'/t',p.titulo))}</h4>
+        <div class="ph-body"><h4 class="ed" data-ed="${b.key}/${i}/t">${esc(txt(b.key+'/'+i+'/t',p.titulo))}</h4>
         <p class="ed" data-ed="${b.key}/${i}/d">${esc(txt(b.key+'/'+i+'/d',p.texto))}</p></div>
-        ${grip(b._id,'items',i)}<button class="obj-x" data-phdel="${b._id}|${i}" title="Remover fase">×</button></div>`);
+        <span class="li-acts phase-acts">${grip(b._id,'items',i)}<button data-itemmove="${b._id}|items|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|items|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|items|${i}" title="Remover fase">×</button></span></div>`);
       x+=`<button class="li-plus" data-phadd="${b._id}">＋ fase</button>`;
       return x+`</div>`;
     }
