@@ -869,6 +869,15 @@
   body.grid-edit .box-edit-in{display:inline-grid;place-items:center;width:24px;height:24px;border:1px solid var(--line);
     border-radius:6px;background:#fff;color:var(--orange);font-size:12px;font-weight:800;cursor:pointer}
   body.grid-edit .box-edit-in:hover{border-color:var(--orange)}
+  /* ações por linha de tabela (alça/▲▼/×) */
+  body.grid-edit .ltable .row{position:relative}
+  .ltable .row-acts{display:none}
+  body.grid-edit .ltable .row-acts{display:inline-flex;align-items:center;gap:3px;position:absolute;top:8px;right:8px;z-index:3;
+    background:rgba(255,255,255,.92);border-radius:8px;padding:2px;opacity:0;transition:opacity .12s}
+  body.grid-edit .ltable .row:hover .row-acts{opacity:1}
+  .ltable .row-acts button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer}
+  .ltable .row-acts button.danger{color:var(--magenta)}
+  body.grid-edit .ltable .row-acts .it-grip{position:static;transform:none}
   /* caixa flutuante de edição de campos */
   .bxe-back{position:fixed;inset:0;z-index:84;background:rgba(20,14,60,.28);backdrop-filter:blur(1.5px)}
   .bxe{position:fixed;z-index:85;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -3017,9 +3026,12 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "labelTable":{
-      let x=`<div class="block ltable">`;
-      b.rows.forEach((r,i)=> x+=`<div class="row"><div class="lab ed" data-ed="${b._id}/${i}/lab">${esc(txt(b._id+'/'+i+'/lab',r.lab))}</div>
-        <div class="val ed" data-ed="${r.key}">${esc(txt(r.key,r.text))}</div></div>`);
+      let x=`<div class="block ltable" data-wid="${b._id}" ${dz(b._id,'rows')}>`;
+      b.rows.forEach((r,i)=> x+=`<div class="row dnd-row">
+        <div class="lab ed" data-ed="${b._id}/${i}/lab">${esc(txt(b._id+'/'+i+'/lab',r.lab))}</div>
+        <div class="val ed" data-ed="${r.key}">${esc(txt(r.key,r.text))}</div>
+        <span class="li-acts row-acts">${grip(b._id,'rows',i)}<button data-itemmove="${b._id}|rows|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|rows|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|rows|${i}" title="Apagar linha">×</button></span></div>`);
+      x+=`<button class="li-plus" data-boxadd="${b._id}|rows" style="margin:8px 12px 12px">＋ linha</button>`;
       return x+`</div>`;
     }
     case "chips":{
@@ -3535,6 +3547,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'personas': reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); break;
   case 'statRow': reseatObj(b,b._id,'items',[['v','v'],['l','l'],['src','src']]); break;
   case 'calloutGrid': reseatObj(b,b._id,'items',[['ttl','ttl']]); break;  // texto é por it.key, viaja com o item
+  case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
   case 'groupList': { const id=b._id;   // grupos + itens internos (tudo por índice → consolida)
     const a=(b.items||[]).map((g,gi)=>{ const n=Object.assign({},g);
       n.titulo=_ovf(id+'/'+gi+'/t', g.titulo);
@@ -3642,6 +3655,7 @@ function addBox(wid, cont){
   else if(b.type==='cards') item={key:newAddId()+'/c', titulo:'Novo card', text:'Conteúdo do card.'};
   else if(b.type==='calloutGrid') item={ttl:'Novo ponto', color:'var(--cyan)', key:newAddId()+'/c', text:'Conteúdo.'};
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
+  else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
 }
@@ -3708,6 +3722,9 @@ function wireBlockEvents(){
   $$("[data-boxadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont]=b.dataset.boxadd.split('|'); addBox(id,cont); }));
   $$("[data-boxitemadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont]=b.dataset.boxitemadd.split('|'); addBoxItem(id,cont); }));
   $$("[data-boxitemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i]=b.dataset.boxitemdel.split('|'); deleteItemUx(id,cont,+i); }));
+  // mover/apagar linha genérico (tabelas etc.): wid|cont|idx|dir e wid|cont|idx
+  $$("[data-itemmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i,d]=b.dataset.itemmove.split('|'); moveItem(id,cont,+i,cont,+i+(+d>0?2:-1)); }));
+  $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
   $$(".status-sel").forEach(sel=>{
     sel.addEventListener("change",()=>{
       STATE.statuses[sel.dataset.aid]=sel.value; pushHistory("Mudou status da ação","ação"); saveState();
