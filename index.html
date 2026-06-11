@@ -1007,6 +1007,7 @@
   @media(max-width:560px){
     .tb-btn span.lbl{display:none}
     .topbar{padding:10px 14px;gap:9px}
+    #devSwitch{display:none}   /* atalhos de visualização por dispositivo não fazem sentido no celular */
   }
 </style>
 </head>
@@ -2490,7 +2491,8 @@ function navModel(){
   const order=STATE.nav.order;
   if(order&&order.length) all.sort((a,b)=>{ const ia=order.indexOf(a.chKey),ib=order.indexOf(b.chKey); return (ia<0?999:ia)-(ib<0?999:ib); });
   const hidden=new Set(STATE.nav.hidden||[]);
-  return all.map(c=>({ chKey:c.chKey, isOnb:!!c.isOnb, added:!!c.added, obj:c.obj, num:c.num,
+  let seqN=0;   // numeração automática "CAPÍTULO XX" segue a ORDEM do menu (reordenar atualiza sozinho)
+  return all.map(c=>({ chKey:c.chKey, isOnb:!!c.isOnb, added:!!c.added, obj:c.obj, num:(c.isOnb?'':(++seqN)),
     nome:chapterName(c.obj,c.chKey), cor:chapterColor(c.chKey,c.obj.cor), icone:chapterIcon(c.chKey,c.obj.icone),
     hidden:hidden.has(c.chKey), sections:sectionsOf(c.chKey,c.obj) }));
 }
@@ -2570,7 +2572,7 @@ function buildNav(){
   model.forEach(c=>{
     if(c.hidden && !canEditNav) return;                 // ocultos: só admin vê (atenuados)
     if(!c.isOnb && !grouped){ h+=`<div class="nav-group-label">O Plano</div>`; grouped=true; }
-    const numHtml = c.isOnb ? "" : `<span class="num">${c.added?'＋':String(c.num).padStart(2,'0')}</span>`;
+    const numHtml = c.isOnb ? "" : `<span class="num">${String(c.num).padStart(2,'0')}</span>`;
     h += `<button class="nav-item ${c.isOnb?'special ':''}${String(CUR.chapter)===c.chKey?'active':''} ${c.hidden?'nav-hidden':''}" data-ch="${c.chKey}">
             ${numHtml}<span class="dot" style="background:${c.isOnb?'var(--ink)':c.cor}"></span>${c.isOnb?(esc(c.icone)+' '):''}${esc(plainTxt(c.nome))}
           </button>`;
@@ -2652,7 +2654,7 @@ function render(){
   const sec = secModel.obj;
 
   const cor = cm.cor;
-  const num = isOnb ? "ONBOARDING" : (cm.added? "NOVO MENU" : "CAPÍTULO "+String(cm.num).padStart(2,'0'));
+  const num = isOnb ? "ONBOARDING" : "CAPÍTULO "+String(cm.num).padStart(2,'0');
   const subDef = isOnb ? (ch.intro||'') : (ch.resumo||'');
   const nameK='nav/'+chKey+'/nome', subK='nav/'+chKey+'/sub';
   const dark = cor==="var(--yellow)"; // texto escuro sobre amarelo
@@ -3101,7 +3103,7 @@ function renderBlock(b, sec, bi){
     case "hero":{
       const cm=chapterModel(CUR.chapter)||{chKey:String(CUR.chapter)}; const chKey=cm.chKey;
       const isOnb=cm.isOnb, cor=cm.cor||'var(--ink)';
-      const num = isOnb?"ONBOARDING":(cm.added?"NOVO MENU":"CAPÍTULO "+String(cm.num).padStart(2,'0'));
+      const num = isOnb?"ONBOARDING":"CAPÍTULO "+String(cm.num).padStart(2,'0');
       const subDef = isOnb?((cm.obj&&cm.obj.intro)||''):((cm.obj&&cm.obj.resumo)||'');
       const dark = cor==="var(--yellow)";
       return `<div class="chap-hero" style="background:${cor};${dark?'color:#3a2e00':''};margin:0;height:100%">
@@ -4379,7 +4381,7 @@ function updateEditChrome(){
   const hasEdit = can('editContent')||can('editLayout');
   // cluster (desfazer/refazer/histórico) sempre visível p/ quem edita; alternador de device só em EDIT
   const c=$("#editCluster"); if(c) c.style.display = hasEdit ? "flex" : "none";
-  const dv=$("#devSwitch"); if(dv) dv.style.display = hasEdit ? "inline-flex" : "none";  // preview por dispositivo em edição E visualização
+  const dv=$("#devSwitch"); if(dv) dv.style.display = (hasEdit && window.innerWidth>980) ? "inline-flex" : "none";  // some no celular (não faz sentido + estoura o topo)
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
   if(r) r.disabled = !(HI<HIST.length-1);
