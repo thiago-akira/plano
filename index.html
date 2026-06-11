@@ -278,6 +278,20 @@
   .dnd-ph{border:2px dashed var(--orange);background:rgba(243,106,33,.12);border-radius:9px;
     min-height:34px;min-width:46px;align-self:stretch;animation:phpulse 1s ease-in-out infinite}
   @keyframes phpulse{0%,100%{background:rgba(243,106,33,.10)}50%{background:rgba(243,106,33,.20)}}
+  /* botão "+ card" nas caixas */
+  .addbox{display:none}
+  body.grid-edit .addbox{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);
+    background:#fff;border-radius:12px;color:var(--ink2);font-weight:800;font-size:14px;cursor:pointer;min-height:60px}
+  body.grid-edit .addbox:hover{border-color:var(--orange);color:var(--orange)}
+  /* arrastar o conteúdo de uma linha entre cards */
+  body.grid-edit .fld{position:relative}
+  .fld .fgrip{display:none}
+  body.grid-edit .fld .fgrip{display:inline-grid;place-items:center;position:absolute;right:2px;top:2px;z-index:4;
+    width:18px;height:18px;border-radius:5px;background:rgba(36,26,110,.07);color:var(--muted);font-size:11px;cursor:grab;opacity:0;transition:opacity .12s}
+  body.grid-edit .fld:hover .fgrip{opacity:.85}
+  body.grid-edit .fld .fgrip:active{cursor:grabbing}
+  .fld.fld-drag{opacity:.4}
+  body.grid-edit .fld.fld-over{outline:2px dashed var(--orange);outline-offset:2px;border-radius:7px;background:rgba(243,106,33,.08)}
   body.grid-edit .phase.dnd-row .it-grip,body.grid-edit .lstep.dnd-row .it-grip{position:absolute;right:30px;top:6px;z-index:3}
   body.grid-edit .persona.dnd-row .it-grip{position:absolute;right:30px;top:6px;z-index:3;color:#fff}
   body.grid-edit .tb-tab.dnd-row .it-grip{width:14px;height:16px;font-size:11px;margin-right:2px}
@@ -2928,10 +2942,11 @@ function renderBlock(b, sec, bi){
                         <div class="ttl ed" data-ed="${b._id}/ttl" style="color:${b.color||'var(--orange)'}">${esc(txt(b._id+'/ttl',b.ttl))}</div>
                         <div class="ed" data-ed="${b.key}">${esc(txt(b.key,b.text))}</div></div>`;
     case "calloutGrid":{
-      let x=`<div class="block callout-grid" ${dz(b._id,'items')}>`;
+      let x=`<div class="block callout-grid" data-wid="${b._id}" ${dz(b._id,'items')}>`;
       b.items.forEach((it,i)=> x+=`<div class="callout dnd-box" style="border-left-color:${it.color}">${grip(b._id,'items',i)}
-        <div class="ttl ed" data-ed="${b._id}/${i}/ttl" style="color:${it.color}">${esc(txt(b._id+'/'+i+'/ttl',it.ttl))}</div>
-        <div class="ed" data-ed="${it.key}">${esc(txt(it.key,it.text))}</div></div>`);
+        ${edFld('ttl', b._id+'/'+i+'/ttl', esc(txt(b._id+'/'+i+'/ttl',it.ttl)), 'div', 'color:'+it.color)}
+        ${edFld('', it.key, esc(txt(it.key,it.text)))}</div>`);
+      x+=`<button class="addbox" data-boxadd="${b._id}|items">＋ card</button>`;
       return x+`</div>`;
     }
     case "manifesto":{
@@ -2969,9 +2984,9 @@ function renderBlock(b, sec, bi){
         <div class="gc what"><div class="k">O quê?</div><div class="v ed" data-ed="${b.what.key}">${esc(txt(b.what.key,b.what.text))}</div></div>
       </div>`;
     case "cards":{
-      let x=`<div class="block cards" ${dz(b._id,'items')}>`;
-      b.items.forEach((it,i)=> x+=`<div class="ucard dnd-box">${grip(b._id,'items',i)}<h4 class="ed" data-ed="${it.key}/t">${esc(txt(it.key+'/t',it.titulo))}</h4>
-        <p class="ed" data-ed="${it.key}">${esc(txt(it.key,it.text))}</p></div>`);
+      let x=`<div class="block cards" data-wid="${b._id}" ${dz(b._id,'items')}>`;
+      b.items.forEach((it,i)=> x+=`<div class="ucard dnd-box">${grip(b._id,'items',i)}${edFld('', it.key+'/t', esc(txt(it.key+'/t',it.titulo)), 'h4')}${edFld('', it.key, esc(txt(it.key,it.text)), 'p')}</div>`);
+      x+=`<button class="addbox" data-boxadd="${b._id}|items">＋ card</button>`;
       return x+`</div>`;
     }
     case "list":{
@@ -3098,11 +3113,12 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "statRow":{
-      let x=`<div class="block stats" ${dz(b._id,'items')}>`;
+      let x=`<div class="block stats" data-wid="${b._id}" ${dz(b._id,'items')}>`;
       b.items.forEach((s,i)=> x+=`<div class="stat dnd-box" ${s.color?`style="border-top-color:${s.color}"`:''}>${grip(b._id,'items',i)}
-        <div class="v ed" data-ed="${b._id}/${i}/v">${esc(txt(b._id+'/'+i+'/v',s.v))}</div>
-        <div class="l ed" data-ed="${b._id}/${i}/l">${esc(txt(b._id+'/'+i+'/l',s.l))}</div>
-        ${s.src?`<div class="src ed" data-ed="${b._id}/${i}/src">${esc(txt(b._id+'/'+i+'/src',s.src))}</div>`:''}</div>`);
+        ${edFld('v', b._id+'/'+i+'/v', esc(txt(b._id+'/'+i+'/v',s.v)))}
+        ${edFld('l', b._id+'/'+i+'/l', esc(txt(b._id+'/'+i+'/l',s.l)))}
+        ${s.src!=null?edFld('src', b._id+'/'+i+'/src', esc(txt(b._id+'/'+i+'/src',s.src||''))):''}</div>`);
+      x+=`<button class="addbox" data-boxadd="${b._id}|items">＋ card</button>`;
       return x+`</div>`;
     }
     case "trendCard":{
@@ -3439,6 +3455,8 @@ function liX(id,base,field,i){ return `<button class="li-x" data-strdel="${id}|$
 function liPlus(id,base,field){ return `<button class="li-plus" data-stradd="${id}|${base}|${field}">＋ item</button>`; }
 // alça de arraste de item (⠿) e atributo de zona de soltura
 function grip(wid,cont,idx){ return `<span class="it-grip" contenteditable="false" draggable="true" data-dragitem="${wid}|${cont}|${idx}" title="Arrastar para reordenar">⠿</span>`; }
+// linha de texto editável que também pode ser ARRASTADA (move o conteúdo entre cards do mesmo widget)
+function edFld(cls, key, content, tag, style){ tag=tag||'div'; const st=style?` style="${style}"`:''; return `<${tag} class="${cls} ed fld" data-ed="${key}" data-fdrop="${key}"${st}><span class="fgrip" contenteditable="false" draggable="true" data-fdrag="${key}" title="Arrastar este conteúdo para outro card">⠿</span>${content}</${tag}>`; }
 function dz(wid,cont){ return `data-dropzone="${wid}|${cont}"`; }
 /* ===== motor de arrastar itens de texto (reordenar dentro/entre boxes do mesmo widget) ===== */
 let ITEMDRAG=null;
@@ -3487,18 +3505,33 @@ function clearPh(){ if(_dndPh&&_dndPh.parentNode) _dndPh.parentNode.removeChild(
 function bindItemDnD(){
   if(window.__itemDnD) return; window.__itemDnD=true;
   const view=$("#view"); if(!view) return;
-  view.addEventListener('dragstart', e=>{ const g=e.target.closest('[data-dragitem]'); if(!g) return;
+  view.addEventListener('dragstart', e=>{
+    const fh=e.target.closest('[data-fdrag]');   // arraste de CONTEÚDO de linha
+    if(fh){ const line=fh.closest('[data-fdrop]'); FDRAG={key:fh.dataset.fdrag, el:line};
+      try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',fh.dataset.fdrag); }catch(_){}
+      if(line) setTimeout(()=>line.classList.add('fld-drag'),0); return; }
+    const g=e.target.closest('[data-dragitem]'); if(!g) return;
     ITEMDRAG=g.dataset.dragitem; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',ITEMDRAG); }catch(_){}
     const row=g.closest('.dnd-row,.dnd-box'); if(row) setTimeout(()=>row.classList.add('dnd-dragging'),0); });
-  view.addEventListener('dragend', ()=>{ ITEMDRAG=null; clearPh(); $$('.dnd-over').forEach(x=>x.classList.remove('dnd-over')); $$('.dnd-dragging').forEach(x=>x.classList.remove('dnd-dragging')); });
-  view.addEventListener('dragover', e=>{ if(!ITEMDRAG) return; const zone=e.target.closest('[data-dropzone]'); if(!zone) return;
+  view.addEventListener('dragend', ()=>{ ITEMDRAG=null; FDRAG=null; clearPh();
+    $$('.dnd-over,.fld-over').forEach(x=>x.classList.remove('dnd-over','fld-over'));
+    $$('.dnd-dragging,.fld-drag').forEach(x=>x.classList.remove('dnd-dragging','fld-drag')); });
+  view.addEventListener('dragover', e=>{
+    if(FDRAG){ const line=e.target.closest('[data-fdrop]');
+      $$('.fld-over').forEach(x=>x.classList.remove('fld-over'));
+      if(line && line!==FDRAG.el && line.closest('[data-wid]')===FDRAG.el.closest('[data-wid]')){ e.preventDefault(); try{e.dataTransfer.dropEffect='move';}catch(_){}; line.classList.add('fld-over'); }
+      return; }
+    if(!ITEMDRAG) return; const zone=e.target.closest('[data-dropzone]'); if(!zone) return;
     if(zone.dataset.dropzone.split('|')[0]!==ITEMDRAG.split('|')[0]){ clearPh(); return; }   // só dentro do mesmo widget
     e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){}
-    // placeholder mostra ONDE vai cair, empurrando os outros
     const ref=itemDropRef(zone, e.clientX, e.clientY); const ph=ensurePh();
     if(ref){ if(ph.nextSibling!==ref) zone.insertBefore(ph, ref); }
-    else { const after=zone.querySelector('.li-add,.ck-add,.li-plus'); if(after){ zone.insertBefore(ph, after); } else zone.appendChild(ph); } });
-  view.addEventListener('drop', e=>{ if(!ITEMDRAG) return; const zone=e.target.closest('[data-dropzone]'); if(!zone){ clearPh(); return; }
+    else { const after=zone.querySelector('.li-add,.ck-add,.li-plus,.addbox'); if(after){ zone.insertBefore(ph, after); } else zone.appendChild(ph); } });
+  view.addEventListener('drop', e=>{
+    if(FDRAG){ const line=e.target.closest('[data-fdrop]');
+      if(line && line!==FDRAG.el && line.closest('[data-wid]')===FDRAG.el.closest('[data-wid]')){ e.preventDefault(); swapFields(FDRAG.el, line); }
+      FDRAG=null; return; }
+    if(!ITEMDRAG) return; const zone=e.target.closest('[data-dropzone]'); if(!zone){ clearPh(); return; }
     const sp=ITEMDRAG.split('|'), zp=zone.dataset.dropzone.split('|'); if(zp[0]!==sp[0]){ clearPh(); return; }
     e.preventDefault();
     const ref=itemDropRef(zone, e.clientX, e.clientY); let di=refIndex(ref);
@@ -3522,6 +3555,23 @@ function deleteItemUx(wid, cont, idx){
   const list=resolveList(b,cont); if(!list||idx<0||idx>=list.length) return;
   list.splice(idx,1); pushHistory('Removeu item','widget'); saveState(); render();
 }
+function addBox(wid, cont){
+  const b=findWidgetBlock(wid); if(!b) return; consolidateWidget(b);
+  const list=resolveList(b,cont); if(!list) return;
+  let item;
+  if(b.type==='statRow') item={v:'00', l:'Novo indicador'};
+  else if(b.type==='cards') item={key:newAddId()+'/c', titulo:'Novo card', text:'Conteúdo do card.'};
+  else if(b.type==='calloutGrid') item={ttl:'Novo ponto', color:'var(--cyan)', key:newAddId()+'/c', text:'Conteúdo.'};
+  else item={};
+  list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
+}
+// ===== arrastar o CONTEÚDO de uma linha entre cards (troca os dois conteúdos) =====
+let FDRAG=null;
+function fieldVal(el){ const c=el.cloneNode(true); const g=c.querySelector('.fgrip'); if(g) g.remove();
+  const h=c.innerHTML; return /<(b|i|u|strong|em|span|br)\b/i.test(h)?safeHtml(h):c.textContent.trim(); }
+function swapFields(elA, elB){ const kA=elA.dataset.fdrop, kB=elB.dataset.fdrop; if(!kA||!kB||kA===kB) return;
+  const vA=fieldVal(elA), vB=fieldVal(elB); STATE.overrides[kA]=vB; STATE.overrides[kB]=vA;
+  pushHistory('Moveu conteúdo','widget'); saveState(); render(); }
 function openItemMenu(x,y,wid,cont,idx){
   const m=showCtxMenu(x,y,`
     <button class="ctx-item" data-act="dup">⧉ Duplicar caixa</button>
@@ -3558,6 +3608,8 @@ function wireBlockEvents(){
     row.addEventListener("contextmenu",e=>{ if(!EDIT) return; e.preventDefault(); e.stopPropagation();
       const p=g.dataset.dragitem.split('|'); openItemMenu(e.clientX,e.clientY,p[0],p[1],+p[2]); });
   });
+  // botão "＋ card" nos widgets de caixas
+  $$("[data-boxadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont]=b.dataset.boxadd.split('|'); addBox(id,cont); }));
   $$(".status-sel").forEach(sel=>{
     sel.addEventListener("change",()=>{
       STATE.statuses[sel.dataset.aid]=sel.value; pushHistory("Mudou status da ação","ação"); saveState();
