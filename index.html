@@ -554,6 +554,7 @@
   .stat .v{font-size:26px;font-weight:800;color:var(--ink);line-height:1.05}
   .stat .l{font-size:12.5px;color:#56506b;margin-top:6px;font-weight:600}
   .stat .src{font-size:10.5px;color:var(--muted);margin-top:8px}
+  .stat .statx{font-size:12px;color:#56506b;margin-top:6px}
 
   /* trend cards */
   .trend{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;
@@ -3266,10 +3267,13 @@ function renderBlock(b, sec, bi){
     }
     case "statRow":{
       let x=`<div class="block stats" data-wid="${b._id}" ${dz(b._id,'items')}>`;
-      b.items.forEach((s,i)=> x+=`<div class="stat dnd-box" ${s.color?`style="border-top-color:${s.color}"`:''}>${grip(b._id,'items',i)}
-        ${edFld('v', b._id+'/'+i+'/v', esc(txt(b._id+'/'+i+'/v',s.v)))}
-        ${edFld('l', b._id+'/'+i+'/l', esc(txt(b._id+'/'+i+'/l',s.l)))}
-        ${s.src!=null?edFld('src', b._id+'/'+i+'/src', esc(txt(b._id+'/'+i+'/src',s.src||''))):''}</div>`);
+      b.items.forEach((s,i)=>{ const base=b._id+'/'+i;
+        let f=`<div class="stat dnd-box" ${s.color?`style="border-top-color:${s.color}"`:''}>${grip(b._id,'items',i)}
+        ${edFld('v', base+'/v', esc(txt(base+'/v',s.v)))}
+        ${edFld('l', base+'/l', esc(txt(base+'/l',s.l)))}`;
+        if(s.src!=null) f+=edFld('src', base+'/src', esc(txt(base+'/src',s.src||'')));
+        (s.extra||[]).forEach((e,k)=> f+=edFld('statx', base+'/x'+k, esc(txt(base+'/x'+k, e))));
+        x+=f+`</div>`; });
       x+=`<button class="addbox" data-boxadd="${b._id}|items">＋ card</button>`;
       return x+`</div>`;
     }
@@ -3637,7 +3641,15 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'phases': reseatObj(b,b.key,'items',[['titulo','t'],['texto','d']]); break;
   case 'ladder': reseatObj(b,b._id,'items',[['k','k'],['v','v']]); break;
   case 'personas': reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); break;
-  case 'statRow': reseatObj(b,b._id,'items',[['v','v'],['l','l'],['src','src']]); break;
+  case 'statRow': { const id=b._id;
+    const a=(b.items||[]).map((s,i)=>{ const n=Object.assign({},s);
+      n.v=_ovf(id+'/'+i+'/v', s.v); n.l=_ovf(id+'/'+i+'/l', s.l);
+      if(s.src!=null) n.src=_ovf(id+'/'+i+'/src', s.src);
+      if(Array.isArray(s.extra)) n.extra=s.extra.map((e,k)=>_ovf(id+'/'+i+'/x'+k, e));
+      return n; });
+    (b.items||[]).forEach((s,i)=>{ delete STATE.overrides[id+'/'+i+'/v']; delete STATE.overrides[id+'/'+i+'/l']; delete STATE.overrides[id+'/'+i+'/src'];
+      if(Array.isArray(s.extra)) s.extra.forEach((e,k)=>delete STATE.overrides[id+'/'+i+'/x'+k]); });
+    b.items=a; break; }
   case 'calloutGrid': reseatObj(b,b._id,'items',[['ttl','ttl']]); break;  // texto é por it.key, viaja com o item
   case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
@@ -3754,7 +3766,7 @@ function addBox(wid, cont){
   const b=findWidgetBlock(wid); if(!b) return; consolidateWidget(b);
   const list=resolveList(b,cont); if(!list) return;
   let item;
-  if(b.type==='statRow') item={v:'00', l:'Novo indicador'};
+  if(b.type==='statRow') item={v:'00', l:'Novo indicador', src:'Fonte'};
   else if(b.type==='cards') item={key:newAddId()+'/c', titulo:'Novo card', text:'Conteúdo do card.'};
   else if(b.type==='calloutGrid') item={ttl:'Novo ponto', color:'var(--cyan)', key:newAddId()+'/c', text:'Conteúdo.'};
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
@@ -4809,7 +4821,7 @@ const FIELD_LABELS={ v:'Número/Valor', l:'Rótulo', src:'Fonte', ttl:'Título',
   'ph-eyebrow':'Sobre-título', 'ph-title':'Título', 'ph-text':'Texto', 'ag-d':'Data', 'ag-h':'Hora',
   'ag-t':'Título', 'ag-l':'Local', 'ck-text':'Tarefa', 'li-text':'Item', 'cl-label':'Cidade',
   'tb-text':'Conteúdo', 'sc-label':'Rótulo', 'nm-label':'Rótulo', wtitle:'Título', lab:'Rótulo', val:'Valor',
-  'ch-sub':'Subtítulo', cn:'Nome', bn:'Nome', rt:'Título', 'lk':'Nível', 'lv':'Descrição' };
+  'ch-sub':'Subtítulo', cn:'Nome', bn:'Nome', rt:'Título', 'lk':'Nível', 'lv':'Descrição', statx:'Campo extra' };
 function fieldLabel(el, i){
   for(const c of el.classList){ if(FIELD_LABELS[c]) return FIELD_LABELS[c]; }
   if(el.tagName==='H4'||el.tagName==='H3'||el.tagName==='H2') return 'Título';
@@ -4865,6 +4877,15 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
     if(scopeBox.hasAttribute('data-rowidx') && b){ const ri=scopeBox.dataset.rowidx;
       html+=`<div class="bxe-rowacts"><button data-rowdup="${b._id}|${ri}">⧉ Duplicar linha</button><button data-rownew="${b._id}|${ri}">＋ Nova linha</button><button class="danger" data-rowdelete="${b._id}|${ri}">× Apagar linha</button></div>`;
     }
+    if(b && b.type==='statRow'){ const g0=$$('[data-dragitem]',scopeBox).filter(g=>g.closest('.dnd-box, .dnd-row')===scopeBox)[0];
+      const si=g0?+g0.dataset.dragitem.split('|')[2]:-1; const it=(b.items||[])[si]||{};
+      const nx=Array.isArray(it.extra)?it.extra.length:0;
+      html+=`<div class="bxe-rowacts">`+
+        (it.src!=null?`<button class="danger" data-statsrc="${b._id}|${si}|0">× Remover Fonte</button>`:`<button data-statsrc="${b._id}|${si}|1">＋ Adicionar Fonte</button>`)+
+        `<button data-statfadd="${b._id}|${si}">＋ Adicionar campo</button>`+
+        (nx>0?`<button class="danger" data-statfdel="${b._id}|${si}|${nx-1}">× Remover último campo</button>`:'')+
+        `</div>`;
+    }
   } else {
     const boxes=$$('.dnd-box, .dnd-row', body);
     if(boxes.length){
@@ -4897,8 +4918,17 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
   $$('[data-rowdup]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.rowdup.split('|'); duplicateItem(p[0],'rows',+p[1]); closeFieldEditor(); }));
   $$('[data-rownew]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.rownew.split('|'); addRowAt(p[0],+p[1]); closeFieldEditor(); }));
   $$('[data-rowdelete]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.rowdelete.split('|'); deleteItemUx(p[0],'rows',+p[1]); closeFieldEditor(); }));
+  $$('[data-statsrc]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.statsrc.split('|'); statSrcToggle(p[0],+p[1],p[2]==='1'); bxeReopen(); }));
+  $$('[data-statfadd]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.statfadd.split('|'); statFieldAdd(p[0],+p[1]); bxeReopen(); }));
+  $$('[data-statfdel]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.statfdel.split('|'); statFieldDel(p[0],+p[1],+p[2]); bxeReopen(); }));
   $('.bxe-close',pop).addEventListener('click',closeFieldEditor);
 }
+function statSrcToggle(id,i,on){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return;
+  if(on){ if(s.src==null) s.src='Fonte'; } else { delete s.src; } pushHistory('Campo Fonte','widget'); saveState(); render(); }
+function statFieldAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return;
+  s.extra=s.extra||[]; s.extra.push('Novo campo'); pushHistory('Campo extra','widget'); saveState(); render(); }
+function statFieldDel(id,i,k){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s||!Array.isArray(s.extra)) return;
+  s.extra.splice(k,1); if(!s.extra.length) delete s.extra; pushHistory('Campo extra','widget'); saveState(); render(); }
 function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return; const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
