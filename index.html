@@ -581,12 +581,19 @@
   body.grid-edit .rank li{padding-right:152px}
 
   /* two columns compare */
-  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .twocol{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
   .twocol .col{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;
-    box-shadow:var(--shadow)}
+    box-shadow:var(--shadow);border-top:4px solid var(--cc,var(--cyan));position:relative}
   .twocol .col.a{border-top:4px solid var(--cyan)} .twocol .col.b{border-top:4px solid var(--orange)}
-  .twocol .ck{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;margin-bottom:3px}
+  .twocol .ck{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;margin-bottom:3px;color:var(--cc,var(--cyan))}
   .twocol .col.a .ck{color:var(--cyan)} .twocol .col.b .ck{color:var(--orange)}
+  .twocol .col-x{display:none}
+  body.grid-edit .twocol .col-x{display:inline-grid;place-items:center;position:absolute;top:4px;right:54px;width:24px;height:24px;
+    border:1px solid var(--line);background:#fff;color:var(--magenta);border-radius:6px;font-size:13px;cursor:pointer;z-index:4;opacity:.5;transition:opacity .12s}
+  body.grid-edit .twocol .tc-card:hover .col-x{opacity:1}
+  body.grid-edit .tc-card{padding-top:34px}
+  .twocol .tc-add{display:none}
+  body.grid-edit .twocol .tc-add{display:block;grid-column:1/-1;justify-self:stretch}
   .twocol h4{margin:0 0 8px;font-size:17px;font-weight:800;color:var(--ink)}
   .twocol .col p{margin:0;font-size:13.5px;color:#46415a}
   .twocol ul{margin:0;padding-left:18px;font-size:13.5px;color:#46415a}
@@ -3247,11 +3254,19 @@ function renderBlock(b, sec, bi){
       return `<div class="block rank"><div class="rt ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t',b.titulo))}</div><ol ${dz(b._id,'items')}>${li}</ol><button class="li-plus" data-boxadd="${b._id}|items">＋ item</button></div>`;
     }
     case "twoCol":{
-      const side=(cls,side,d)=>`<div class="col ${cls}">${d.k!=null?`<div class="ck ed" data-ed="${b._id}/${side}/k">${esc(txt(b._id+'/'+side+'/k',d.k))}</div>`:''}
-        <h4 class="ed" data-ed="${b._id}/${side}/t">${esc(txt(b._id+'/'+side+'/t',d.titulo))}</h4>
-        ${d.texto?`<p class="ed" data-ed="${d.key}">${esc(txt(d.key,d.texto))}</p>`:''}
-        ${d.items?`<ul>${d.items.map((i,ii)=>`<li class="ed" data-ed="${b._id}/${side}/${ii}">${esc(txt(b._id+'/'+side+'/'+ii,i))}</li>`).join("")}</ul>`:''}</div>`;
-      return `<div class="block twocol">${side('a','a',b.left)}${side('b','b',b.right)}</div>`;
+      const PAL=['var(--cyan)','var(--orange)','var(--green)','var(--magenta)','var(--yellow)','var(--ink)'];
+      let cards;
+      if(Array.isArray(b.cols)) cards=b.cols;
+      else { cards=[]; if(b.left) cards.push(Object.assign({_sk:'a'},b.left)); if(b.right) cards.push(Object.assign({_sk:'b'},b.right)); }
+      const card=(d,i)=>{ const sk=d._sk||('c'+i); const cc=PAL[i%PAL.length]; const tk=d.key||(b._id+'/'+sk+'/x');
+        return `<div class="col tc-card dnd-box" style="--cc:${cc}">${grip(b._id,'cols',i)}
+          ${d.k!=null?`<div class="ck ed" data-ed="${b._id}/${sk}/k">${esc(txt(b._id+'/'+sk+'/k',d.k))}</div>`:''}
+          <h4 class="ed" data-ed="${b._id}/${sk}/t">${esc(txt(b._id+'/'+sk+'/t',d.titulo))}</h4>
+          ${d.texto!=null?`<p class="ed" data-ed="${tk}">${esc(txt(tk,d.texto))}</p>`:''}
+          ${d.items?`<ul>${d.items.map((it,ii)=>`<li class="ed" data-ed="${b._id}/${sk}/${ii}">${esc(txt(b._id+'/'+sk+'/'+ii,it))}</li>`).join("")}</ul>`:''}
+          <button class="col-x" data-itemdel="${b._id}|cols|${i}" title="Apagar card">×</button></div>`;
+      };
+      return `<div class="block twocol" data-wid="${b._id}" ${dz(b._id,'cols')}>${cards.map((d,i)=>card(d,i)).join("")}<button class="li-plus tc-add" data-boxadd="${b._id}|cols">＋ card</button></div>`;
     }
     case "phases":{
       let x=`<div class="block phases" ${dz(b._id,'items')}>`;
@@ -3593,6 +3608,8 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'rankList': reseatStr(b,b._id,'items'); break;
+  case 'twoCol': { if(!Array.isArray(b.cols)){ const arr=[]; if(b.left) arr.push(Object.assign({_sk:'a'},b.left)); if(b.right) arr.push(Object.assign({_sk:'b'},b.right)); b.cols=arr; delete b.left; delete b.right; }
+    (b.cols||[]).forEach((c,i)=>{ if(!c._sk) c._sk='c'+i; }); break; }
   case 'chips': { const id=b._id; const a=(b.items||[]).map((it,i)=>{ const n=(it&&typeof it==='object')?Object.assign({},it):{t:it}; n.t=_ovf(id+'/'+i, n.t); return n; });
     (b.items||[]).forEach((it,i)=>delete STATE.overrides[id+'/'+i]); b.items=a; break; }
   case 'table': { const id=b._id;
@@ -3712,6 +3729,7 @@ function addBox(wid, cont){
   else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
   else if(b.type==='table') item=(b.cols||['']).map(()=>'');   // nova linha vazia
   else if(b.type==='rankList') item='Novo item';
+  else if(b.type==='twoCol') item={_sk:newAddId(), k:'RÓTULO', titulo:'Novo card', texto:'Descreva o conteúdo deste card.'};
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
 }
