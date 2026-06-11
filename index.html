@@ -624,6 +624,15 @@
     border-bottom:1px dashed var(--line)}
   .group li:last-child{border-bottom:none}
   .group li::before{content:"›";position:absolute;left:2px;color:var(--magenta);font-weight:800}
+  .group .gl-acts{display:none}
+  body.grid-edit .group .gl-acts{display:inline-flex;align-items:center;gap:2px;position:absolute;top:50%;right:0;transform:translateY(-50%);z-index:3;background:#fff;border-radius:6px;padding-left:4px;opacity:0;transition:opacity .12s}
+  body.grid-edit .group li:hover .gl-acts,body.grid-edit .group li:focus-within .gl-acts{opacity:1}
+  .group .gl-acts button{width:20px;height:20px;border:1px solid var(--line);background:#fff;border-radius:5px;font-size:10px;color:var(--ink2);cursor:pointer;padding:0;line-height:1}
+  .group .gl-acts button.danger{color:var(--magenta)}
+  .group .gl-acts .updown{display:inline-flex;flex-direction:column;gap:1px}
+  .group .gl-acts .updown button{height:11px;width:20px;border-radius:4px;font-size:8px}
+  body.grid-edit .group .gl-acts .it-grip{position:static;transform:none;width:20px;height:20px}
+  body.grid-edit .group li{padding-right:70px}
 
   /* table */
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:#fff}
@@ -3287,7 +3296,7 @@ function renderBlock(b, sec, bi){
     case "groupList":{
       let x=`<div class="block glist" data-wid="${b._id}" ${dz(b._id,'items')}>`;
       b.items.forEach((g,gi)=>{
-        let li=(g.items||[]).map((it,ii)=>`<li class="ed editli dnd-row" data-ed="${b._id}/${gi}/${ii}">${esc(txt(b._id+'/'+gi+'/'+ii,it))}${grip(b._id,'items@'+gi,ii)}<button class="li-x" data-boxitemdel="${b._id}|items@${gi}|${ii}" title="Remover">×</button></li>`).join("");
+        let li=(g.items||[]).map((it,ii)=>`<li class="ed gl-item dnd-row" data-ed="${b._id}/${gi}/${ii}">${esc(txt(b._id+'/'+gi+'/'+ii,it))}<span class="li-acts gl-acts">${grip(b._id,'items@'+gi,ii)}<span class="updown"><button data-itemmove="${b._id}|items@${gi}|${ii}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|items@${gi}|${ii}|1" title="Descer">▼</button></span><button class="danger" data-boxitemdel="${b._id}|items@${gi}|${ii}" title="Remover">×</button></span></li>`).join("");
         x+=`<div class="group dnd-box" ${g.color?`style="border-top-color:${g.color}"`:''}>${grip(b._id,'items',gi)}
           <h4 class="ed" data-ed="${b._id}/${gi}/t">${esc(txt(b._id+'/'+gi+'/t',g.titulo))}</h4>
           <ul ${dz(b._id,'items@'+gi)}>${li}</ul>
@@ -3791,7 +3800,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR') return;   // chip/linha de tabela têm controles próprios
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item')) return;   // chip/linha de tabela/item de grupo têm controles próprios (grupo tem 1 lápis só)
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -4776,6 +4785,7 @@ const FIELD_LABELS={ v:'Número/Valor', l:'Rótulo', src:'Fonte', ttl:'Título',
 function fieldLabel(el, i){
   for(const c of el.classList){ if(FIELD_LABELS[c]) return FIELD_LABELS[c]; }
   if(el.tagName==='H4'||el.tagName==='H3'||el.tagName==='H2') return 'Título';
+  if(el.classList.contains('gl-item')) return 'Item '+i;
   if(el.tagName==='P'||el.tagName==='LI') return 'Texto';
   const k=el.getAttribute('data-ed')||el.getAttribute('data-wedit')||'';
   if(/\/(ttl|t|title|n|nome)$/.test(k)) return 'Título';
@@ -4783,7 +4793,12 @@ function fieldLabel(el, i){
 }
 function fieldText(el){ const c=el.cloneNode(true); c.querySelectorAll(CTRL_SEL+',.q-mark').forEach(n=>n.remove()); return c.textContent.replace(/\s+/g,' ').trim(); }
 // campos editáveis de uma caixa (inclui a própria caixa quando ela é o editável, ex.: <li> do SWOT)
-function boxFields(box){ const ff=$$('.ed[data-ed], .wed[data-wedit]', box).filter(f=> f.closest('.dnd-row, .dnd-box')===box);
+function boxFields(box){
+  if(box.classList.contains('group')){   // grupo: 1 lápis edita título + todos os itens da lista
+    const out=[]; const t=box.querySelector(':scope > h4.ed'); if(t) out.push(t);
+    $$(':scope > ul > li.gl-item', box).forEach(li=> out.push(li)); return out;
+  }
+  const ff=$$('.ed[data-ed], .wed[data-wedit]', box).filter(f=> f.closest('.dnd-row, .dnd-box')===box);
   if(box.hasAttribute('data-ed')||box.hasAttribute('data-wedit')) ff.unshift(box); return ff; }
 let _bxeTimer=null, _bxeTileId=null, _bxeScope=null, _bxeScopeKey=null;
 function bxeApply(){ clearTimeout(_bxeTimer); _bxeTimer=setTimeout(()=>{ saveState(); render(); }, 200); }
