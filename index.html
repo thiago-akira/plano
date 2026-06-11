@@ -8,6 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <style>
   :root{
     --ink:#241a6e;        /* indigo estrutura */
@@ -111,6 +112,9 @@
   .icon-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 8px;
     font-size:12px;color:var(--ink2);font-weight:600;white-space:nowrap}
   .icon-btn:hover{background:#f6f3ec}
+  .icon-btn.up{border-color:var(--green);color:var(--green)}
+  .icon-btn.up:hover{background:rgba(26,166,74,.08)}
+  .icon-btn.up-busy{opacity:.7;cursor:progress}
 
   /* main */
   #main{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -1364,12 +1368,13 @@ const FIREBASE_CONFIG = {
   appId: "1:856112176459:web:de200754807e63e5c75cce"
 };
 const CLOUD = !!(FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith("COLE") && window.firebase);
-let db=null, fbAuth=null;
+let db=null, fbAuth=null, fbStorage=null;
 if(CLOUD){
   try{
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
     fbAuth = firebase.auth();
+    try{ if(firebase.storage) fbStorage = firebase.storage(); }catch(_){ }   // upload de mídia (opcional)
   }catch(e){ console.error("Falha ao iniciar Firebase:", e); }
 }
 const CLOUD_DOC = "plano/state"; // documento compartilhado (conteúdo)
@@ -3383,8 +3388,9 @@ function renderBlock(b, sec, bi){
       const ik=b._id+'/img';
       const src = MEDIA[b.src] || STATE.media[ik] || b.src;
       const isAdmin = AUTH && AUTH.role==="admin";
-      const input = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Cole o link de uma imagem (https://…)…" value="${esc(STATE.media[ik]||(MEDIA[b.src]?'':b.src)||'')}">
-                 <button class="icon-btn" data-isave="${ik}">Salvar</button></div>` : '';
+      const upImg = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${ik}|image" title="Enviar uma imagem do seu computador">⬆ Enviar</button>` : '';
+      const input = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Cole o link de uma imagem (https://…) ou envie um arquivo →" value="${esc(STATE.media[ik]||(MEDIA[b.src]?'':b.src)||'')}">
+                 <button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>` : '';
       if(!src) return `<div class="block media-empty"><div class="mi">🖼️</div><b>Imagem a inserir.</b><br>${esc(b.caption||'')}${input}</div>`;
       return `<div class="block media"><figure><img src="${src}" alt="${esc(b.caption||'')}" loading="lazy">
         <figcaption class="ed" data-ed="${b._id}/cap">${esc(txt(b._id+'/cap',b.caption||''))}</figcaption></figure>${input}</div>`;
@@ -3399,8 +3405,9 @@ function renderBlock(b, sec, bi){
     case "gallery":{
       const wid=b._id;
       const isAdmin = AUTH && AUTH.role==="admin";
-      const adder = isAdmin ? `<div class="vinput gal-add"><input data-galurl="${wid}" placeholder="Cole o link de uma imagem para adicionar…">
-                 <button class="icon-btn" data-galadd="${wid}">Adicionar</button></div>` : '';
+      const upGal = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${wid}|gallery" title="Enviar uma imagem do seu computador">⬆ Enviar</button>` : '';
+      const adder = isAdmin ? `<div class="vinput gal-add"><input data-galurl="${wid}" placeholder="Cole o link de uma imagem ou envie um arquivo →">
+                 <button class="icon-btn" data-galadd="${wid}">Adicionar</button>${upGal}</div>` : '';
       if(!b.items||!b.items.length) return `<div class="block media-empty"><div class="mi">🖼️</div><b>Galeria a preencher.</b>${adder}</div>`;
       let x=`<div class="block gallery">`;
       b.items.forEach((it,i)=>{ const src=MEDIA[it.src]||it.src;
@@ -3413,8 +3420,9 @@ function renderBlock(b, sec, bi){
       const ak=b._id+'/aud';
       const src = MEDIA[b.src] || STATE.media[ak] || b.src;
       const isAdmin = AUTH && AUTH.role==="admin";
-      const input = isAdmin ? `<div class="vinput"><input data-iurl="${ak}" placeholder="Cole o link de um áudio (.mp3, .m4a…)…" value="${esc(STATE.media[ak]||(MEDIA[b.src]?'':b.src)||'')}">
-                 <button class="icon-btn" data-isave="${ak}">Salvar</button></div>` : '';
+      const upAud = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${ak}|audio" title="Enviar um áudio do seu computador">⬆ Enviar</button>` : '';
+      const input = isAdmin ? `<div class="vinput"><input data-iurl="${ak}" placeholder="Cole o link de um áudio (.mp3, .m4a…) ou envie um arquivo →" value="${esc(STATE.media[ak]||(MEDIA[b.src]?'':b.src)||'')}">
+                 <button class="icon-btn" data-isave="${ak}">Salvar</button>${upAud}</div>` : '';
       if(!src) return `<div class="block media-empty"><div class="mi">🎧</div><b>Áudio a inserir.</b><br>${esc(b.caption||'')}${input}</div>`;
       return `<div class="block audio"><div class="ai-ic">🎧</div>
         <div style="flex:1;min-width:0">${b.caption?`<div class="atitle">${esc(b.caption)}</div>`:''}
@@ -3947,6 +3955,8 @@ function wireBlockEvents(){
     const id=btn.dataset.galadd; const inp=$(`[data-galurl="${id}"]`); galAdd(id, inp?inp.value:''); }));
   $$("[data-galdel]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.galdel.split('|'); galDel(id,+i); }));
   $$("[data-galurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
+  // upload de mídia (Firebase Storage): data-upload="chave|tipo"
+  $$("[data-upload]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [key,kind]=btn.dataset.upload.split('|'); pickAndUpload(btn, key, kind); }));
   // agenda
   $$("[data-agmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.agmove.split('|'); agMove(id,+i,+d); }));
   $$("[data-agdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.agdel.split('|'); agDel(id,+i); }));
@@ -4040,6 +4050,37 @@ function liAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items|
 function liBul(id,i){ const b=findWidgetBlock(id); if(!b) return; const it=liItemObj(b,i); const k=LI_COLORS.indexOf(it.color); it.color=LI_COLORS[(k+1)%LI_COLORS.length]; pushHistory("Lista","list"); saveState(); render(); }
 function galAdd(id,url){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({src:url,caption:''}); pushHistory("Galeria","gallery"); saveState(); render(); }
 function galDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Galeria","gallery"); saveState(); render(); }
+// ===== Upload de mídia para o Firebase Storage =====
+const UPLOAD_MAX = 15*1024*1024;   // 15 MB por arquivo
+function pickAndUpload(btn, key, kind){
+  if(!CLOUD || !fbStorage){ alert("O envio de arquivos requer o Firebase Storage ativado no projeto.\n\nVeja o passo a passo em FIREBASE_SETUP.md (ativar Storage + colar as regras). Enquanto isso, você pode colar um link de imagem no campo ao lado."); return; }
+  if(!isCloudAdmin()){ alert("Entre como administrador (login) para enviar arquivos."); return; }
+  const accept = kind==='audio' ? 'audio/*' : (kind==='video' ? 'video/*' : 'image/*');
+  const inp=document.createElement('input'); inp.type='file'; inp.accept=accept; inp.style.display='none';
+  inp.addEventListener('change',()=>{ const f=inp.files&&inp.files[0]; if(f) uploadMedia(f, btn, url=>{
+    if(kind==='gallery'){ galAdd(key, url); }
+    else { STATE.media[key]=url; pushHistory("Enviou "+(kind==='audio'?'áudio':(kind==='video'?'vídeo':'imagem')), kind); saveState(); render(); }
+  }); inp.remove(); });
+  document.body.appendChild(inp); inp.click();
+}
+function uploadMedia(file, btn, onUrl){
+  if(file.size > UPLOAD_MAX){ alert("Arquivo muito grande ("+(file.size/1048576).toFixed(1)+" MB). Máximo: 15 MB."); return; }
+  const safe=(file.name||'arquivo').toLowerCase().replace(/[^\w.\-]+/g,'_').slice(-60);
+  const path='media/'+_uploadStamp()+'-'+safe;
+  let ref; try{ ref=fbStorage.ref().child(path); }catch(e){ alert("Storage indisponível: "+(e.code||e)); return; }
+  const label0=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.classList.add('up-busy'); }
+  const done=ok=>{ if(btn){ btn.disabled=false; btn.classList.remove('up-busy'); btn.textContent=label0; } };
+  const task=ref.put(file, {contentType:file.type||'application/octet-stream'});
+  task.on('state_changed',
+    snap=>{ const pct=Math.round((snap.bytesTransferred/Math.max(1,snap.totalBytes))*100); if(btn) btn.textContent='Enviando '+pct+'%'; },
+    err=>{ done(false); console.error("upload falhou:", err);
+      alert("Não consegui enviar o arquivo: "+(err.code||err.message||err)+".\n\nCausa provável: o Firebase Storage ainda não foi ativado, ou as regras bloqueiam a escrita. Veja FIREBASE_SETUP.md."); },
+    ()=>{ ref.getDownloadURL().then(url=>{ done(true); onUrl(url); })
+      .catch(e=>{ done(false); alert("Enviado, mas falhou ao obter o link: "+(e.code||e)); }); }
+  );
+}
+let _upSeq=0;
+function _uploadStamp(){ _upSeq=(_upSeq+1)%100000; return Date.now()+'_'+_upSeq; }
 function safeUrl(u){ u=(u||'').trim(); if(!u) return '#'; if(/^https?:\/\//i.test(u)) return esc(u); if(/^[\w.-]+\.[a-z]{2,}/i.test(u)) return esc('https://'+u); return '#'; }
 // AGENDA
 function agMove(id,i,d){ const b=findWidgetBlock(id); if(!b) return; const j=i+d; if(j<0||j>=b.items.length) return; const t=b.items[i]; b.items[i]=b.items[j]; b.items[j]=t; pushHistory("Agenda","agenda"); saveState(); render(); }

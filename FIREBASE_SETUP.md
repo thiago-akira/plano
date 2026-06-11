@@ -88,8 +88,9 @@ ficar **online em tempo real** no link do GitHub Pages, para todos.
 - **O cliente precisa de conta?** Não. Ele só lê (entra com `cliente`/`amapa`, que é só uma portinha).
 - **Funciona offline?** Não mais — o modo nuvem exige internet.
 - **Onde ficam os dados?** Num único documento `plano/state` no seu Firestore (textos, status, links de
-  vídeo e layouts de grade). As imagens em base64 continuam no `index.html`.
-- **E upload de vídeo/foto?** É a próxima etapa (Firebase Storage), ainda não incluída.
+  mídia e layouts de grade). As imagens/áudios enviados ficam no **Firebase Storage** (só o link entra no
+  documento). Imagens antigas em base64 seguem dentro do `index.html`.
+- **E upload de vídeo/foto?** Já incluído! Veja **"Enviar imagens/áudios do computador (Firebase Storage)"** mais abaixo. Basta ativar o Storage uma vez.
 - **Esqueci a senha do admin:** Authentication → Users → reset, ou crie outro usuário com o mesmo e-mail
   das regras.
 
@@ -128,8 +129,59 @@ service cloud.firestore {
 **Publicar.**
 
 ## 3. (Opcional) Storage para foto de perfil
-Hoje a foto é por **URL** (cole o link de uma imagem). Para upload de arquivo:
-**Storage → Começar → modo de produção**; depois me avise que eu ligo o upload no app.
+A foto de perfil também pode ser por **URL**. Para enviar arquivos (perfil, imagens do plano, áudios),
+ative o **Firebase Storage** seguindo a seção abaixo — o upload pelo próprio site já está pronto no código.
+
+---
+
+# Enviar imagens/áudios do computador (Firebase Storage)
+
+O código de **upload já está pronto**: no modo Editar, os widgets de **Imagem**, **Galeria** e **Áudio**
+mostram um botão verde **"⬆ Enviar"** ao lado do campo de link. Você escolhe o arquivo, ele sobe para o
+seu Storage e o link entra sozinho (e sincroniza para o cliente). Falta só **ativar o Storage uma vez**.
+
+> 💳 **Atenção ao plano:** projetos do Firebase criados a partir de ~out/2024 exigem o plano **Blaze
+> (pago por uso)** para usar o Storage. O Blaze pede um cartão, mas tem **cota gratuita generosa** (vários
+> GB e downloads grátis por mês) e você pode definir um **orçamento/alerta** de gasto. Projetos antigos
+> ainda têm Storage no plano gratuito. Se na hora de ativar o Console pedir para fazer upgrade, é isso.
+
+## 1. Ativar o Storage
+1. No Console do Firebase → menu **Criar** (Build) → **Storage** → **Começar**.
+2. Escolha **Modo de produção** → confirme a localização (use a **mesma** do Firestore, ex.: `southamerica-east1`) → **Concluir**.
+   - Se aparecer pedido de **upgrade para Blaze**, conclua o upgrade (cadastre o cartão e, recomendado, defina um **alerta de orçamento** baixo).
+
+## 2. Colar as regras do Storage
+Aba **Storage → Regras (Rules)** → apague tudo e cole abaixo, **trocando o e-mail** pelo **mesmo e-mail
+admin** das regras do Firestore:
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /media/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email == 'SEU_EMAIL_ADMIN@exemplo.com'
+        && request.resource.size < 15 * 1024 * 1024;
+    }
+  }
+}
+```
+**Publicar.**
+
+> 🔒 Igual ao Firestore: **qualquer um lê** as mídias (o cliente precisa ver as fotos), mas **só o seu
+> e-mail envia** arquivos, e cada arquivo é limitado a **15 MB**.
+
+## 3. Pronto — como usar
+1. No site, entre como **admin** e clique em **Editar**.
+2. Adicione (ou abra) um widget de **Imagem**, **Galeria** ou **Áudio**.
+3. Clique no botão verde **"⬆ Enviar"**, escolha o arquivo → ele sobe (mostra o progresso) e aparece sozinho.
+4. O link fica salvo no Storage e **sincroniza para o cliente** automaticamente.
+
+> Não precisa mais embutir imagens em base64 no `index.html` (aquilo pesa e estoura o limite de 1 MB do
+> documento de sincronização). Com o Storage, o plano guarda só o **link** da imagem.
+
+**Se o upload falhar** com um erro tipo `storage/unauthorized` ou `storage/unknown`: confira se o Storage
+foi ativado, se as regras acima foram **publicadas** com o seu e-mail, e se você está **logado como admin**.
 
 ## Como funciona o convite
 1. No app: **menu do seu nome → Equipe → Convidar** (e-mail + papel). O Firebase envia um link de acesso.
