@@ -3700,6 +3700,13 @@ const WIDGET_CATALOG=[
   {ic:"🔗", label:"Atalhos", desc:"Botões de link", make:id=>({type:"shortcuts", _id:id, title:"Atalhos", items:[{label:"Site",url:"",icon:"🌐",color:"var(--cyan)"},{label:"Drive",url:"",icon:"📁",color:"var(--green)"}]})},
   {ic:"🕐", label:"Relógio / fuso", desc:"Hora ao vivo", make:id=>({type:"clock", _id:id, title:"Horários", zones:[{label:"Macapá",tz:"America/Belem"},{label:"São Paulo",tz:"America/Sao_Paulo"}]})},
   {ic:"🗂", label:"Notas em abas", desc:"Conteúdo com abas", make:id=>({type:"tabs", _id:id, active:0, items:[{label:"Resumo",text:"Conteúdo da primeira aba."},{label:"Detalhes",text:"Conteúdo da segunda aba."}]})},
+  {ic:"⊞", label:"SWOT", desc:"Forças/fraquezas/etc.", make:id=>({type:"swot", _id:id, forcas:["Força 1","Força 2"], fraquezas:["Fraqueza 1"], oportunidades:["Oportunidade 1"], ameacas:["Ameaça 1"]})},
+  {ic:"⚖", label:"Benchmark", desc:"Análise de concorrente", make:id=>({type:"benchmark", _id:id, key:id+"/d", nome:"Concorrente / referência", cat:"direto", escopo:"Nacional", desc:"Descrição breve do caso.", fortes:["Ponto forte"], fracos:["Ponto fraco"]})},
+  {ic:"👤", label:"Personas", desc:"Públicos-alvo", make:id=>({type:"personas", _id:id, cor:"var(--green)", key:id+"/p", items:[{icon:"◍", nome:"Nome da persona", perfil:"Perfil resumido (idade, origem, estilo).", busca:"O que essa pessoa busca na viagem."}]})},
+  {ic:"📡", label:"Canal", desc:"Canal de marketing", make:id=>({type:"channel", _id:id, key:id+"/d", nome:"Nome do canal", status:"existente", estrategia:"Agressiva", desc:"Como o canal será usado.", objetivos:["Objetivo do canal"], metricas:["Métrica de acompanhamento"]})},
+  {ic:"⏳", label:"Fases", desc:"Etapas em sequência", make:id=>({type:"phases", _id:id, key:id+"/f", items:[{titulo:"Fase 1", texto:"Descrição da primeira fase."},{titulo:"Fase 2", texto:"Descrição da segunda fase."},{titulo:"Fase 3", texto:"Descrição da terceira fase."}]})},
+  {ic:"📶", label:"Escada", desc:"Níveis crescentes", make:id=>({type:"ladder", _id:id, items:[{k:"Base", v:"Primeiro nível."},{k:"Meio", v:"Nível intermediário."},{k:"Topo", v:"Nível mais alto."}]})},
+  {ic:"🩺", label:"Diagnóstico (8 Ps)", desc:"Análise por dimensão", make:id=>({type:"diagnostic", _id:id, key:id+"/p", items:[{num:1, nome:"Dimensão", diagnostico:"Situação atual da dimensão.", desafios:["Desafio identificado"], acoes:["Ação estratégica"]}]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
