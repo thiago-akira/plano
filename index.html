@@ -676,7 +676,7 @@
     font-size:16px;color:var(--ink2);font-weight:700;display:flex;align-items:center;justify-content:center}
   .tb-icon[disabled]{opacity:.38;pointer-events:none}
   .save-pill{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;padding:0 4px;min-width:54px}
-  .save-pill.saving{color:var(--orange)} .save-pill.saved{color:var(--green)}
+  .save-pill.saving{color:var(--orange)} .save-pill.saved{color:var(--green)} .save-pill.err{color:var(--magenta)}
   /* progresso na nav lateral */
   .nav-item .nav-prog{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--muted);
     background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:1px 7px;flex:0 0 auto}
@@ -1865,14 +1865,19 @@ function cloudPush(){
   _cloudTimer=setTimeout(()=>{
     db.doc(CLOUD_DOC).set(cloudPayload(), {merge:true})
       .then(()=>{ if(typeof setSaveStatus==="function") setSaveStatus('saved'); })
-      .catch(e=> console.warn("cloudPush falhou:", e.code||e));
+      .catch(e=>{ console.warn("cloudPush falhou:", e.code||e);
+        const p=$("#savePill"); if(p){ p.textContent="Falha ao salvar ("+(e.code||'erro')+")"; p.className="save-pill err"; } });
   }, 400);
 }
 function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},v:o.nav||{},n:o._addSeq||0}); }
+let _initialApplied=false;
 function applyRemote(data){
   if(!data) return;
-  // deduplica o "eco" do próprio autosave: se nada mudou, não re-renderiza (evita scroll voltar ao topo)
+  // deduplica o "eco" do próprio autosave: se nada mudou, não re-renderiza
   if(syncSig(data)===syncSig(STATE)) return;
+  // EDITOR é autoritativo: depois do 1º carregamento, ecos/rollbacks da nuvem NÃO revertem o estado local
+  if(_initialApplied && (typeof can==="function") && (can('editContent')||can('editLayout'))) return;
+  _initialApplied=true;
   _applyingRemote=true;
   STATE.overrides = data.overrides || {};
   STATE.statuses  = data.statuses  || {};
