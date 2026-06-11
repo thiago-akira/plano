@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Plano de Marketing Turístico — Portal do Cliente</title>
 <!-- Firebase (sincronização online em tempo real). Requer internet. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -993,7 +993,7 @@
       transition:transform .25s;box-shadow:12px 0 40px rgba(36,26,110,.12)}
     #sidebar.open{transform:none}
     .hamburger{display:flex;align-items:center;justify-content:center}
-    .wrap{padding:22px 16px 80px}
+    .wrap{padding:22px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left))}
     .swot{grid-template-columns:1fr}
     .twocol{grid-template-columns:1fr}
     .ltable .row{grid-template-columns:120px 1fr}
@@ -1003,7 +1003,7 @@
   }
   @media(max-width:560px){
     .tb-btn span.lbl{display:none}
-    .topbar{padding:10px 14px;gap:9px}
+    .topbar{padding:10px max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left));gap:9px}
   }
 </style>
 </head>
