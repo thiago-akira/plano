@@ -89,6 +89,17 @@
   .nav-item .num{font-size:11px;color:var(--muted);font-weight:700;min-width:16px}
   .nav-item.active .num{color:var(--ink)}
   .nav-item.special{font-weight:800;color:var(--ink)}
+  .nav-item .ni-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nav-exp{flex:0 0 auto;font-size:10px;color:var(--muted);padding:3px 5px;border-radius:6px;line-height:1}
+  .nav-exp:hover{background:#e7e2f5;color:var(--ink)}
+  /* sub-menus (seções) no menu lateral */
+  .nav-subs{display:flex;flex-direction:column;gap:2px;margin:1px 0 5px 22px;padding-left:8px;border-left:2px solid var(--line)}
+  .nav-sub{display:flex;align-items:center;gap:8px;border:none;background:none;text-align:left;width:100%;
+    padding:6px 9px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:background .12s}
+  .nav-sub:hover{background:#f6f3ec;color:var(--ink2)}
+  .nav-sub.active{background:#f2eeff;color:var(--ink);font-weight:800}
+  .nav-sub .ns-dot{width:6px;height:6px;border-radius:50%;background:var(--line);flex:0 0 auto}
+  .nav-sub.active .ns-dot{background:var(--orange)}
   .side-foot{padding:12px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);
     display:flex;align-items:center;justify-content:space-between;gap:8px}
   .side-foot .user{display:flex;align-items:center;gap:8px;min-width:0}
@@ -139,7 +150,8 @@
   .sec-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 6px;position:sticky;top:0;
     background:var(--paper);padding:10px 0;z-index:5}
   .sec-tab{border:1.5px solid var(--line);background:#fff;border-radius:30px;padding:7px 15px;
-    font-size:13px;font-weight:700;color:var(--ink2);transition:all .12s}
+    font-size:13px;font-weight:700;color:var(--ink2);transition:all .12s;cursor:pointer;user-select:none;white-space:nowrap}
+  body.editing .sec-tab.active{user-select:text}
   .sec-tab:hover{border-color:var(--ink)}
   .sec-tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
   .sec-tab-ed{outline:none;display:inline-block;min-width:10px}
@@ -1093,6 +1105,7 @@
         <span class="ring" id="ring"><b id="ringTxt">0%</b></span>
         <span class="ptxt">execução</span>
       </div>
+      <button class="tb-btn" id="previewClientBtn" style="display:none" title="Ver como cliente"><span class="pc-ico">👁</span><span class="lbl">&nbsp;Ver como cliente</span></button>
       <button class="tb-btn" id="editBtn" style="display:none"><span class="lbl">Editar</span> ✏️</button>
       <button class="tb-btn ai" id="aiBtn">✦ <span class="lbl">Assistente</span></button>
     </div>
@@ -2121,7 +2134,25 @@ function recomputeMe(){
   ME = { uid, email, name:(mem&&mem.name)||fu.displayName||email, photoURL:(mem&&mem.photoURL)||fu.photoURL||'',
     roleId: mem?mem.roleId:(isSuper?'admin':null), perms, isSuper, role:'admin' };
 }
-function can(p){ return !!(ME && ME.perms && ME.perms[p]); }
+let PREVIEW_CLIENT=false, _preEdit=false;   // "ver como cliente": simula a visão do cliente p/ o consultor
+function isEditor(){ return !!(ME && ME.perms && (ME.perms.editContent||ME.perms.editLayout||ME.perms.manageUsers||ME.isSuper)); }
+function can(p){ if(PREVIEW_CLIENT) return false; return !!(ME && ME.perms && ME.perms[p]); }
+function togglePreviewClient(){
+  PREVIEW_CLIENT=!PREVIEW_CLIENT;
+  if(PREVIEW_CLIENT){ _preEdit=EDIT; EDIT=false; SEL&&SEL.clear&&SEL.clear(); }
+  else { EDIT=_preEdit; }
+  document.body.classList.toggle('preview-client', PREVIEW_CLIENT);
+  refreshIdentity(); applyEdit(); buildNav(); updateEditChrome&&updateEditChrome(); render();
+}
+function updatePreviewBtn(){
+  const b=$("#previewClientBtn"); if(!b) return;
+  b.style.display = isEditor() ? "flex" : "none";
+  b.classList.toggle('on', PREVIEW_CLIENT);
+  const lbl=b.querySelector('.lbl'), ico=b.querySelector('.pc-ico');
+  if(lbl) lbl.innerHTML = PREVIEW_CLIENT ? "&nbsp;Sair da prévia" : "&nbsp;Ver como cliente";
+  if(ico) ico.textContent = PREVIEW_CLIENT ? "↩" : "👁";
+  b.title = PREVIEW_CLIENT ? "Voltar ao modo consultor" : "Ver como cliente";
+}
 function teamPush(){
   if(!CLOUD || !db || _applyingTeam || !(ME&&(ME.isSuper||can('manageUsers')))) return;
   clearTimeout(_teamTimer);
@@ -2464,6 +2495,8 @@ function refreshIdentity(){
   document.body.classList.toggle("can-export", can('export'));
   document.body.classList.toggle("can-users", can('manageUsers'));
   const umb=$("#userMenuBtn"); if(umb) umb.style.display="flex";
+  if(PREVIEW_CLIENT) $("#urole").textContent="Prévia do cliente";
+  updatePreviewBtn();
 }
 
 /* =========================================================================
@@ -2567,6 +2600,7 @@ function openNavManager(){
   $$("[data-sdel]",card).forEach(b=>b.addEventListener("click",()=>{ const p=b.dataset.sdel.split('|'); if(confirm("Excluir este sub-menu adicionado?")){ delSection(p[0],p[1]); reopen(); } }));
 }
 
+const NAV_EXPANDED = new Set();   // capítulos com sub-menus abertos no menu lateral (por-sessão)
 function buildNav(){
   const nav=$("#nav");
   const model=navModel();
@@ -2576,16 +2610,37 @@ function buildNav(){
     if(c.hidden && !canEditNav) return;                 // ocultos: só admin vê (atenuados)
     if(!c.isOnb && !grouped){ h+=`<div class="nav-group-label">O Plano</div>`; grouped=true; }
     const numHtml = c.isOnb ? "" : `<span class="num">${String(c.num).padStart(2,'0')}</span>`;
-    h += `<button class="nav-item ${c.isOnb?'special ':''}${String(CUR.chapter)===c.chKey?'active':''} ${c.hidden?'nav-hidden':''}" data-ch="${c.chKey}">
-            ${numHtml}<span class="dot" style="background:${c.isOnb?'var(--ink)':c.cor}"></span>${c.isOnb?(esc(c.icone)+' '):''}${esc(plainTxt(c.nome))}
+    const isCurCh = String(CUR.chapter)===c.chKey;
+    const subs = (c.sections||[]).filter(s=> !s.hidden || canEditNav);
+    const multi = subs.length>1;
+    const expanded = isCurCh || NAV_EXPANDED.has(c.chKey);
+    const chev = (multi && !isCurCh) ? `<span class="nav-exp" data-exp="${c.chKey}" title="Mostrar/ocultar sub-menus">${NAV_EXPANDED.has(c.chKey)?'▾':'▸'}</span>` : '';
+    h += `<button class="nav-item ${c.isOnb?'special ':''}${isCurCh?'active':''} ${c.hidden?'nav-hidden':''}" data-ch="${c.chKey}">
+            ${numHtml}<span class="dot" style="background:${c.isOnb?'var(--ink)':c.cor}"></span><span class="ni-name">${c.isOnb?(esc(c.icone)+' '):''}${esc(plainTxt(c.nome))}</span>${chev}
           </button>`;
+    if(multi && expanded){
+      h += `<div class="nav-subs">`;
+      subs.forEach(s=>{
+        const subActive = isCurCh && String(CUR.section)===s.secKey;
+        h += `<button class="nav-sub ${subActive?'active':''} ${s.hidden?'nav-hidden':''}" data-ch="${c.chKey}" data-sec="${s.secKey}"><span class="ns-dot"></span>${esc(plainTxt(s.titulo))}</button>`;
+      });
+      h += `</div>`;
+    }
   });
   if(canEditNav) h += `<button class="nav-manage" id="navManageBtn">⚙ Gerenciar menus</button>`;
   nav.innerHTML=h;
-  $$(".nav-item",nav).forEach(b=>b.addEventListener("click",()=>{
+  $$(".nav-item",nav).forEach(b=>b.addEventListener("click",(e)=>{
+    if(e.target.closest('.nav-exp')) return;            // clicou no chevron → não navega
     const ch=b.dataset.ch;
     const cm=chapterModel(ch); const firstSec=cm&&cm.sections.find(s=>!s.hidden)||(cm&&cm.sections[0]);
     CUR={ chapter: ch==='onb'?'onb':(/^\d+$/.test(ch)?parseInt(ch,10):ch), section:(firstSec?firstSec.secKey:'0') };
+    persistUi(); render(); closeDrawer();
+  }));
+  $$(".nav-exp",nav).forEach(x=>x.addEventListener("click",(e)=>{ e.stopPropagation();
+    const k=x.dataset.exp; if(NAV_EXPANDED.has(k))NAV_EXPANDED.delete(k); else NAV_EXPANDED.add(k); buildNav(); }));
+  $$(".nav-sub",nav).forEach(b=>b.addEventListener("click",()=>{
+    const ch=b.dataset.ch, sk=b.dataset.sec;
+    CUR={ chapter: ch==='onb'?'onb':(/^\d+$/.test(ch)?parseInt(ch,10):ch), section:sk };
     persistUi(); render(); closeDrawer();
   }));
   const mb=$("#navManageBtn",nav); if(mb) mb.addEventListener("click", openNavManager);
@@ -2648,7 +2703,7 @@ function render(){
   CUR.chapter = chKey==='onb'?'onb':(/^\d+$/.test(chKey)?parseInt(chKey,10):chKey);  // normaliza
   const ch = cm.obj, isOnb = cm.isOnb;
   $("#tbTitle").textContent=plainTxt(cm.nome);
-  $$(".nav-item").forEach(b=> b.classList.toggle("active", b.dataset.ch===chKey));
+  buildNav();   // reconstrói o menu lateral (sub-menus + destaque da seção atual seguem a navegação)
 
   // seção atual por chave estável
   let secModel = cm.sections.find(s=>s.secKey===String(CUR.section)) || cm.sections.find(s=>!s.hidden) || cm.sections[0]
@@ -2688,7 +2743,7 @@ function render(){
       const label=editable
         ? `<span class="ed sec-tab-ed" data-ed="sec/${chKey}/${s.secKey}/titulo">${esc(plainTxt(s.titulo))}</span>`
         : esc(plainTxt(s.titulo));
-      h += `<button class="sec-tab ${isActive?'active':''} ${s.hidden?'nav-hidden':''}" data-sec="${s.secKey}">${label}</button>`;
+      h += `<div class="sec-tab ${isActive?'active':''} ${s.hidden?'nav-hidden':''}" role="button" tabindex="0" data-sec="${s.secKey}">${label}</div>`;
     });
     h += `</div>`;
   }
@@ -3686,6 +3741,7 @@ $("#editBtn").addEventListener("click",()=>{
   if(!EDIT){ SEL.clear(); updateSelActionsBar(); closeCtxMenu(); }
   render();   // re-render para inserir/remover alças e ferramentas
 });
+$("#previewClientBtn").addEventListener("click", togglePreviewClient);
 
 /* =========================================================================
    EDITOR MODULAR — toolbar, posicionamento, drag/resize, paleta e export
@@ -4393,7 +4449,7 @@ $("#sideToggle").addEventListener("click",()=>{ STATE.sideCollapsed=!STATE.sideC
 function updateEditChrome(){
   const hasEdit = can('editContent')||can('editLayout');
   // cluster (desfazer/refazer/histórico) sempre visível p/ quem edita; alternador de device só em EDIT
-  const c=$("#editCluster"); if(c) c.style.display = hasEdit ? "flex" : "none";
+  const c=$("#editCluster"); if(c) c.style.display = (hasEdit && window.innerWidth>700) ? "flex" : "none";  // desfazer/refazer/histórico só em telas largas (libera o topo no celular)
   const dv=$("#devSwitch"); if(dv) dv.style.display = (hasEdit && window.innerWidth>980) ? "inline-flex" : "none";  // some no celular (não faz sentido + estoura o topo)
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
