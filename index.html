@@ -186,6 +186,11 @@
   .ul-rich .li-acts button.danger{color:var(--magenta)}
   .ul-rich .li-add{display:none;align-self:flex-start;border:1px dashed var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:700;color:var(--ink2);margin-top:3px}
   body.grid-edit .ul-rich .li-add{display:inline-block}
+  /* galeria editável */
+  .gallery figure{position:relative}
+  .gal-del{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:7px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;cursor:pointer;display:none}
+  body.grid-edit .gal-del{display:block}
+  .gal-add{margin-top:10px}
   /* citação */
   .quote{position:relative;padding:6px 6px 6px 46px;border-left:4px solid var(--orange)}
   .quote .q-mark{position:absolute;left:8px;top:0;font-size:34px;color:var(--orange);line-height:1}
@@ -2875,19 +2880,28 @@ function renderBlock(b, sec, bi){
         ${b.caption?`<figcaption>${esc(b.caption)}</figcaption>`:''}</figure></div>`;
     }
     case "gallery":{
-      if(!b.items||!b.items.length) return `<div class="block media-empty"><div class="mi">🖼️</div><b>Galeria a preencher.</b></div>`;
+      const wid=b._id;
+      const isAdmin = AUTH && AUTH.role==="admin";
+      const adder = isAdmin ? `<div class="vinput gal-add"><input data-galurl="${wid}" placeholder="Cole o link de uma imagem para adicionar…">
+                 <button class="icon-btn" data-galadd="${wid}">Adicionar</button></div>` : '';
+      if(!b.items||!b.items.length) return `<div class="block media-empty"><div class="mi">🖼️</div><b>Galeria a preencher.</b>${adder}</div>`;
       let x=`<div class="block gallery">`;
-      b.items.forEach(it=>{ const src=MEDIA[it.src]||it.src;
+      b.items.forEach((it,i)=>{ const src=MEDIA[it.src]||it.src;
         x+=`<figure><img src="${src}" alt="${esc(it.caption||'')}" loading="lazy">
-          ${it.caption?`<figcaption>${esc(it.caption)}</figcaption>`:''}</figure>`; });
-      return x+`</div>`;
+          <figcaption class="wed" data-wedit="${wid}|cap/${i}">${esc(it.caption||'')}</figcaption>
+          <button class="gal-del" data-galdel="${wid}|${i}" title="Remover">×</button></figure>`; });
+      return x+`</div>`+adder;
     }
     case "audio":{
-      const src = MEDIA[b.src] || b.src;
-      if(!src) return `<div class="block media-empty"><div class="mi">🎧</div><b>Áudio a inserir.</b><br>${esc(b.caption||'')}</div>`;
+      const ak=b._id+'/aud';
+      const src = MEDIA[b.src] || STATE.media[ak] || b.src;
+      const isAdmin = AUTH && AUTH.role==="admin";
+      const input = isAdmin ? `<div class="vinput"><input data-iurl="${ak}" placeholder="Cole o link de um áudio (.mp3, .m4a…)…" value="${esc(STATE.media[ak]||(MEDIA[b.src]?'':b.src)||'')}">
+                 <button class="icon-btn" data-isave="${ak}">Salvar</button></div>` : '';
+      if(!src) return `<div class="block media-empty"><div class="mi">🎧</div><b>Áudio a inserir.</b><br>${esc(b.caption||'')}${input}</div>`;
       return `<div class="block audio"><div class="ai-ic">🎧</div>
         <div style="flex:1;min-width:0">${b.caption?`<div class="atitle">${esc(b.caption)}</div>`:''}
-        <audio controls src="${src}"></audio></div></div>`;
+        <audio controls src="${src}"></audio>${input}</div></div>`;
     }
     case "benchmark":{
       const cat = b.cat||'referencia';
@@ -3034,6 +3048,10 @@ function wireBlockEvents(){
     STATE.media[key]=inp.value.trim(); pushHistory("Alterou imagem","imagem"); saveState(); render();
   }));
   $$("[data-iurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
+  $$("[data-galadd]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation();
+    const id=btn.dataset.galadd; const inp=$(`[data-galurl="${id}"]`); galAdd(id, inp?inp.value:''); }));
+  $$("[data-galdel]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.galdel.split('|'); galDel(id,+i); }));
+  $$("[data-galurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
   // checklist
   $$("[data-ckbox]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.ckbox.split('|'); ckToggle(id,+i); }));
   $$("[data-ckmove]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=btn.dataset.ckmove.split('|'); ckMove(id,+i,+d); }));
@@ -3057,6 +3075,7 @@ function updateWidgetField(id, path, val){
   if(p[0]==='title') b.title=val;
   else if(p[0]==='f') b[p[1]]=val;
   else if(p[0]==='i'){ b.items=b.items||[]; const it=b.items[+p[1]]; if(it!=null){ if(typeof it==='object') it.t=val; else b.items[+p[1]]=val; } }
+  else if(p[0]==='cap'){ b.items=b.items||[]; if(b.items[+p[1]]) b.items[+p[1]].caption=val; }
   saveState();
 }
 function ckToggle(id,i){ const b=findWidgetBlock(id); if(!b||!b.items[i]) return;
@@ -3074,6 +3093,8 @@ function liMove(id,i,d){ const b=findWidgetBlock(id); if(!b) return; const j=i+d
 function liDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Lista","list"); saveState(); render(); }
 function liAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({t:"Novo item",color:LI_COLORS[b.items.length%LI_COLORS.length]}); pushHistory("Lista","list"); saveState(); render(); }
 function liBul(id,i){ const b=findWidgetBlock(id); if(!b) return; const it=liItemObj(b,i); const k=LI_COLORS.indexOf(it.color); it.color=LI_COLORS[(k+1)%LI_COLORS.length]; pushHistory("Lista","list"); saveState(); render(); }
+function galAdd(id,url){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({src:url,caption:''}); pushHistory("Galeria","gallery"); saveState(); render(); }
+function galDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Galeria","gallery"); saveState(); render(); }
 
 /* edição inline (somente admin) */
 function applyEdit(){
@@ -3511,6 +3532,8 @@ const WIDGET_CATALOG=[
   {ic:"◍", label:"Chips", desc:"Etiquetas coloridas", make:id=>({type:"chips", _id:id, items:[{t:"Tag A", color:"var(--cyan)"},{t:"Tag B", color:"var(--magenta)"},{t:"Tag C", color:"var(--green)"}]})},
   {ic:"▦", label:"Tabela", desc:"Tabela simples", make:id=>({type:"table", _id:id, cols:["Coluna A","Coluna B"], rows:[["Linha 1","..."],["Linha 2","..."]]})},
   {ic:"🖼", label:"Imagem", desc:"Imagem com legenda", make:id=>({type:"image", _id:id, src:"", caption:"Legenda da imagem"})},
+  {ic:"🖾", label:"Galeria", desc:"Várias imagens", make:id=>({type:"gallery", _id:id, items:[]})},
+  {ic:"🎧", label:"Áudio", desc:"Player de áudio", make:id=>({type:"audio", _id:id, src:"", caption:"Faixa de áudio"})},
   {ic:"❓", label:"FAQ", desc:"Perguntas e respostas", make:id=>({type:"faq", _id:id, key:id+"/f", items:[{q:"Pergunta de exemplo?", a:"Resposta de exemplo."}]})},
   {ic:"▶", label:"Vídeo", desc:"Player de vídeo", make:id=>({type:"video", _id:id, key:id+"/v", caption:"Vídeo"})},
   {ic:"✓", label:"Ação", desc:"Item do plano de ação", make:id=>({type:"action", _id:id, id:id, num:"•", titulo:"Nova ação", prioridade:"Média", desc:"Descreva a ação aqui."})},
