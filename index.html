@@ -776,6 +776,12 @@
   .faq details[open] summary{border-bottom:1px solid var(--line)}
   .faq .faq-a{padding:14px 18px;font-size:13.5px;color:#46415a}
   .faq .faq-a p{margin:0 0 9px} .faq .faq-a p:last-child{margin:0}
+  .faq summary .faq-q{flex:1;min-width:0}
+  .faq .li-acts{display:none}
+  body.grid-edit .faq .li-acts{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto}
+  .faq .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .faq .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .faq .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
   .signature{margin:18px 0 4px;font-size:15px;color:var(--ink)}
   .signature b{font-size:18px;display:block;margin-top:3px}
 
@@ -3456,12 +3462,13 @@ function renderBlock(b, sec, bi){
       return `<div class="block expandall-bar"><button class="expand-all-btn" type="button">↕&nbsp; Expandir todas</button></div>`;
     }
     case "faq":{
-      let x=`<div class="block faq">`;
+      let x=`<div class="block faq" data-wid="${b._id}" ${dz(b._id,'items')}>`;
       b.items.forEach((it,i)=>{
         const ans=(txt(b.key+'/'+i+'/a',it.a)||'').split('\n').map(p=>`<p>${esc(p)}</p>`).join("");
-        x+=`<details class="faq-item"><summary><span class="ed" data-ed="${b._id}/${i}/q">${esc(txt(b._id+'/'+i+'/q',it.q))}</span></summary>
+        x+=`<details class="faq-item dnd-row"><summary><span class="ed faq-q" data-ed="${b._id}/${i}/q">${esc(txt(b._id+'/'+i+'/q',it.q))}</span><span class="li-acts faq-acts">${grip(b._id,'items',i)}<button data-itemmove="${b._id}|items|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|items|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|items|${i}" title="Apagar pergunta">×</button></span></summary>
           <div class="faq-a ed" data-ed="${b.key}/${i}/a">${ans}</div></details>`;
       });
+      x+=`<button class="li-plus" data-boxadd="${b._id}|items">＋ pergunta</button>`;
       return x+`</div>`;
     }
     case "signature":{
@@ -3654,6 +3661,10 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'rankList': reseatStr(b,b._id,'items'); break;
+  case 'faq': { const id=b._id, ky=b.key;
+    const a=(b.items||[]).map((it,i)=>({ q:_ovf(id+'/'+i+'/q', it.q), a:_ovf(ky+'/'+i+'/a', it.a) }));
+    (b.items||[]).forEach((it,i)=>{ delete STATE.overrides[id+'/'+i+'/q']; delete STATE.overrides[ky+'/'+i+'/a']; });
+    b.items=a; break; }
   case 'twoCol': { if(!Array.isArray(b.cols)){ const arr=[]; if(b.left) arr.push(Object.assign({_sk:'a'},b.left)); if(b.right) arr.push(Object.assign({_sk:'b'},b.right)); b.cols=arr; delete b.left; delete b.right; }
     (b.cols||[]).forEach((c,i)=>{ if(!c._sk) c._sk='c'+i; }); break; }
   case 'chips': { const id=b._id; const a=(b.items||[]).map((it,i)=>{ const n=(it&&typeof it==='object')?Object.assign({},it):{t:it}; n.t=_ovf(id+'/'+i, n.t); return n; });
@@ -3775,6 +3786,7 @@ function addBox(wid, cont){
   else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
   else if(b.type==='table') item=(b.cols||['']).map(()=>'');   // nova linha vazia
   else if(b.type==='rankList') item='Novo item';
+  else if(b.type==='faq') item={q:'Nova pergunta?', a:'Resposta da nova pergunta.'};
   else if(b.type==='twoCol') item={_sk:newAddId(), k:'RÓTULO', titulo:'Novo card', texto:'Descreva o conteúdo deste card.'};
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
@@ -3847,8 +3859,10 @@ function wireBlockEvents(){
   $$("[data-boxitemadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont]=b.dataset.boxitemadd.split('|'); addBoxItem(id,cont); }));
   $$("[data-boxitemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i]=b.dataset.boxitemdel.split('|'); deleteItemUx(id,cont,+i); }));
   // mover/apagar linha genérico (tabelas etc.): wid|cont|idx|dir e wid|cont|idx
-  $$("[data-itemmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i,d]=b.dataset.itemmove.split('|'); moveItem(id,cont,+i,cont,+i+(+d>0?2:-1)); }));
-  $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
+  $$("[data-itemmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i,d]=b.dataset.itemmove.split('|'); moveItem(id,cont,+i,cont,+i+(+d>0?2:-1)); }));
+  $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
+  // FAQ: clicar nos controles (alça/▲▼/×) dentro do <summary> não pode abrir/fechar o accordion
+  $$(".faq-item summary").forEach(s=> s.addEventListener("click",e=>{ if(e.target.closest('.faq-acts')) e.preventDefault(); }));
   // tabela: lápis e clique direito por linha
   $$("[data-rowedit]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const tr=b.closest('tr'); const tile=b.closest('.gtile'); if(tile&&tr) openFieldEditor(tile,null,tr); }));
   $$("[data-rowaddbefore]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,ri]=b.dataset.rowaddbefore.split('|'); addRowAt(id,+ri-1); }));
