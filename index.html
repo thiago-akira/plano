@@ -1865,8 +1865,9 @@ function cloudPush(){
   _cloudTimer=setTimeout(()=>{
     db.doc(CLOUD_DOC).set(cloudPayload(), {merge:true})
       .then(()=>{ if(typeof setSaveStatus==="function") setSaveStatus('saved'); })
-      .catch(e=>{ console.warn("cloudPush falhou:", e.code||e);
-        const p=$("#savePill"); if(p){ p.textContent="Falha ao salvar ("+(e.code||'erro')+")"; p.className="save-pill err"; } });
+      .catch(e=>{ const who=(CLOUD&&fbAuth&&fbAuth.currentUser)?fbAuth.currentUser.email:"NÃO AUTENTICADO";
+        console.warn("cloudPush falhou:", e.code||e, "| logado como:", who, "| adminEmail:", TEAM&&TEAM.adminEmail);
+        const p=$("#savePill"); if(p){ p.textContent="Falha ao salvar ("+(e.code||'erro')+") · "+who; p.className="save-pill err"; } });
   }, 400);
 }
 function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},v:o.nav||{},n:o._addSeq||0}); }
@@ -2470,7 +2471,7 @@ function render(){
   const secTitK='sec/'+chKey+'/'+CUR.section+'/titulo';
   let layout = effectiveLayout(sec, key);
   if(!layout && EDIT && can('editLayout')){ layout = autoSeedLayout(sec, key); }   // auto-grade ao editar
-  const heroInGrid = !!(layout && layout.items.some(it=>it.id==='__hero'));         // cabeçalho virou widget?
+  const heroInGrid = false;   // cabeçalho/título ficam fixos no topo (banner), não viram tile — evita inversão
 
   let h = "";
   if(!heroInGrid){   // hero como banner fixo (seção sem grade / layout legado)
@@ -2502,6 +2503,7 @@ function render(){
     const frameCls = devW ? ' device-frame' : '';
     h += `<div class="gridwrap${frameCls}" ${wrapStyle}><div class="gridcanvas" data-seckey="${key}" data-cols="${layout.cols}" data-cellh="${layout.cellH}" data-device="${dev}">`;
     layout.items.forEach(item=>{
+      if(item.id==='__hero'||item.id==='__sec') return;   // legado: cabeçalho/título não são mais tiles
       const blk = blockOfItem(sec, item);
       if(!blk) return;
       const st = STATE.styles[item.id] || {};
@@ -3256,8 +3258,6 @@ function autoSeedLayout(sec, key){
   (view||document.body).appendChild(probe);
   const els=$$(":scope > *", probe);
   const items=[]; let y=0;
-  items.push({ id:'__hero', x:0, y, w:cols, h:3 }); y+=3;   // cabeçalho como widget
-  items.push({ id:'__sec',  x:0, y, w:cols, h:1 }); y+=1;   // título da seção como widget
   sec.blocks.forEach((b,i)=>{
     const el=els[i];
     const hh=el?Math.max(2,Math.ceil((el.offsetHeight+GRID_GAP)/cellH)):4;
