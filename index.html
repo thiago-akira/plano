@@ -2577,6 +2577,55 @@ function delSection(chKey,secKey){ const k=chKey+'/'+secKey; if(!(STATE.nav.secA
   if(STATE.nav.secOrder&&STATE.nav.secOrder[chKey]) STATE.nav.secOrder[chKey]=STATE.nav.secOrder[chKey].filter(x=>x!==secKey);
   if(String(CUR.chapter)===chKey && String(CUR.section)===secKey) CUR.section='0'; saveState(); render(); }
 function setNavMeta(chKey,field,val){ STATE.overrides['nav/'+chKey+'/'+field]=val; saveState(); buildNav(); render(); }
+/* ===== operações de sub-menu (seção): duplicar / copiar / colar / apagar ===== */
+let SEC_CLIP=null;
+function snapshotSection(chKey, secKey){
+  const skey=chKey+'/'+secKey, bag=STATE.layout[skey];
+  const cm=chapterModel(chKey), so=cm&&cm.sections.find(s=>s.secKey===secKey);
+  const snap={ title: txt('sec/'+chKey+'/'+secKey+'/titulo', (so&&so.titulo)||'Seção'),
+               layout: bag?JSON.parse(JSON.stringify(bag)):null, styles:{}, overrides:{} };
+  const ids=new Set();
+  if(bag) DEVICES.forEach(d=>{ if(bag[d.id]) bag[d.id].items.forEach(it=> ids.add(it.id)); });
+  ids.forEach(id=>{ if(STATE.styles[id]) snap.styles[id]=JSON.parse(JSON.stringify(STATE.styles[id]));
+    Object.keys(STATE.overrides||{}).forEach(k=>{ if(k===id||k.indexOf(id+'/')===0) snap.overrides[k]=STATE.overrides[k]; }); });
+  return snap;
+}
+function materializeSection(snap, dstChKey){
+  const sk='s'+navSeq();
+  STATE.nav.secAdd=STATE.nav.secAdd||{}; STATE.nav.secAdd[dstChKey+'/'+sk]=true; ensureSecOrder(dstChKey).push(sk);
+  if(snap.title!=null) STATE.overrides['sec/'+dstChKey+'/'+sk+'/titulo']=snap.title;
+  if(snap.layout){
+    const map={}, nb=JSON.parse(JSON.stringify(snap.layout));
+    DEVICES.forEach(d=>{ if(nb[d.id]) nb[d.id].items.forEach(it=>{ if(!map[it.id]) map[it.id]=newAddId(); }); });
+    DEVICES.forEach(d=>{ if(nb[d.id]) nb[d.id].items.forEach(it=>{ const nid=map[it.id]; it.id=nid; if(it.add) it.add._id=nid; }); });
+    STATE.layout[dstChKey+'/'+sk]=nb;
+    Object.keys(snap.styles).forEach(oid=>{ const nid=map[oid]; if(nid) STATE.styles[nid]=JSON.parse(JSON.stringify(snap.styles[oid])); });
+    Object.keys(snap.overrides).forEach(k=>{ for(const oid in map){ if(k===oid){ STATE.overrides[map[oid]]=snap.overrides[k]; break; }
+      if(k.indexOf(oid+'/')===0){ STATE.overrides[map[oid]+k.slice(oid.length)]=snap.overrides[k]; break; } } });
+  }
+  return sk;
+}
+function duplicateSection(chKey, secKey){
+  const sk=materializeSection(snapshotSection(chKey,secKey), chKey);
+  const o=ensureSecOrder(chKey), i=o.indexOf(sk), at=o.indexOf(secKey);
+  if(i>=0 && at>=0){ o.splice(i,1); o.splice(at+1,0,sk); }
+  pushHistory('Duplicou sub-menu','sub-menu'); saveState(); CUR={chapter:CUR.chapter,section:sk}; render();
+}
+function copySection(chKey, secKey){ SEC_CLIP=snapshotSection(chKey,secKey); }
+function pasteSection(chKey){ if(!SEC_CLIP) return; const sk=materializeSection(JSON.parse(JSON.stringify(SEC_CLIP)), chKey);
+  pushHistory('Colou sub-menu','sub-menu'); saveState(); CUR={chapter:CUR.chapter,section:sk}; render(); }
+function deleteSectionUx(chKey, secKey){
+  const added=!!(STATE.nav.secAdd&&STATE.nav.secAdd[chKey+'/'+secKey]);
+  if(added){ if(!confirm('Apagar este sub-menu? Esta ação não pode ser desfeita.')) return; if(STATE.layout[chKey+'/'+secKey]) delete STATE.layout[chKey+'/'+secKey]; delSection(chKey,secKey); }
+  else { if(!confirm('Este é um sub-menu original do plano — ele será OCULTADO (pode reexibir depois no Gerenciar menus). Continuar?')) return; hideSection(chKey,secKey,true); }
+  const cm=chapterModel(chKey), first=cm.sections.find(s=>!s.hidden);
+  CUR={chapter:CUR.chapter, section:first?first.secKey:'0'}; pushHistory('Removeu sub-menu','sub-menu'); saveState(); render();
+}
+function renameSectionUx(chKey, secKey){
+  CUR={chapter:CUR.chapter, section:secKey}; if(!EDIT){ EDIT=true; $("#editBtn")&&$("#editBtn").classList.add("on"); }
+  render(); setTimeout(()=>{ const el=$('.sec-tab.active .sec-tab-ed'); if(el){ el.focus();
+    const r=document.createRange(); r.selectNodeContents(el); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); } }, 40);
+}
 
 function openNavManager(){
   const model=navModel();
@@ -2832,6 +2881,9 @@ function render(){
   // adicionar sub-menu em branco e já começar a editar
   $$("[data-secadd]").forEach(b=>b.addEventListener("click",(e)=>{ e.stopPropagation();
     const ck=b.dataset.secadd; const sk=addSection(ck); CUR={chapter:CUR.chapter, section:sk}; persistUi(); render(); }));
+  // menu de clique direito nas abas (renomear/duplicar/copiar/colar/apagar) — só admin
+  if(canMngSec) $$(".sec-tab[data-sec]").forEach(t=>t.addEventListener("contextmenu",(e)=>{
+    e.preventDefault(); openSecTabMenu(e.clientX, e.clientY, chKey, t.dataset.sec); }));
   bindSecTabsDnD();
   wireBlockEvents();
   wireGridEvents(sec, key, layout);
@@ -4376,6 +4428,21 @@ function openTileMenu(x,y,key,id){
 function openCanvasMenu(x,y,key){
   const m=showCtxMenu(x,y, CLIP?`<button class="ctx-item" data-act="paste">📋 Colar widget</button>`:`<button class="ctx-item" disabled>Nada copiado</button>`);
   const pb=$('[data-act="paste"]',m); if(pb) pb.addEventListener("click",()=>{ closeCtxMenu(); pasteTile(key); });
+}
+function openSecTabMenu(x,y,chKey,secKey){
+  const m=showCtxMenu(x,y,`
+    <button class="ctx-item" data-act="rename">✎ Renomear</button>
+    <button class="ctx-item" data-act="dup">⧉ Duplicar</button>
+    <button class="ctx-item" data-act="copy">⎘ Copiar</button>
+    ${SEC_CLIP?`<button class="ctx-item" data-act="paste">📋 Colar sub-menu</button>`:''}
+    <button class="ctx-item danger" data-act="del">× Apagar</button>`);
+  $$(".ctx-item[data-act]",m).forEach(b=> b.addEventListener("click",()=>{ const a=b.dataset.act; closeCtxMenu();
+    if(a==='rename') renameSectionUx(chKey,secKey);
+    else if(a==='dup') duplicateSection(chKey,secKey);
+    else if(a==='copy') copySection(chKey,secKey);
+    else if(a==='paste') pasteSection(chKey);
+    else if(a==='del') deleteSectionUx(chKey,secKey);
+  }));
 }
 function copyTile(key,id){
   const sec=curSecObj(); const it=layoutItemsOf(key).find(x=>x.id===id);
