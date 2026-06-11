@@ -142,6 +142,9 @@
     font-size:13px;font-weight:700;color:var(--ink2);transition:all .12s}
   .sec-tab:hover{border-color:var(--ink)}
   .sec-tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .sec-tab-ed{outline:none;display:inline-block;min-width:10px}
+  body.editing .sec-tab.active .sec-tab-ed{cursor:text}
+  body.editing .sec-tab.active .sec-tab-ed:hover{text-decoration:underline dotted;text-underline-offset:3px}
 
   .section{background:transparent;margin-top:6px}
   .section h3{font-size:20px;font-weight:800;color:var(--ink);margin:32px 0 8px;letter-spacing:.005em}
@@ -2679,7 +2682,14 @@ function render(){
   const visSecs = cm.sections.filter(s=> !s.hidden || (EDIT&&can('editLayout')));
   if(visSecs.length>1){
     h += `<div class="sec-tabs">`;
-    visSecs.forEach(s=> h += `<button class="sec-tab ${s.secKey===String(CUR.section)?'active':''} ${s.hidden?'nav-hidden':''}" data-sec="${s.secKey}">${esc(plainTxt(s.titulo))}</button>`);
+    visSecs.forEach(s=>{
+      const isActive=s.secKey===String(CUR.section);
+      const editable=isActive && EDIT && can('editContent');
+      const label=editable
+        ? `<span class="ed sec-tab-ed" data-ed="sec/${chKey}/${s.secKey}/titulo">${esc(plainTxt(s.titulo))}</span>`
+        : esc(plainTxt(s.titulo));
+      h += `<button class="sec-tab ${isActive?'active':''} ${s.hidden?'nav-hidden':''}" data-sec="${s.secKey}">${label}</button>`;
+    });
     h += `</div>`;
   }
 
@@ -2729,8 +2739,11 @@ function render(){
   _lastNav=navKey;
   scroller.scrollTop = keepScroll;
 
-  $$(".sec-tab").forEach(t=>t.addEventListener("click",()=>{
-    CUR.section=t.dataset.sec; persistUi(); render();
+  $$(".sec-tab").forEach(t=>t.addEventListener("click",(e)=>{
+    if(e.target.closest('.ed') && EDIT) return;           // clicou no nome editável da aba ativa → deixa editar
+    const sk=t.dataset.sec;
+    if(sk===String(CUR.section)) return;                  // já é a ativa → não re-renderiza (preserva o cursor)
+    CUR.section=sk; persistUi(); render();
   }));
   wireBlockEvents();
   wireGridEvents(sec, key, layout);
