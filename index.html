@@ -2097,11 +2097,13 @@ function wireUserTab(id, card){
       if(!email||email.indexOf("@")<0){ msg.textContent="Informe um e-mail válido."; msg.className="um-msg err"; return; }
       TEAM.invites=TEAM.invites||{}; TEAM.invites[slug(email)]={ email, roleId };
       teamPush();
-      // tenta enviar o link de e-mail (funciona após habilitar "Link de e-mail" no Console — etapa 3b)
-      let sent=false;
-      try{ if(fbUser()){ await fbAuth.sendSignInLinkToEmail(email, {url:location.origin+location.pathname, handleCodeInApp:true}); sent=true; } }catch(_){}
-      msg.textContent = sent ? "Convite enviado por e-mail ✓" : "Convite registrado. (O envio automático de e-mail é ativado na configuração — Fase 3b.)";
-      msg.className="um-msg ok"; openUserMenu('equipe');
+      // envia o link de e-mail (requer "Link de e-mail" habilitado no Console — Fase 3b)
+      if(fbUser()){
+        try{ await fbAuth.sendSignInLinkToEmail(email, {url:location.origin+location.pathname, handleCodeInApp:true});
+          msg.textContent="Convite enviado por e-mail ✓"; msg.className="um-msg ok";
+        }catch(err){ msg.textContent="Convite salvo, mas o e-mail falhou: "+(err.code||err.message)+" (verifique 'Link de e-mail' e domínio autorizado no Console)."; msg.className="um-msg err"; return; }
+      } else { msg.textContent="Convite registrado."; msg.className="um-msg ok"; }
+      openUserMenu('equipe');
     });
   } else {
     $$(".role-perm",card).forEach(c=>c.addEventListener("change",()=>{ const r=TEAM.roles[c.dataset.id]; r.perms=r.perms||{}; r.perms[c.dataset.perm]=c.checked; teamPush(); recomputeMe(); refreshIdentity(); }));
@@ -3728,10 +3730,38 @@ if(!CLOUD){  // modo local (Firebase não configurado): admin demo volta a valer
     'Cliente — usuário <b>cliente</b> · senha <b>amapa</b><br>'+
     'Consultor (edição) — usuário <b>admin</b> · senha <b>amapa2025</b>';
 }
-if(CLOUD){ cloudInit(); }   // assina updates em tempo real + sessão do admin
-// Cliente demo persiste por localStorage. Admin demo só auto-inicia em modo local
-// (em modo nuvem o admin entra pelo Firebase Auth, tratado em cloudInit).
-if(AUTH && DEMO[AUTH.user] && (AUTH.role==="cliente" || !CLOUD)){ startApp(); }
+/* convidado abriu o link do e-mail? completa o cadastro como membro com o papel do convite */
+async function completeInvite(){
+  let email = localStorage.getItem('pendingInviteEmail') || "";
+  if(!email){ email = (window.prompt("Confirme o e-mail que recebeu o convite:")||"").trim().toLowerCase(); }
+  if(!email){ return; }
+  try{
+    const res = await fbAuth.signInWithEmailLink(email, location.href);
+    const u=res.user;
+    history.replaceState(null,'',location.pathname);    // tira os parâmetros do link da URL
+    localStorage.removeItem('pendingInviteEmail');
+    const ref=db.doc(TEAM_DOC), cur=await ref.get(), t=cur.exists?cur.data():null;
+    let roleId=null, viaSlug=null;
+    if(t && t.invites){ viaSlug=Object.keys(t.invites).find(k=>(t.invites[k].email||'').toLowerCase()===email); if(viaSlug) roleId=t.invites[viaSlug].roleId; }
+    if(roleId){
+      const upd={}; upd['members.'+u.uid]={ name:(u.displayName||email.split('@')[0]), email, photoURL:'', roleId, active:true, _via:viaSlug };
+      await ref.update(upd);                            // regra isSelfJoin permite criar só a própria entrada
+    } else {
+      alert("Não encontrei um convite para "+email+". Peça ao administrador para te convidar.");
+    }
+    const pass=window.prompt("Bem-vindo! Defina uma senha para os próximos acessos (mín. 6 caracteres):");
+    if(pass && pass.length>=6){ try{ await u.updatePassword(pass); }catch(_){} }
+    location.replace(location.pathname);                // recarrega limpo já logado
+  }catch(err){ alert("Não consegui completar o convite: "+(err.code||err.message)); }
+}
+
+if(CLOUD && fbAuth && fbAuth.isSignInWithEmailLink && fbAuth.isSignInWithEmailLink(location.href)){
+  completeInvite();                                     // fluxo do convidado (não inicia o app normal)
+} else {
+  if(CLOUD){ cloudInit(); }   // assina updates em tempo real + sessão do admin
+  // Cliente demo persiste por localStorage. Admin demo só auto-inicia em modo local.
+  if(AUTH && DEMO[AUTH.user] && (AUTH.role==="cliente" || !CLOUD)){ startApp(); }
+}
 </script>
 </body>
 </html>
