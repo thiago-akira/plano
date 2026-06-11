@@ -2134,6 +2134,7 @@ function applyRemote(data){
   STATE.styles    = data.styles    || {};
   STATE.nav       = data.nav       || {};
   _addSeq = Math.max(_addSeq||0, data._addSeq||0); STATE._addSeq=_addSeq;
+  if(typeof sanitizeOverride==='function'){ Object.keys(STATE.overrides).forEach(k=>{ STATE.overrides[k]=sanitizeOverride(STATE.overrides[k]); }); }
   localStorage.setItem(LS_STATE, JSON.stringify(STATE));   // cache local
   _applyingRemote=false;
   // re-render ao vivo — mas não enquanto o admin digita (preserva o cursor)
@@ -2534,6 +2535,7 @@ function startApp(){
   recomputeMe();
   refreshIdentity();
   ensureBlockIds();
+  sanitizeAllOverrides();   // limpa textos corrompidos com alça/botão (bug antigo)
   histInit();
   applySideCollapsed();
   buildNav();
@@ -3894,16 +3896,14 @@ $("#view").addEventListener("blur", e=>{
   if(el && el.classList && el.classList.contains("wed") && el.hasAttribute("data-wedit") && EDIT){
     const [id,path]=el.getAttribute("data-wedit").split('|');
     let val;
-    if(el.classList.contains("wedrich")){ const h=el.innerHTML; val=/<(b|i|u|strong|em|span|br)\b/i.test(h)?safeHtml(h):el.textContent.trim(); }
-    else { val=el.textContent.trim(); }
+    if(el.classList.contains("wedrich")){ val=edHtmlVal(el); }
+    else { const c=el.cloneNode(true); c.querySelectorAll(CTRL_SEL).forEach(n=>n.remove()); val=(c.textContent||'').trim(); }
     updateWidgetField(id, path, val);
     return;
   }
   if(el && el.hasAttribute && el.hasAttribute("data-ed") && EDIT){
     const key=el.getAttribute("data-ed");
-    const rawHtml=el.innerHTML;
-    const hasFmt=/<(b|i|u|strong|em|span|br)\b/i.test(rawHtml);
-    const val = hasFmt ? safeHtml(rawHtml) : el.textContent.trim();   // guarda HTML formatado quando há estilo
+    const val = edHtmlVal(el);   // ignora alças/botões dentro do editável; guarda HTML formatado quando há estilo
     if(STATE.overrides[key]===val) return;       // sem mudança real
     STATE.overrides[key]=val;
     const tile=el.closest&&el.closest(".gtile");
@@ -3933,6 +3933,25 @@ function applyRichText(){
   $$("#view [data-ed]").forEach(el=>{ const v=STATE.overrides[el.getAttribute('data-ed')];
     if(v!=null && /<(b|i|u|strong|em|span|br)\b/i.test(v)) el.innerHTML=safeHtml(v); });
 }
+// valor de um campo editável SEM os controles (alça ⠿, botões ×) que ficam dentro do contenteditable
+const CTRL_SEL='.it-grip,.fgrip,.li-x,.li-acts,.ck-acts,.ck-box,.li-bullet,.obj-x,.nm-ctrls,.sec-grip,button,[data-dragitem],[data-strdel],[data-fdrag]';
+function edHtmlVal(el){ const c=el.cloneNode(true); c.querySelectorAll(CTRL_SEL).forEach(n=>n.remove());
+  const html=c.innerHTML; return /<(b|i|u|strong|em|span|br)\b/i.test(html)?safeHtml(html):(c.textContent||'').trim(); }
+// limpa valores de override já corrompidos com markup de controle (alça/botão baked no texto)
+function sanitizeOverride(v){
+  if(typeof v!=='string') return v;
+  if(v.indexOf('⠿')<0 && v.indexOf('it-grip')<0 && v.indexOf('fgrip')<0 && v.indexOf('data-dragitem')<0 && !/<button/i.test(v)) return v;
+  const d=document.createElement('div'); d.innerHTML=v;
+  d.querySelectorAll(CTRL_SEL).forEach(n=>n.remove());
+  d.querySelectorAll('span').forEach(s=>{ if(!(s.textContent||'').replace(/[⠿\s]/g,'')) s.remove(); });
+  d.innerHTML=d.innerHTML.replace(/⠿/g,'');
+  let html=d.innerHTML;
+  let out=/<(b|i|u|strong|em|span)\b/i.test(html)?safeHtml(html):(d.textContent||'');
+  return out.replace(/(\s*×)+\s*$/,'').replace(/\s+/g,' ').trim();
+}
+function sanitizeAllOverrides(){ if(!STATE.overrides) return; let ch=false;
+  Object.keys(STATE.overrides).forEach(k=>{ const nv=sanitizeOverride(STATE.overrides[k]); if(nv!==STATE.overrides[k]){ STATE.overrides[k]=nv; ch=true; } });
+  if(ch) saveState(); }
 // renderiza um valor de campo de widget: HTML formatado seguro se houver tags, senão texto escapado
 function richHtml(v){ v=(v==null)?'':String(v); return /<(b|i|u|strong|em|span|br)\b/i.test(v)?safeHtml(v):esc(v); }
 // texto puro (remove tags) — para menus/abas/topo, onde o título não deve mostrar HTML cru
@@ -3944,8 +3963,7 @@ function wrapSelection(prop,val){
   sel.removeAllRanges(); const r=document.createRange(); r.selectNodeContents(span); sel.addRange(r);
 }
 function saveEdElement(el){
-  if(!el) return; const key=el.getAttribute('data-ed'); const html=el.innerHTML;
-  const v=/<(b|i|u|strong|em|span|br)\b/i.test(html)?safeHtml(html):el.textContent.trim();
+  if(!el) return; const key=el.getAttribute('data-ed'); const v=edHtmlVal(el);
   if(STATE.overrides[key]===v) return; STATE.overrides[key]=v; pushHistory('Formatou texto','texto'); saveState();
 }
 let _selBar=null, _selT=null;
@@ -3954,8 +3972,7 @@ function saveSelEl(el){
   if(!el) return;
   if(el.classList && el.classList.contains("wedrich") && el.hasAttribute("data-wedit")){
     const [id,path]=el.getAttribute("data-wedit").split('|');
-    const h=el.innerHTML; const val=/<(b|i|u|strong|em|span|br)\b/i.test(h)?safeHtml(h):el.textContent.trim();
-    updateWidgetField(id,path,val); return;
+    updateWidgetField(id,path,edHtmlVal(el)); return;
   }
   saveEdElement(el);
 }
