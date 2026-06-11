@@ -846,6 +846,10 @@
     width:20px;height:20px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--orange);font-size:12px;font-weight:800;cursor:pointer;opacity:.45;transition:opacity .12s}
   body.grid-edit .dnd-box:hover .box-edit{opacity:1}
   body.grid-edit .box-edit:hover{border-color:var(--orange)}
+  /* itens SWOT/benchmark/etc. (controles soltos no li): lápis à esquerda da alça */
+  body.grid-edit .editli.dnd-row{padding-right:66px}
+  body.grid-edit .editli.dnd-row .box-edit{top:50%;transform:translateY(-50%);right:42px;opacity:0}
+  body.grid-edit .editli.dnd-row:hover .box-edit{opacity:.95}
   /* lápis por item em linha (junto dos controles ▲▼×) */
   .box-edit-in{display:none}
   body.grid-edit .box-edit-in{display:inline-grid;place-items:center;width:24px;height:24px;border:1px solid var(--line);
@@ -3676,10 +3680,10 @@ function wireBlockEvents(){
     $$(".dnd-box, .dnd-row").forEach(box=>{
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
-      const ff=$$('.ed[data-ed], .wed[data-wedit]', box).filter(f=>f.closest('.dnd-row, .dnd-box')===box);
-      if(ff.length<2) return;
+      const ff=boxFields(box);
+      if(!ff.length) return;
       const acts=box.querySelector(':scope > .ck-acts, :scope > .li-acts, :scope > .nm-ctrls');
-      const btn=document.createElement('button'); btn.title='Editar campos desta caixa'; btn.textContent='✎';
+      const btn=document.createElement('button'); btn.title='Editar campos desta caixa'; btn.textContent='✎'; btn.setAttribute('contenteditable','false');
       if(acts){ btn.className='box-edit-in'; acts.insertBefore(btn, acts.firstChild); }
       else { btn.className='box-edit'; box.appendChild(btn); }
       btn.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); openFieldEditor(tile, null, box); });
@@ -3965,7 +3969,7 @@ function applyRichText(){
     } });
 }
 // valor de um campo editável SEM os controles (alça ⠿, botões ×) que ficam dentro do contenteditable
-const CTRL_SEL='.it-grip,.fgrip,.li-x,.li-acts,.ck-acts,.ck-box,.li-bullet,.obj-x,.nm-ctrls,.sec-grip,button,[data-dragitem],[data-strdel],[data-fdrag]';
+const CTRL_SEL='.it-grip,.fgrip,.li-x,.li-acts,.ck-acts,.ck-box,.li-bullet,.obj-x,.nm-ctrls,.sec-grip,.box-edit,.box-edit-in,button,[data-dragitem],[data-strdel],[data-fdrag]';
 function edHtmlVal(el){ const c=el.cloneNode(true); c.querySelectorAll(CTRL_SEL).forEach(n=>n.remove());
   const html=c.innerHTML; return /<(b|i|u|strong|em|span|br)\b/i.test(html)?safeHtml(html):(c.textContent||'').trim(); }
 // limpa valores de override já corrompidos com markup de controle (alça/botão baked no texto)
@@ -4653,7 +4657,10 @@ function fieldLabel(el, i){
   if(/\/(ttl|t|title|n|nome)$/.test(k)) return 'Título';
   return 'Campo '+(i+1);
 }
-function fieldText(el){ const c=el.cloneNode(true); c.querySelectorAll('.fgrip,.it-grip,.q-mark').forEach(n=>n.remove()); return c.textContent.replace(/\s+/g,' ').trim(); }
+function fieldText(el){ const c=el.cloneNode(true); c.querySelectorAll(CTRL_SEL+',.q-mark').forEach(n=>n.remove()); return c.textContent.replace(/\s+/g,' ').trim(); }
+// campos editáveis de uma caixa (inclui a própria caixa quando ela é o editável, ex.: <li> do SWOT)
+function boxFields(box){ const ff=$$('.ed[data-ed], .wed[data-wedit]', box).filter(f=> f.closest('.dnd-row, .dnd-box')===box);
+  if(box.hasAttribute('data-ed')||box.hasAttribute('data-wedit')) ff.unshift(box); return ff; }
 let _bxeTimer=null, _bxeTileId=null, _bxeScope=null, _bxeScopeKey=null;
 function bxeApply(){ clearTimeout(_bxeTimer); _bxeTimer=setTimeout(()=>{ saveState(); render(); }, 200); }
 function closeFieldEditor(){ const p=$("#bxeditor"); if(p) p.remove(); const bk=$("#bxeback"); if(bk) bk.remove(); _bxeTileId=null; _bxeScope=null; _bxeScopeKey=null; }
@@ -4676,7 +4683,7 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
   const b=findWidgetBlock(tileEl.dataset.id);
   const body=tileEl.querySelector('.gtile-body')||tileEl;
   const titleTxt = (b&&widgetLabel(b.type))||'conteúdo';
-  const directFields=box=> $$('.ed[data-ed], .wed[data-wedit]', box).filter(f=> f.closest('.dnd-row, .dnd-box')===box);
+  const directFields=boxFields;
   const boxHtml=(box)=>{
     const grips=$$('[data-dragitem]',box).filter(g=> g.closest('.dnd-box, .dnd-row')===box);
     const dg=grips[0]?grips[0].dataset.dragitem.split('|'):null;
