@@ -235,6 +235,14 @@
   .tb-text{font-size:14.5px;color:var(--ink2);line-height:1.55;min-height:24px}
   .tb-del{display:none;margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;font-size:12px;color:var(--magenta);cursor:pointer}
   body.grid-edit .tb-del{display:inline-block}
+  /* controles de sub-item dos widgets de estratégia (lote 4b) */
+  .li-x,.obj-x{display:none}
+  body.grid-edit .editli{position:relative;padding-right:22px}
+  body.grid-edit .li-x{display:inline-grid;place-items:center;position:absolute;right:0;top:50%;transform:translateY(-50%);width:18px;height:18px;border:none;border-radius:5px;background:rgba(229,22,123,.12);color:var(--magenta);font-size:13px;line-height:1;cursor:pointer}
+  .li-plus{display:none}
+  body.grid-edit .li-plus{display:inline-block;margin-top:6px;border:1px dashed var(--line);background:#fff;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer}
+  body.grid-edit .phase,body.grid-edit .lstep,body.grid-edit .persona,body.grid-edit .diag{position:relative}
+  body.grid-edit .obj-x{display:inline-grid;place-items:center;position:absolute;right:6px;top:6px;width:20px;height:20px;border:none;border-radius:6px;background:rgba(229,22,123,.12);color:var(--magenta);font-size:14px;line-height:1;cursor:pointer;z-index:2}
   /* citação */
   .quote{position:relative;padding:6px 6px 6px 46px;border-left:4px solid var(--orange)}
   .quote .q-mark{position:absolute;left:8px;top:0;font-size:34px;color:var(--orange);line-height:1}
@@ -2700,8 +2708,9 @@ function renderBlock(b, sec, bi){
     }
     case "swot":{
       const q=(cls,field,title,arr)=>{
-        let li=arr.map((t,i)=>`<li class="ed" data-ed="${b._id}/${field}/${i}">${esc(txt(b._id+'/'+field+'/'+i,t))}</li>`).join("");
-        return `<div class="q ${cls}"><h4 class="ed" data-ed="${b._id}/${field}/h">${esc(txt(b._id+'/'+field+'/h',title))}</h4><ul>${li}</ul></div>`;
+        const base=b._id+'/'+field;
+        let li=arr.map((t,i)=>`<li class="ed editli" data-ed="${base}/${i}">${esc(txt(base+'/'+i,t))}${liX(b._id,base,field,i)}</li>`).join("");
+        return `<div class="q ${cls}"><h4 class="ed" data-ed="${base}/h">${esc(txt(base+'/h',title))}</h4><ul>${li}</ul>${liPlus(b._id,base,field)}</div>`;
       };
       return `<div class="block swot">
         ${q('forcas','forcas','Forças',b.forcas)}
@@ -2876,7 +2885,9 @@ function renderBlock(b, sec, bi){
       let x=`<div class="block phases">`;
       b.items.forEach((p,i)=> x+=`<div class="phase"><div class="pn">${i+1}</div>
         <div><h4 class="ed" data-ed="${b.key}/${i}/t">${esc(txt(b.key+'/'+i+'/t',p.titulo))}</h4>
-        <p class="ed" data-ed="${b.key}/${i}/d">${esc(txt(b.key+'/'+i+'/d',p.texto))}</p></div></div>`);
+        <p class="ed" data-ed="${b.key}/${i}/d">${esc(txt(b.key+'/'+i+'/d',p.texto))}</p></div>
+        <button class="obj-x" data-phdel="${b._id}|${i}" title="Remover fase">×</button></div>`);
+      x+=`<button class="li-plus" data-phadd="${b._id}">＋ fase</button>`;
       return x+`</div>`;
     }
     case "groupList":{
@@ -2901,10 +2912,12 @@ function renderBlock(b, sec, bi){
       let x=`<div class="block ladder">`;
       const n=b.items.length;
       b.items.forEach((s,i)=>{
-        const w=20+ (i/(n-1))*80; // largura crescente
+        const w=20+ (i/Math.max(1,n-1))*80; // largura crescente
         x+=`<div class="lstep"><div class="bar" style="width:${w}%"></div>
-          <div class="lk ed" data-ed="${b._id}/${i}/k">${esc(txt(b._id+'/'+i+'/k',s.k))}</div><div class="lv ed" data-ed="${b._id}/${i}/v">${esc(txt(b._id+'/'+i+'/v',s.v))}</div></div>`;
+          <div class="lk ed" data-ed="${b._id}/${i}/k">${esc(txt(b._id+'/'+i+'/k',s.k))}</div><div class="lv ed" data-ed="${b._id}/${i}/v">${esc(txt(b._id+'/'+i+'/v',s.v))}</div>
+          <button class="obj-x" data-ladel="${b._id}|${i}" title="Remover nível">×</button></div>`;
       });
+      x+=`<button class="li-plus" data-laadd="${b._id}">＋ nível</button>`;
       return x+`</div>`;
     }
     case "image":{
@@ -2951,15 +2964,15 @@ function renderBlock(b, sec, bi){
     case "benchmark":{
       const cat = b.cat||'referencia';
       const catLabel = {direto:"Concorrente direto",indireto:"Concorrente indireto",referencia:"Referência"}[cat];
-      const pos=(b.fortes||[]).map((t,i)=>`<li class="ed" data-ed="${b._id}/fortes/${i}">${esc(txt(b._id+'/fortes/'+i,t))}</li>`).join("");
-      const neg=(b.fracos||[]).map((t,i)=>`<li class="ed" data-ed="${b._id}/fracos/${i}">${esc(txt(b._id+'/fracos/'+i,t))}</li>`).join("");
+      const pos=(b.fortes||[]).map((t,i)=>`<li class="ed editli" data-ed="${b._id}/fortes/${i}">${esc(txt(b._id+'/fortes/'+i,t))}${liX(b._id,b._id+'/fortes','fortes',i)}</li>`).join("");
+      const neg=(b.fracos||[]).map((t,i)=>`<li class="ed editli" data-ed="${b._id}/fracos/${i}">${esc(txt(b._id+'/fracos/'+i,t))}${liX(b._id,b._id+'/fracos','fracos',i)}</li>`).join("");
       return `<div class="bm" data-cat="${cat}">
         <div class="bh"><span class="bn ed" data-ed="${b._id}/nome">${esc(txt(b._id+'/nome',b.nome))}</span>
           <span class="tag cat">${catLabel}</span>
           ${b.escopo?`<span class="tag scope ed" data-ed="${b._id}/escopo">${esc(txt(b._id+'/escopo',b.escopo))}</span>`:''}</div>
         <p class="bd ed" data-ed="${b.key}">${esc(txt(b.key,b.desc))}</p>
-        <div class="bcols"><div class="bcol pos"><h5>Pontos fortes</h5><ul>${pos}</ul></div>
-          <div class="bcol neg"><h5>Pontos fracos</h5><ul>${neg}</ul></div></div></div>`;
+        <div class="bcols"><div class="bcol pos"><h5>Pontos fortes</h5><ul>${pos}</ul>${liPlus(b._id,b._id+'/fortes','fortes')}</div>
+          <div class="bcol neg"><h5>Pontos fracos</h5><ul>${neg}</ul>${liPlus(b._id,b._id+'/fracos','fracos')}</div></div></div>`;
     }
     case "personas":{
       const cor = b.cor || 'var(--green)';
@@ -2972,33 +2985,37 @@ function renderBlock(b, sec, bi){
             <div class="pf ed" data-ed="${b.key}/${i}/p">${esc(txt(b.key+'/'+i+'/p',p.perfil))}</div>
             <div class="pk">O que busca</div>
             <div class="pv busca ed" data-ed="${b.key}/${i}/b">${esc(txt(b.key+'/'+i+'/b',p.busca))}</div>
-          </div></div>`;
+          </div>
+          <button class="obj-x" data-pedel="${b._id}|${i}" title="Remover persona">×</button></div>`;
       });
+      x+=`<button class="li-plus persona-add" data-peadd="${b._id}">＋ persona</button>`;
       return x+`</div>`;
     }
     case "channel":{
       const stMap={existente:"Canal existente",criar:"Canal a criar",inexistente:"Canal inexistente"};
-      const obj=(b.objetivos||[]).map((t,i)=>`<li class="ed" data-ed="${b._id}/obj/${i}">${esc(txt(b._id+'/obj/'+i,t))}</li>`).join("");
-      const met=(b.metricas||[]).map((t,i)=>`<li class="ed" data-ed="${b._id}/met/${i}">${esc(txt(b._id+'/met/'+i,t))}</li>`).join("");
+      const obj=(b.objetivos||[]).map((t,i)=>`<li class="ed editli" data-ed="${b._id}/obj/${i}">${esc(txt(b._id+'/obj/'+i,t))}${liX(b._id,b._id+'/obj','objetivos',i)}</li>`).join("");
+      const met=(b.metricas||[]).map((t,i)=>`<li class="ed editli" data-ed="${b._id}/met/${i}">${esc(txt(b._id+'/met/'+i,t))}${liX(b._id,b._id+'/met','metricas',i)}</li>`).join("");
       return `<div class="chan">
         <div class="chh"><span class="cn ed" data-ed="${b._id}/nome">${esc(txt(b._id+'/nome',b.nome))}</span>
           <span class="tag st-${b.status}">${stMap[b.status]||''}</span>
           <span class="tag estrat ed" data-ed="${b._id}/estrat">${esc(txt(b._id+'/estrat',b.estrategia))}</span></div>
         <p class="cd ed" data-ed="${b.key}">${esc(txt(b.key,b.desc))}</p>
-        <div class="ccols"><div class="ccol obj"><h5>Objetivos</h5><ul>${obj}</ul></div>
-          <div class="ccol met"><h5>Métricas</h5><ul>${met}</ul></div></div></div>`;
+        <div class="ccols"><div class="ccol obj"><h5>Objetivos</h5><ul>${obj}</ul>${liPlus(b._id,b._id+'/obj','objetivos')}</div>
+          <div class="ccol met"><h5>Métricas</h5><ul>${met}</ul>${liPlus(b._id,b._id+'/met','metricas')}</div></div></div>`;
     }
     case "diagnostic":{
       let x=`<div class="block">`;
       b.items.forEach((p,i)=>{
-        const des=(p.desafios||[]).map((t,di)=>`<li class="ed" data-ed="${b._id}/${i}/des/${di}">${esc(txt(b._id+'/'+i+'/des/'+di,t))}</li>`).join("");
-        const aco=(p.acoes||[]).map((t,ai)=>`<li class="ed" data-ed="${b._id}/${i}/aco/${ai}">${esc(txt(b._id+'/'+i+'/aco/'+ai,t))}</li>`).join("");
+        const des=(p.desafios||[]).map((t,di)=>`<li class="ed editli" data-ed="${b._id}/${i}/des/${di}">${esc(txt(b._id+'/'+i+'/des/'+di,t))}<button class="li-x" data-dgsdel="${b._id}|${i}|des|${di}" title="Remover">×</button></li>`).join("");
+        const aco=(p.acoes||[]).map((t,ai)=>`<li class="ed editli" data-ed="${b._id}/${i}/aco/${ai}">${esc(txt(b._id+'/'+i+'/aco/'+ai,t))}<button class="li-x" data-dgsdel="${b._id}|${i}|aco|${ai}" title="Remover">×</button></li>`).join("");
         x+=`<div class="diag"><div class="dh"><div class="dnum">${p.num||i+1}</div>
           <div class="dt"><h4 class="ed" data-ed="${b.key}/${i}/n">${esc(txt(b.key+'/'+i+'/n',p.nome))}</h4>
-          <p class="ed" data-ed="${b.key}/${i}/d">${esc(txt(b.key+'/'+i+'/d',p.diagnostico))}</p></div></div>
-          <div class="dcols"><div class="dcol desaf"><h5>Desafios</h5><ul>${des}</ul></div>
-            <div class="dcol acoes"><h5>Ações estratégicas</h5><ul>${aco}</ul></div></div></div>`;
+          <p class="ed" data-ed="${b.key}/${i}/d">${esc(txt(b.key+'/'+i+'/d',p.diagnostico))}</p></div>
+          <button class="obj-x" data-dgdel="${b._id}|${i}" title="Remover dimensão">×</button></div>
+          <div class="dcols"><div class="dcol desaf"><h5>Desafios</h5><ul>${des}</ul><button class="li-plus" data-dgsadd="${b._id}|${i}|des">＋ item</button></div>
+            <div class="dcol acoes"><h5>Ações estratégicas</h5><ul>${aco}</ul><button class="li-plus" data-dgsadd="${b._id}|${i}|aco">＋ item</button></div></div></div>`;
       });
+      x+=`<button class="li-plus" data-dgadd="${b._id}">＋ dimensão</button>`;
       return x+`</div>`;
     }
     case "expandall":{
@@ -3109,6 +3126,9 @@ function renderBlock(b, sec, bi){
 }
 function acell(k,key,v){ return `<div class="acell"><div class="k">${k}</div><div class="vv ed" data-ed="${key}">${esc(txt(key,v))}</div></div>`; }
 function acellFull(k,key,v){ return `<div class="acell full"><div class="k">${k}</div><div class="vv ed" data-ed="${key}">${esc(txt(key,v))}</div></div>`; }
+// markup dos controles de sub-item (só visíveis em body.grid-edit via CSS)
+function liX(id,base,field,i){ return `<button class="li-x" data-strdel="${id}|${base}|${field}|${i}" title="Remover">×</button>`; }
+function liPlus(id,base,field){ return `<button class="li-plus" data-stradd="${id}|${base}|${field}">＋ item</button>`; }
 
 function toEmbed(url){
   if(!url) return "";
@@ -3178,6 +3198,19 @@ function wireBlockEvents(){
   $$("[data-tabsel]").forEach(b=> b.addEventListener("click",e=>{ if(e.target.closest('.wed')&&EDIT) return; e.stopPropagation(); const [id,i]=b.dataset.tabsel.split('|'); tabsSel(id,+i); }));
   $$("[data-tabadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); tabAdd(b.dataset.tabadd); }));
   $$("[data-tabdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.tabdel.split('|'); tabDel(id,+i); }));
+  // estratégia (lote 4b) — add/remover sub-itens
+  $$("[data-stradd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,base,field]=b.dataset.stradd.split('|'); strAdd(id,base,field); }));
+  $$("[data-strdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,base,field,i]=b.dataset.strdel.split('|'); strDel(id,base,field,+i); }));
+  $$("[data-phadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); phAdd(b.dataset.phadd); }));
+  $$("[data-phdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.phdel.split('|'); phDel(id,+i); }));
+  $$("[data-laadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); laAdd(b.dataset.laadd); }));
+  $$("[data-ladel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.ladel.split('|'); laDel(id,+i); }));
+  $$("[data-peadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); peAdd(b.dataset.peadd); }));
+  $$("[data-pedel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.pedel.split('|'); peDel(id,+i); }));
+  $$("[data-dgadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); dgAdd(b.dataset.dgadd); }));
+  $$("[data-dgdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.dgdel.split('|'); dgDel(id,+i); }));
+  $$("[data-dgsadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,k]=b.dataset.dgsadd.split('|'); dgSubAdd(id,+i,k); }));
+  $$("[data-dgsdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,k,j]=b.dataset.dgsdel.split('|'); dgSubDel(id,+i,k,+j); }));
   // checklist
   $$("[data-ckbox]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.ckbox.split('|'); ckToggle(id,+i); }));
   $$("[data-ckmove]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=btn.dataset.ckmove.split('|'); ckMove(id,+i,+d); }));
@@ -3244,6 +3277,47 @@ if(!window.__clockTimer) window.__clockTimer=setInterval(tickClocks,1000);
 function tabsSel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.active=i; saveState(); render(); }
 function tabAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({label:"Aba "+(b.items.length+1),text:"Conteúdo da aba."}); b.active=b.items.length-1; pushHistory("Abas","tabs"); saveState(); render(); }
 function tabDel(id,i){ const b=findWidgetBlock(id); if(!b||!b.items||b.items.length<=1) return; b.items.splice(i,1); b.active=Math.max(0,(b.active||0)-(i<=(b.active||0)?1:0)); pushHistory("Abas","tabs"); saveState(); render(); }
+/* ===== LOTE 4b — adicionar/remover sub-itens dos widgets de estratégia =====
+   Consolida os textos editados (overrides por índice) de volta no array do bloco e limpa
+   esses overrides ANTES de mutar, para os índices nunca desalinharem. */
+function _ovf(k,d){ return (STATE.overrides[k]!=null)?STATE.overrides[k]:d; }
+const STR_DEF={forcas:'Nova força',fraquezas:'Nova fraqueza',oportunidades:'Nova oportunidade',ameacas:'Nova ameaça',fortes:'Ponto forte',fracos:'Ponto fraco',objetivos:'Novo objetivo',metricas:'Nova métrica',desafios:'Novo desafio',acoes:'Nova ação'};
+function reseatStr(b, base, field){
+  const a=(b[field]||[]).map((v,i)=> _ovf(base+'/'+i, v));
+  (b[field]||[]).forEach((v,i)=>{ delete STATE.overrides[base+'/'+i]; });
+  b[field]=a;
+}
+function strAdd(id, base, field){ const b=findWidgetBlock(id); if(!b) return; reseatStr(b,base,field); b[field]=b[field]||[]; b[field].push(STR_DEF[field]||'Novo item'); pushHistory('Item','estrategia'); saveState(); render(); }
+function strDel(id, base, field, i){ const b=findWidgetBlock(id); if(!b) return; reseatStr(b,base,field); b[field].splice(i,1); pushHistory('Item','estrategia'); saveState(); render(); }
+function reseatObj(b, base, field, specs){
+  const a=(b[field]||[]).map((o,i)=>{ const n=Object.assign({},o); specs.forEach(([p,s])=> n[p]=_ovf(base+'/'+i+'/'+s, o[p])); return n; });
+  (b[field]||[]).forEach((o,i)=> specs.forEach(([p,s])=> delete STATE.overrides[base+'/'+i+'/'+s]));
+  b[field]=a;
+}
+// fases (base = b.key)
+function phAdd(id){ const b=findWidgetBlock(id); if(!b) return; reseatObj(b,b.key,'items',[['titulo','t'],['texto','d']]); b.items.push({titulo:'Nova fase',texto:'Descrição da fase.'}); pushHistory('Fase','phases'); saveState(); render(); }
+function phDel(id,i){ const b=findWidgetBlock(id); if(!b||b.items.length<=1) return; reseatObj(b,b.key,'items',[['titulo','t'],['texto','d']]); b.items.splice(i,1); pushHistory('Fase','phases'); saveState(); render(); }
+// escada (base = b._id)
+function laAdd(id){ const b=findWidgetBlock(id); if(!b) return; reseatObj(b,b._id,'items',[['k','k'],['v','v']]); b.items.push({k:'Novo nível',v:'Descrição.'}); pushHistory('Nível','ladder'); saveState(); render(); }
+function laDel(id,i){ const b=findWidgetBlock(id); if(!b||b.items.length<=2) return; reseatObj(b,b._id,'items',[['k','k'],['v','v']]); b.items.splice(i,1); pushHistory('Nível','ladder'); saveState(); render(); }
+// personas (base = b.key)
+function peAdd(id){ const b=findWidgetBlock(id); if(!b) return; reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); b.items.push({icon:'◍',nome:'Nova persona',perfil:'Perfil resumido.',busca:'O que busca.'}); pushHistory('Persona','personas'); saveState(); render(); }
+function peDel(id,i){ const b=findWidgetBlock(id); if(!b||b.items.length<=1) return; reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); b.items.splice(i,1); pushHistory('Persona','personas'); saveState(); render(); }
+// diagnóstico (nome/diag em b.key; desafios/acoes em b._id) — consolida tudo antes de mutar
+function reseatDiag(b){ const id=b._id, key=b.key;
+  const a=(b.items||[]).map((p,i)=>{ const n=Object.assign({},p);
+    n.nome=_ovf(key+'/'+i+'/n', p.nome); n.diagnostico=_ovf(key+'/'+i+'/d', p.diagnostico);
+    n.desafios=(p.desafios||[]).map((t,di)=> _ovf(id+'/'+i+'/des/'+di, t));
+    n.acoes=(p.acoes||[]).map((t,ai)=> _ovf(id+'/'+i+'/aco/'+ai, t)); return n; });
+  (b.items||[]).forEach((p,i)=>{ delete STATE.overrides[key+'/'+i+'/n']; delete STATE.overrides[key+'/'+i+'/d'];
+    (p.desafios||[]).forEach((t,di)=> delete STATE.overrides[id+'/'+i+'/des/'+di]);
+    (p.acoes||[]).forEach((t,ai)=> delete STATE.overrides[id+'/'+i+'/aco/'+ai]); });
+  b.items=a;
+}
+function dgAdd(id){ const b=findWidgetBlock(id); if(!b) return; reseatDiag(b); b.items.push({num:b.items.length+1,nome:'Nova dimensão',diagnostico:'Situação atual.',desafios:['Novo desafio'],acoes:['Nova ação']}); pushHistory('Dimensão','diagnostic'); saveState(); render(); }
+function dgDel(id,i){ const b=findWidgetBlock(id); if(!b||b.items.length<=1) return; reseatDiag(b); b.items.splice(i,1); pushHistory('Dimensão','diagnostic'); saveState(); render(); }
+function dgSubAdd(id,i,kind){ const b=findWidgetBlock(id); if(!b) return; reseatDiag(b); const f=kind==='des'?'desafios':'acoes'; (b.items[i][f]=b.items[i][f]||[]).push(kind==='des'?'Novo desafio':'Nova ação'); pushHistory('Item','diagnostic'); saveState(); render(); }
+function dgSubDel(id,i,kind,j){ const b=findWidgetBlock(id); if(!b) return; reseatDiag(b); const f=kind==='des'?'desafios':'acoes'; b.items[i][f].splice(j,1); pushHistory('Item','diagnostic'); saveState(); render(); }
 
 /* edição inline (somente admin) */
 function applyEdit(){
