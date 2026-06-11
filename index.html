@@ -721,6 +721,32 @@
   .role-del{border:1px solid var(--line);background:#fff;color:var(--magenta);border-radius:8px;width:28px;height:28px;font-size:16px;font-weight:800}
   .role-perms{display:flex;flex-direction:column;gap:6px}
   .role-perms label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
+  /* interações (Onda B): seleção, laço, menu de contexto */
+  body.grid-edit .gtile{cursor:grab}
+  body.grid-edit .gtile .gtile-body [data-ed]{cursor:text}
+  body.dragging-grid{user-select:none}
+  body.dragging-grid .gtile{cursor:grabbing}
+  .gtile.sel{outline:2.5px solid var(--cyan);outline-offset:2px}
+  .marquee{position:fixed;z-index:60;border:1.5px solid var(--cyan);border-radius:4px;
+    background:color-mix(in srgb,var(--cyan) 12%,transparent);pointer-events:none}
+  .ctxmenu{position:fixed;z-index:75;background:#fff;border:1px solid var(--line);border-radius:11px;
+    box-shadow:0 16px 44px rgba(36,26,110,.22);padding:5px;min-width:194px}
+  .ctxmenu .ctx-item{display:flex;width:100%;align-items:center;gap:8px;border:none;background:none;
+    padding:8px 11px;border-radius:8px;font-size:13.5px;color:var(--ink2);text-align:left;font-weight:600}
+  .ctxmenu .ctx-item:hover{background:var(--paper)}
+  .ctxmenu .ctx-item.danger{color:var(--magenta)}
+  .ctxmenu .ctx-item[disabled]{opacity:.5}
+  .ctx-has-sub{position:relative}
+  .ctx-has-sub .ctx-sub{display:none;position:absolute;left:100%;top:0;background:#fff;border:1px solid var(--line);
+    border-radius:11px;box-shadow:0 16px 44px rgba(36,26,110,.22);padding:5px;min-width:230px;max-height:60vh;overflow:auto}
+  .ctx-has-sub:hover .ctx-sub{display:block}
+  .ctx-sub-item{display:block;width:100%;border:none;background:none;padding:7px 10px;border-radius:7px;
+    font-size:12.5px;color:var(--ink2);text-align:left}
+  .ctx-sub-item:hover{background:var(--paper)}
+  .selbar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:60;display:flex;gap:8px;
+    align-items:center;background:var(--ink);color:#fff;padding:9px 14px;border-radius:13px;box-shadow:0 12px 34px rgba(36,26,110,.3)}
+  .selbar span{font-size:13px;font-weight:700;margin-right:4px}
+  .selbar .gt-btn{padding:7px 11px;font-size:12.5px}
   @media (max-width:820px){
     .side-toggle{display:none}
     body.sidebar-collapsed #sidebar{width:var(--sidebar)}
@@ -2331,6 +2357,7 @@ function render(){
   updateProgress();
   updateEditChrome();
   if($(".gridcanvas")) layoutTiles();
+  if(typeof updateSelDom==="function" && SEL && SEL.size) updateSelDom();
 }
 
 function renderBlock(b, sec, bi){
@@ -2707,6 +2734,7 @@ $("#editBtn").addEventListener("click",()=>{
   EDIT=!EDIT;
   $("#editBtn").classList.toggle("on",EDIT);
   $("#editBtn").querySelector(".lbl").textContent = EDIT ? "Concluir" : "Editar";  // autosave sempre ativo
+  if(!EDIT){ SEL.clear(); updateSelActionsBar(); closeCtxMenu(); }
   render();   // re-render para inserir/remover alças e ferramentas
 });
 
@@ -2778,27 +2806,54 @@ function setGhost(g,m,x,y,w,h,bad){ if(!g) return;
   g.style.display=""; g.classList.toggle("bad",!!bad); }
 
 /* ----- drag / resize ----- */
-let GDRAG=null;
+let GDRAG=null, MARQUEE=null, SEL=new Set(), CLIP=null;
 function bindGridDrag(canvas, key, layout){
   if(canvas._dragBound) return; canvas._dragBound=true;
   bindGridResize(); bindGridGlobal();
   canvas.addEventListener("pointerdown", e=>{
-    if(!EDIT) return;
-    const tileEl=e.target.closest(".gtile"); if(!tileEl) return;
-    const onMove=!!e.target.closest(".t-move");
-    const rEl=e.target.closest(".resize, .resize-r, .resize-b");
-    if(!onMove && !rEl) return;            // só inicia pela alça ou pelos resizers
+    if(!EDIT || e.button!==0) return;
+    closeCtxMenu();
     const m=gridMetrics(); if(!m) return;
+    const tileEl=e.target.closest(".gtile");
+    if(!tileEl){ if(e.target.closest(".gtoolbar")) return; startMarquee(e, m); return; } // laço no vazio
+    if(e.target.closest(".gtile-tools, button, select, input, textarea, a")) return;     // controles
     const items=liveItems(key, layout);
     const item=items.find(it=>it.id===tileEl.dataset.id); if(!item) return;
-    GDRAG={ mode: rEl?"resize":"move", key, item, el:tileEl, m,
-            rdir: rEl? (rEl.classList.contains("resize-r")?"x":rEl.classList.contains("resize-b")?"y":"xy") : null,
-            startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y, ow:item.w, oh:item.h };
-    tileEl.classList.add(rEl?"resizing":"dragging");
-    GDRAG.ghost=makeGhost(m.canvas);
-    setGhost(GDRAG.ghost,m,item.x,item.y,item.w,item.h,false);
-    e.preventDefault();
+    const rEl=e.target.closest(".resize, .resize-r, .resize-b");
+    if(rEl){
+      GDRAG={ mode:"resize", key, item, el:tileEl, m,
+        rdir:(rEl.classList.contains("resize-r")?"x":rEl.classList.contains("resize-b")?"y":"xy"),
+        startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y, ow:item.w, oh:item.h, pending:false };
+      tileEl.classList.add("resizing"); GDRAG.ghost=makeGhost(m.canvas);
+      setGhost(GDRAG.ghost,m,item.x,item.y,item.w,item.h,false); e.preventDefault(); return;
+    }
+    // arrastar de QUALQUER área: começa pendente (clique sem mover = editar texto)
+    const onHandle=!!e.target.closest(".t-move");
+    GDRAG={ mode:"move", key, item, el:tileEl, m, startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y, pending:!onHandle, group:null };
+    if(onHandle) activateDrag(e);
   });
+  canvas.addEventListener("contextmenu", e=>{
+    if(!EDIT) return; e.preventDefault();
+    const tileEl=e.target.closest(".gtile");
+    if(tileEl) openTileMenu(e.clientX, e.clientY, key, tileEl.dataset.id);
+    else openCanvasMenu(e.clientX, e.clientY, key);
+  });
+}
+function activateDrag(e){
+  const d=GDRAG, m=d.m; if(!d) return; d.pending=false;
+  if(document.activeElement && document.activeElement.isContentEditable) document.activeElement.blur();
+  const s=window.getSelection&&window.getSelection(); if(s&&s.removeAllRanges) s.removeAllRanges();
+  document.body.classList.add("dragging-grid");
+  if(SEL.has(d.item.id) && SEL.size>1){            // mover grupo
+    const items=layoutItemsOf(d.key);
+    d.group=[...SEL].map(id=>{ const it=items.find(x=>x.id===id); const el=m.canvas.querySelector('.gtile[data-id="'+id+'"]'); return (it&&el)?{it,el,ox:it.x,oy:it.y}:null; }).filter(Boolean);
+    d.group.forEach(g=>g.el.classList.add("dragging"));
+  } else {
+    if(!SEL.has(d.item.id)){ SEL.clear(); updateSelDom(); }
+    d.el.classList.add("dragging");
+    d.ghost=makeGhost(m.canvas); setGhost(d.ghost,m,d.item.x,d.item.y,d.item.w,d.item.h,false);
+  }
+  if(e&&e.preventDefault) e.preventDefault();
 }
 let _gridGlobalBound=false;
 function bindGridGlobal(){
@@ -2807,16 +2862,9 @@ function bindGridGlobal(){
   window.addEventListener("pointerup", onGridUp);
 }
 function onGridMove(e){
+  if(MARQUEE){ updateMarquee(e); return; }
   if(!GDRAG) return; const d=GDRAG, m=d.m;
-  if(d.mode==="reorder"){
-    d.el.style.transform="translateY("+(e.clientY-d.startY)+"px)";
-    const under=document.elementFromPoint(e.clientX,e.clientY);
-    const ov=under&&under.closest(".gtile");
-    $$(".gtile.reorder-target").forEach(x=>x.classList.remove("reorder-target"));
-    if(ov&&ov!==d.el){ ov.classList.add("reorder-target"); d.over=ov.dataset.id; } else d.over=null;
-    return;
-  }
-  if(d.mode==="resizeH"){ d.el.style.height=Math.max(m.cellH, d.oh*m.cellH+(e.clientY-d.startY))+"px"; return; }
+  if(d.pending){ if(Math.hypot(e.clientX-d.startX,e.clientY-d.startY)<6) return; activateDrag(e); }
   const dx=e.clientX-d.startX, dy=e.clientY-d.startY, items=layoutItemsOf(d.key);
   if(d.mode==="resize"){
     if(d.rdir!=="y") d.el.style.width=Math.max(m.cellW,(d.ow*m.cellW+dx))+"px";
@@ -2825,6 +2873,9 @@ function onGridMove(e){
     const nh=Math.max(1,Math.round(parseFloat(d.el.style.height)/m.cellH));
     d._nw=nw; d._nh=nh;
     setGhost(d.ghost,m,d.item.x,d.item.y,nw,nh, collidesAny({x:d.item.x,y:d.item.y,w:nw,h:nh},d.item.id,items));
+  } else if(d.group){
+    d._dx=dx; d._dy=dy;
+    d.group.forEach(g=>{ g.el.style.left=Math.max(0,g.ox*m.cellW+dx)+"px"; g.el.style.top=Math.max(0,g.oy*m.cellH+dy)+"px"; });
   } else {
     d.el.style.left=Math.max(0,d.ox*m.cellW+dx)+"px";
     d.el.style.top=Math.max(0,d.oy*m.cellH+dy)+"px";
@@ -2835,28 +2886,63 @@ function onGridMove(e){
   }
 }
 function onGridUp(){
+  if(MARQUEE){ endMarquee(); return; }
   if(!GDRAG) return; const d=GDRAG, m=d.m;
-  if(d.mode==="reorder"){
-    $$(".gtile.reorder-target").forEach(x=>x.classList.remove("reorder-target"));
-    if(d.over){
-      const items=layoutItemsOf(d.key);
-      const from=items.indexOf(d.item), to=items.findIndex(it=>it.id===d.over);
-      if(from>-1&&to>-1){ items.splice(from,1); items.splice(to,0,d.item); }
-    }
-    GDRAG=null; pushHistory("Reordenou widget", widgetNameOfItem(d.item)); saveState(); render(); return;
-  }
-  if(d.mode==="resizeH"){
-    d.item.h=Math.max(1,Math.round(parseFloat(d.el.style.height)/m.cellH));
-    GDRAG=null; pushHistory("Redimensionou widget", widgetNameOfItem(d.item)); saveState(); render(); return;
-  }
+  document.body.classList.remove("dragging-grid");
+  if(d.pending){ GDRAG=null; return; }   // foi clique, não arrasto
   if(d.ghost) d.ghost.remove();
   if(d.mode==="resize"){ d.item.w=d._nw||d.item.w; d.item.h=d._nh||d.item.h; }
-  else {
+  else if(d.group){
+    const gdx=Math.round((d._dx||0)/m.cellW), gdy=Math.round((d._dy||0)/m.cellH);
+    d.group.forEach(g=>{ g.it.x=Math.max(0,Math.min(m.cols-g.it.w, g.ox+gdx)); g.it.y=Math.max(0,g.oy+gdy); });
+    GDRAG=null; pushHistory("Moveu "+d.group.length+" widgets","grupo"); saveState(); render(); return;
+  } else {
     const items=layoutItemsOf(d.key);
     const spot=findFreeSpot({x:d._gx!=null?d._gx:d.item.x, y:d._gy!=null?d._gy:d.item.y, w:d.item.w, h:d.item.h}, d.item.id, items, m.cols);
     d.item.x=spot.x; d.item.y=spot.y;
   }
   GDRAG=null; pushHistory(d.mode==="resize"?"Redimensionou widget":"Moveu widget", widgetNameOfItem(d.item)); saveState(); render();
+}
+
+/* ----- multi-seleção (laço) ----- */
+function startMarquee(e, m){
+  MARQUEE={ m, x0:e.clientX, y0:e.clientY };
+  const b=document.createElement("div"); b.className="marquee"; b.id="marqueeBox"; document.body.appendChild(b);
+  if(!e.shiftKey){ SEL.clear(); updateSelDom(); }
+  positionMarquee(e.clientX,e.clientY); e.preventDefault();
+}
+function positionMarquee(x,y){ const b=$("#marqueeBox"); if(!b||!MARQUEE) return;
+  b.style.left=Math.min(x,MARQUEE.x0)+"px"; b.style.top=Math.min(y,MARQUEE.y0)+"px";
+  b.style.width=Math.abs(x-MARQUEE.x0)+"px"; b.style.height=Math.abs(y-MARQUEE.y0)+"px"; }
+function updateMarquee(e){
+  positionMarquee(e.clientX,e.clientY);
+  const r={l:Math.min(e.clientX,MARQUEE.x0),t:Math.min(e.clientY,MARQUEE.y0),rr:Math.max(e.clientX,MARQUEE.x0),bb:Math.max(e.clientY,MARQUEE.y0)};
+  $$(".gtile",MARQUEE.m.canvas).forEach(el=>{ const tr=el.getBoundingClientRect();
+    const hit=tr.left<r.rr && tr.right>r.l && tr.top<r.bb && tr.bottom>r.t;
+    if(hit) SEL.add(el.dataset.id); el.classList.toggle("sel", SEL.has(el.dataset.id)); });
+}
+function endMarquee(){ const b=$("#marqueeBox"); if(b)b.remove(); MARQUEE=null; updateSelActionsBar(); }
+function updateSelDom(){ const cv=$(".gridcanvas"); if(cv) $$(".gtile",cv).forEach(el=> el.classList.toggle("sel", SEL.has(el.dataset.id))); updateSelActionsBar(); }
+function clearSel(){ SEL.clear(); updateSelDom(); }
+function updateSelActionsBar(){
+  let bar=$("#selbar");
+  if(SEL.size<2){ if(bar) bar.remove(); return; }
+  if(!bar){ bar=document.createElement("div"); bar.className="selbar"; bar.id="selbar"; document.body.appendChild(bar); }
+  bar.innerHTML=`<span>${SEL.size} selecionados</span>
+    <button class="gt-btn" data-sdup>⧉ Duplicar</button>
+    <button class="gt-btn" data-sdel>× Excluir</button>
+    <button class="gt-btn ghost" data-sclr>Limpar</button>`;
+  const key=(gridMetrics()||{}).key;
+  $("[data-sdup]",bar).addEventListener("click",()=> groupAction(key,'dup'));
+  $("[data-sdel]",bar).addEventListener("click",()=> groupAction(key,'del'));
+  $("[data-sclr]",bar).addEventListener("click", clearSel);
+}
+function groupAction(key,what){
+  const ids=[...SEL];
+  if(what==='del'){ ids.forEach(id=>{ const bag=layoutBag(key); if(bag) DEVICES.forEach(d=>{ if(bag[d.id]) bag[d.id].items=bag[d.id].items.filter(x=>x.id!==id); }); if(STATE.styles[id]) delete STATE.styles[id]; });
+    pushHistory("Excluiu "+ids.length+" widgets","grupo"); }
+  else { ids.forEach(id=> duplicateTile(key,id,true)); pushHistory("Duplicou "+ids.length+" widgets","grupo"); }
+  SEL.clear(); saveState(); render();
 }
 function widgetNameOfItem(item){
   if(item&&item.add) return item.add.type;
@@ -3115,14 +3201,13 @@ function setTileSize(key, id, w, h){
   pushHistory("Redimensionou widget", widgetNameOfItem(it)); saveState(); render();
 }
 /* duplica um widget na variante atual + propaga às demais */
-function duplicateTile(key, id){
+function duplicateTile(key, id, silent){
   const sec=curChapterObj().sections[CUR.section]||curChapterObj().sections[0];
   const v=liveVariant(key, sec); const it=v.items.find(x=>x.id===id); if(!it) return;
   const src=blockOfItem(sec, it); if(!src) return;
   const newId=newAddId();
   const clone=JSON.parse(JSON.stringify(src)); clone._id=newId;
   const oldId=src._id;
-  // remapeia chaves baseadas no _id e copia os overrides correspondentes
   remapIdInObj(clone, oldId, newId);
   Object.keys(STATE.overrides).forEach(k=>{ if(oldId && k.indexOf(oldId)===0){ STATE.overrides[newId+k.slice(oldId.length)] = STATE.overrides[k]; } });
   if(STATE.styles[oldId]) STATE.styles[newId]=JSON.parse(JSON.stringify(STATE.styles[oldId]));
@@ -3134,7 +3219,84 @@ function duplicateTile(key, id){
     const maxY=ov.items.length?Math.max(...ov.items.map(x=>x.y+x.h)):0;
     ov.items.push({ id:newId, x:0, y:maxY, w:(ov.cols||cols), h:it.h, add:clone });
   }});
-  pushHistory("Duplicou widget", widgetNameOfItem(it)); saveState(); render();
+  if(!silent){ pushHistory("Duplicou widget", widgetNameOfItem(it)); saveState(); render(); }
+}
+
+/* ----- menu de clique direito ----- */
+function closeCtxMenu(){ const m=$("#ctxmenu"); if(m) m.remove(); document.removeEventListener("pointerdown",_ctxOutside,true); }
+function _ctxOutside(e){ const m=$("#ctxmenu"); if(m && !m.contains(e.target)) closeCtxMenu(); }
+function showCtxMenu(x,y,html){
+  closeCtxMenu();
+  const m=document.createElement("div"); m.className="ctxmenu"; m.id="ctxmenu"; m.innerHTML=html;
+  document.body.appendChild(m);
+  m.style.left=Math.min(x, window.innerWidth-m.offsetWidth-8)+"px";
+  m.style.top=Math.min(y, window.innerHeight-m.offsetHeight-8)+"px";
+  setTimeout(()=>document.addEventListener("pointerdown",_ctxOutside,true),0);
+  return m;
+}
+function navTargetsHtml(){
+  let h="";
+  const sec=(ch,ci,nome)=> ch.sections.map((s,si)=>`<button class="ctx-sub-item" data-mch="${ci}" data-msi="${si}">${esc(nome)} › ${esc(txt('sec/'+ci+'/'+si+'/titulo',s.titulo))}</button>`).join("");
+  h+=sec(PLAN.onboarding,'onb',chapterName(PLAN.onboarding,'onb'));
+  PLAN.chapters.forEach((c,i)=> h+=sec(c,String(i),chapterName(c,String(i))));
+  return h;
+}
+function openTileMenu(x,y,key,id){
+  const m=showCtxMenu(x,y,`
+    <button class="ctx-item" data-act="edit">✎ Editar texto</button>
+    <button class="ctx-item" data-act="config">⚙ Configurar</button>
+    <button class="ctx-item" data-act="copy">⎘ Copiar</button>
+    <button class="ctx-item" data-act="dup">⧉ Duplicar</button>
+    <div class="ctx-has-sub"><button class="ctx-item">➜ Mover para aba ▸</button><div class="ctx-sub">${navTargetsHtml()}</div></div>
+    <button class="ctx-item danger" data-act="del">× Excluir</button>`);
+  $$(".ctx-item[data-act]",m).forEach(b=> b.addEventListener("click",()=>{
+    const a=b.dataset.act; closeCtxMenu();
+    if(a==='edit'){ const el=$('.gtile[data-id="'+id+'"] [data-ed]'); if(el){ el.focus(); } }
+    else if(a==='config'){ const btn=$('.gtile[data-id="'+id+'"] .gtile-config'); if(btn) openColorPopover(id, btn); }
+    else if(a==='copy'){ copyTile(key,id); }
+    else if(a==='dup'){ duplicateTile(key,id); }
+    else if(a==='del'){ deleteTile(key,id); }
+  }));
+  $$(".ctx-sub-item",m).forEach(b=> b.addEventListener("click",()=>{ closeCtxMenu(); moveTileTo(key,id,b.dataset.mch==='onb'?'onb':parseInt(b.dataset.mch,10), parseInt(b.dataset.msi,10)); }));
+}
+function openCanvasMenu(x,y,key){
+  const m=showCtxMenu(x,y, CLIP?`<button class="ctx-item" data-act="paste">📋 Colar widget</button>`:`<button class="ctx-item" disabled>Nada copiado</button>`);
+  const pb=$('[data-act="paste"]',m); if(pb) pb.addEventListener("click",()=>{ closeCtxMenu(); pasteTile(key); });
+}
+function copyTile(key,id){
+  const sec=curChapterObj().sections[CUR.section]; const it=layoutItemsOf(key).find(x=>x.id===id);
+  const src=it&&blockOfItem(sec,it); if(!src) return;
+  CLIP={ block:JSON.parse(JSON.stringify(src)), oldId:src._id, w:it.w, h:it.h };
+}
+function pasteTile(key){
+  if(!CLIP) return;
+  const sec=curChapterObj().sections[CUR.section]; const v=liveVariant(key, sec);
+  const newId=newAddId(); const clone=JSON.parse(JSON.stringify(CLIP.block)); clone._id=newId;
+  remapIdInObj(clone, CLIP.oldId, newId);
+  Object.keys(STATE.overrides).forEach(k=>{ if(CLIP.oldId && k.indexOf(CLIP.oldId)===0){ STATE.overrides[newId+k.slice(CLIP.oldId.length)]=STATE.overrides[k]; } });
+  const cols=v.cols||GRID_COLS, spot=findFreeSpot({x:0,y:0,w:CLIP.w,h:CLIP.h}, null, v.items, cols);
+  v.items.push({ id:newId, x:spot.x, y:spot.y, w:CLIP.w, h:CLIP.h, add:clone });
+  pushHistory("Colou widget", clone.type); saveState(); render();
+}
+function moveTileTo(key,id,tch,tsi){
+  if(String(tch)===String(CUR.chapter) && tsi===CUR.section) return;  // mesma aba
+  const sec=curChapterObj().sections[CUR.section]; const it=layoutItemsOf(key).find(x=>x.id===id);
+  const src=it&&blockOfItem(sec,it); if(!src) return;
+  const tKey=String(tch)+'/'+tsi;
+  const tChObj = tch==='onb'?PLAN.onboarding:PLAN.chapters[tch];
+  const tSec=tChObj.sections[tsi];
+  const tv=liveVariant(tKey, tSec);
+  const newId=newAddId(); const clone=JSON.parse(JSON.stringify(src)); clone._id=newId;
+  remapIdInObj(clone, src._id, newId);
+  Object.keys(STATE.overrides).forEach(k=>{ if(src._id && k.indexOf(src._id)===0){ STATE.overrides[newId+k.slice(src._id.length)]=STATE.overrides[k]; } });
+  if(STATE.styles[src._id]) STATE.styles[newId]=JSON.parse(JSON.stringify(STATE.styles[src._id]));
+  const cols=tv.cols||GRID_COLS, spot=findFreeSpot({x:0,y:0,w:it.w,h:it.h}, null, tv.items, cols);
+  tv.items.push({ id:newId, x:spot.x, y:spot.y, w:it.w, h:it.h, add:clone });
+  // propaga p/ variantes do destino + remove da origem (todas variantes)
+  const tbag=layoutBag(tKey);
+  DEVICES.forEach(d=>{ const ov=tbag[d.id]; if(ov&&ov!==tv&&!ov.items.find(x=>x.id===newId)){ const my=ov.items.length?Math.max(...ov.items.map(x=>x.y+x.h)):0; ov.items.push({id:newId,x:0,y:my,w:(ov.cols||cols),h:it.h,add:clone}); } });
+  const sbag=layoutBag(key); if(sbag) DEVICES.forEach(d=>{ if(sbag[d.id]) sbag[d.id].items=sbag[d.id].items.filter(x=>x.id!==id); });
+  pushHistory("Moveu widget p/ outra aba", clone.type); saveState(); render();
 }
 function remapIdInObj(o, oldId, newId){
   if(!oldId) return;
