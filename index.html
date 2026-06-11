@@ -267,6 +267,22 @@
   .ytpl-edit .ytpl-url{width:160px;max-width:34vw;border:1px solid var(--line);border-radius:7px;padding:4px 7px;font-size:11px}
   .ytpl-edit button.danger{width:26px;height:26px;border:1px solid var(--line);border-radius:7px;color:var(--magenta)}
   .ytpl-add{margin-top:9px}
+  /* menu clicável (navmenu) */
+  .navmenu .wtitle{font-weight:800;color:var(--ink);font-size:16px;margin-bottom:9px}
+  .nm-items{display:flex;flex-direction:column;gap:7px}
+  .nm-grid .nm-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+  .nm-link{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);border-radius:11px;padding:10px 12px;cursor:pointer;background:#fff;text-align:left;width:100%;transition:box-shadow .12s,border-color .12s}
+  .nm-link:hover{border-color:var(--nm);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .nm-num{flex:0 0 auto;min-width:26px;height:26px;padding:0 6px;border-radius:8px;color:#fff;display:grid;place-items:center;font-size:12.5px;font-weight:800}
+  .nm-label{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
+  .nm-ctrls{display:none;gap:2px;flex:0 0 auto}
+  body.grid-edit .nm-ctrls{display:inline-flex}
+  .nm-ctrls button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2)}
+  .nm-ctrls button.danger{color:var(--magenta)}
+  .nm-admin{display:none;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
+  body.grid-edit .nm-admin{display:flex}
+  .nm-admin .nm-hint{font-size:12px;color:var(--muted)}
+  .nm-pick{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12.5px;max-width:55%}
   /* citação */
   .quote{position:relative;padding:6px 6px 6px 46px;border-left:4px solid var(--orange)}
   .quote .q-mark{position:absolute;left:8px;top:0;font-size:34px;color:var(--orange);line-height:1}
@@ -2556,6 +2572,15 @@ function buildNav(){
   updateNavProgress();
 }
 function persistUi(){ STATE.ui=CUR; saveState(); }
+// navega para um capítulo (e seção opcional) — usado pelo widget de menu clicável
+function navTo(chKey, secKey){
+  const cm=chapterModel(chKey); if(!cm) return;
+  let sec=secKey;
+  if(!sec){ const f=(cm.sections||[]).find(s=>!s.hidden)||(cm.sections||[])[0]; sec=f?f.secKey:'0'; }
+  CUR={ chapter: chKey==='onb'?'onb':(/^\d+$/.test(chKey)?parseInt(chKey,10):chKey), section: sec };
+  persistUi(); render();
+  const v=$("#view"); if(v) v.scrollTop=0; window.scrollTo&&window.scrollTo(0,0);
+}
 
 /* nome amigável do tipo de widget (identificador visível no editor) */
 const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', calloutGrid:'Grade de callouts',
@@ -2567,7 +2592,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
-  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube' };
+  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3167,6 +3192,38 @@ function renderBlock(b, sec, bi){
       setTimeout(()=>ytpipSetup(wid),0);
       return x;
     }
+    case "navmenu":{
+      const wid=b._id;
+      const isAdmin=AUTH&&AUTH.role==="admin";
+      const style=(b.style==='list')?'list':'grid';
+      let entries;
+      if(b.custom){
+        entries=(b.items||[]).map((it,i)=>{ const cm=chapterModel(it.chKey)||{};
+          return { i, chKey:it.chKey, secKey:it.secKey||'', label:(it.label!=null&&it.label!=='')?it.label:(cm.nome||it.chKey), cor:cm.cor||'var(--ink)', num:cm.num!=null?cm.num:'•', custom:true }; });
+      } else {
+        entries=navModel().filter(c=>!c.hidden||isAdmin).map((c,i)=>({ i, chKey:c.chKey, secKey:'', label:c.nome, cor:c.cor, num:c.num, hidden:c.hidden }));
+      }
+      let x=`<div class="block navmenu nm-${style}" data-wid="${wid}">`;
+      if(b.showTitle!==false && b.title) x+=`<div class="wtitle wed wedrich" data-wedit="${wid}|title">${richHtml(b.title)}</div>`;
+      x+=`<div class="nm-items">`;
+      entries.forEach(e=>{
+        const lbl = e.custom ? `<span class="nm-label wed wedrich" data-wedit="${wid}|o/${e.i}/label">${richHtml(e.label)}</span>`
+                             : `<span class="nm-label">${esc(e.label)}</span>`;
+        const ctrls = (isAdmin && b.custom) ? `<span class="nm-ctrls"><button data-nmmove="${wid}|${e.i}|-1" title="Subir">▲</button><button data-nmmove="${wid}|${e.i}|1" title="Descer">▼</button><button class="danger" data-nmdel="${wid}|${e.i}" title="Remover">×</button></span>` : '';
+        x+=`<div class="nm-link ${e.hidden?'nav-hidden':''}" data-nmgo="${wid}" data-nmch="${e.chKey}" data-nmsec="${e.secKey}" role="button" tabindex="0" style="--nm:${e.cor}">
+          <span class="nm-num" style="background:${e.cor}">${esc(String(e.num))}</span>${lbl}${ctrls}</div>`;
+      });
+      x+=`</div>`;
+      if(isAdmin){
+        if(b.custom){
+          const opts=navModel().map(c=>`<option value="${c.chKey}">${esc(c.nome)}</option>`).join('');
+          x+=`<div class="nm-admin"><select class="nm-pick" data-nmpick="${wid}">${opts}</select><button class="icon-btn" data-nmadd="${wid}">＋ item</button><button class="icon-btn ghost" data-nmauto="${wid}">↺ Automático</button></div>`;
+        } else {
+          x+=`<div class="nm-admin"><span class="nm-hint">Menu automático — segue os capítulos do plano.</span><button class="icon-btn ghost" data-nmcustom="${wid}">✎ Personalizar</button></div>`;
+        }
+      }
+      return x+`</div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3273,6 +3330,16 @@ function wireBlockEvents(){
   $$("[data-ytadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const inp=$(`[data-ytaddurl="${b.dataset.ytadd}"]`); ytAdd(b.dataset.ytadd, inp?inp.value:''); }));
   $$("[data-ytaddurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
   $$("[data-ytdock]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); ytDock(b.dataset.ytdock); }));
+  // menu clicável (navmenu)
+  $$("[data-nmgo]").forEach(el=> el.addEventListener("click",e=>{
+    if(EDIT && (e.target.closest('.wed')||e.target.closest('.nm-ctrls'))) return;  // editando rótulo/controles não navega
+    e.stopPropagation(); navTo(el.dataset.nmch, el.dataset.nmsec||''); }));
+  $$("[data-nmcustom]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); nmCustomize(b.dataset.nmcustom); }));
+  $$("[data-nmauto]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); nmAuto(b.dataset.nmauto); }));
+  $$("[data-nmadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const sel=$(`[data-nmpick="${b.dataset.nmadd}"]`); nmAdd(b.dataset.nmadd, sel?sel.value:''); }));
+  $$("[data-nmdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.nmdel.split('|'); nmDel(id,+i); }));
+  $$("[data-nmmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.nmmove.split('|'); nmMove(id,+i,+d); }));
+  $$("[data-nmpick]").forEach(sel=>{ sel.addEventListener("click",e=>e.stopPropagation()); sel.addEventListener("pointerdown",e=>e.stopPropagation()); });
   // checklist
   $$("[data-ckbox]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.ckbox.split('|'); ckToggle(id,+i); }));
   $$("[data-ckmove]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=btn.dataset.ckmove.split('|'); ckMove(id,+i,+d); }));
@@ -3399,6 +3466,14 @@ function ytpipSetup(wid){
   io.observe(stage); stage.__io=io;
 }
 function ytDock(wid){ const st=document.querySelector(`[data-ytstage="${wid}"]`); if(st) st.scrollIntoView({behavior:'smooth',block:'center'}); }
+/* ===== Menu como widget clicável ===== */
+function nmCustomize(id){ const b=findWidgetBlock(id); if(!b) return; b.custom=true;
+  if(!b.items||!b.items.length){ b.items=navModel().filter(c=>!c.hidden).map(c=>({chKey:c.chKey, secKey:'', label:c.nome})); }
+  pushHistory('Menu','navmenu'); saveState(); render(); }
+function nmAuto(id){ const b=findWidgetBlock(id); if(!b) return; b.custom=false; pushHistory('Menu','navmenu'); saveState(); render(); }
+function nmAdd(id, chKey){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; const cm=chapterModel(chKey)||{}; b.items.push({chKey, secKey:'', label:cm.nome||chKey}); pushHistory('Menu','navmenu'); saveState(); render(); }
+function nmDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory('Menu','navmenu'); saveState(); render(); }
+function nmMove(id,i,d){ const b=findWidgetBlock(id); if(!b) return; const j=i+d; if(j<0||j>=b.items.length) return; const t=b.items[i]; b.items[i]=b.items[j]; b.items[j]=t; pushHistory('Menu','navmenu'); saveState(); render(); }
 
 /* edição inline (somente admin) */
 function applyEdit(){
@@ -3877,6 +3952,7 @@ const WIDGET_CATALOG=[
   {ic:"📶", label:"Escada", desc:"Níveis crescentes", make:id=>({type:"ladder", _id:id, items:[{k:"Base", v:"Primeiro nível."},{k:"Meio", v:"Nível intermediário."},{k:"Topo", v:"Nível mais alto."}]})},
   {ic:"🩺", label:"Diagnóstico (8 Ps)", desc:"Análise por dimensão", make:id=>({type:"diagnostic", _id:id, key:id+"/p", items:[{num:1, nome:"Dimensão", diagnostico:"Situação atual da dimensão.", desafios:["Desafio identificado"], acoes:["Ação estratégica"]}]})},
   {ic:"📺", label:"Playlist YouTube", desc:"Vídeos + mini-player flutuante", make:id=>({type:"ytplaylist", _id:id, title:"Playlist", showTitle:true, active:0, items:[]})},
+  {ic:"☰", label:"Menu", desc:"Navegação clicável", make:id=>({type:"navmenu", _id:id, title:"Navegação", showTitle:true, style:"grid", custom:false, items:[]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
