@@ -838,6 +838,20 @@
     background:#fff;font-size:13px;line-height:1;display:grid;place-items:center;box-shadow:var(--shadow);color:var(--ink2)}
   .gtile-config:hover,.gtile-dup:hover,.gtile-fields:hover{border-color:var(--ink);color:var(--ink)}
   .gtile-fields{color:var(--orange);font-weight:800}
+  /* nº de colunas do conteúdo (configurável por widget) */
+  .gtile.has-cols .cards,.gtile.has-cols .stats,.gtile.has-cols .callout-grid,.gtile.has-cols .glist,
+  .gtile.has-cols .sc-grid,.gtile.has-cols .cl-grid,.gtile.has-cols .gallery,.gtile.has-cols .nm-grid .nm-items,
+  .gtile.has-cols .personas,.gtile.has-cols .bm .bcols,.gtile.has-cols .chan .ccols,.gtile.has-cols .dcols{
+    display:grid;grid-template-columns:repeat(var(--wcols),minmax(0,1fr))}
+  /* listas em coluna viram grade de N colunas */
+  .gtile.has-cols .checklist,.gtile.has-cols .ul-rich,.gtile.has-cols .agenda{
+    display:grid;grid-template-columns:repeat(var(--wcols),minmax(0,1fr));gap:10px;align-items:start}
+  @media(max-width:600px){  /* no celular vira 1 coluna (evita colunas apertadas) */
+    .gtile.has-cols .cards,.gtile.has-cols .stats,.gtile.has-cols .callout-grid,.gtile.has-cols .glist,
+    .gtile.has-cols .sc-grid,.gtile.has-cols .cl-grid,.gtile.has-cols .gallery,.gtile.has-cols .nm-grid .nm-items,
+    .gtile.has-cols .personas,.gtile.has-cols .bm .bcols,.gtile.has-cols .chan .ccols,.gtile.has-cols .dcols,
+    .gtile.has-cols .checklist,.gtile.has-cols .ul-rich,.gtile.has-cols .agenda{grid-template-columns:minmax(0,1fr)}
+  }
   /* widget com caixas/itens: o lápis geral some (cada elemento tem o seu) */
   .gtile:has(.dnd-box) .gtile-fields, .gtile:has(.dnd-row) .gtile-fields{display:none}
   /* lápis por caixa (cartões) */
@@ -2934,6 +2948,7 @@ function render(){
       if(bg){ sv+="--w-bg:"+bg+";"; cls+=" has-bg"; }
       if(fg){ sv+="--w-fg:"+fg+";"; cls+=" has-fg"; }
       if(st.top){ sv+="--w-top:"+st.top+";"; cls+=" has-top"; }
+      if(st.cols){ sv+="--wcols:"+st.cols+";"; cls+=" has-cols"; }
       if(blk.type==='hero'||blk.type==='secTitle') cls+=" gtile-plain";
       h += `<div class="gtile${cls}" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
               <span class="gtile-type">${esc(widgetLabel(blk.type))}</span>
@@ -4620,8 +4635,10 @@ function openColorPopover(id, anchorEl){
   const titleRow = `<div class="crow"><h5>Título do widget</h5><div class="sw">
       <button class="szbtn" data-title="on" ${st.title?'style="border-color:var(--ink);font-weight:800"':''}>Mostrar</button>
       <button class="szbtn" data-title="off" ${!st.title?'style="border-color:var(--ink);font-weight:800"':''}>Ocultar</button></div></div>`;
+  const colsRow = `<div class="crow"><h5>Colunas do conteúdo</h5><div class="sw">
+      ${[['Auto',''],['1','1'],['2','2'],['3','3'],['4','4']].map(([lab,v])=>`<button class="szbtn" data-cols="${v}" ${String(st.cols||'')===v?'style="border-color:var(--ink);font-weight:800"':''}>${lab}</button>`).join('')}</div></div>`;
   const pop=document.createElement("div"); pop.className="cpop"; pop.id="cpop";
-  pop.innerHTML=titleRow+sizeRow+group("bg","Fundo")+group("top","Topo / destaque")+group("fg","Texto");
+  pop.innerHTML=titleRow+colsRow+sizeRow+group("bg","Fundo")+group("top","Topo / destaque")+group("fg","Texto");
   document.body.appendChild(pop);
   const r=anchorEl.getBoundingClientRect();
   pop.style.top=Math.min(window.innerHeight-pop.offsetHeight-10, r.bottom+6)+"px";
@@ -4635,6 +4652,7 @@ function openColorPopover(id, anchorEl){
   };
   const key=m?m.key:null;
   $$("[data-title]",pop).forEach(b=> b.addEventListener("click",()=>{ apply('title', b.dataset.title==='on'?true:null); closeColorPopover(); }));
+  $$("[data-cols]",pop).forEach(b=> b.addEventListener("click",()=>{ apply('cols', b.dataset.cols?+b.dataset.cols:null); closeColorPopover(); }));
   $$(".szbtn[data-w],.szbtn[data-h]",pop).forEach(b=> b.addEventListener("click",()=>{ if(key) setTileSize(key,id, b.dataset.w?+b.dataset.w:null, b.dataset.h?+b.dataset.h:null); closeColorPopover(); }));
   $$(".sw button[data-col]",pop).forEach(b=> b.addEventListener("click",()=>{ apply(b.dataset.prop,b.dataset.col); closeColorPopover(); }));
   $$("input[type=color]",pop).forEach(inp=> inp.addEventListener("change",()=>{ apply(inp.dataset.propc, inp.value); closeColorPopover(); }));
