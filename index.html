@@ -252,6 +252,9 @@
   body.grid-edit .dnd-row{transition:background .1s}
   .dnd-dragging{opacity:.45}
   body.grid-edit .dnd-over{outline:2px dashed var(--orange);outline-offset:3px;border-radius:8px;background:rgba(243,106,33,.05)}
+  body.grid-edit .phase.dnd-row .it-grip,body.grid-edit .lstep.dnd-row .it-grip{position:absolute;right:30px;top:6px;z-index:3}
+  body.grid-edit .persona.dnd-row .it-grip{position:absolute;right:30px;top:6px;z-index:3;color:#fff}
+  body.grid-edit .tb-tab.dnd-row .it-grip{width:14px;height:16px;font-size:11px;margin-right:2px}
   /* playlist youtube + mini-player PiP */
   .ytpl-stage{position:relative}
   .ytpl-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000}
@@ -2940,11 +2943,11 @@ function renderBlock(b, sec, bi){
       return `<div class="block twocol">${side('a','a',b.left)}${side('b','b',b.right)}</div>`;
     }
     case "phases":{
-      let x=`<div class="block phases">`;
-      b.items.forEach((p,i)=> x+=`<div class="phase"><div class="pn">${i+1}</div>
+      let x=`<div class="block phases" ${dz(b._id,'items')}>`;
+      b.items.forEach((p,i)=> x+=`<div class="phase dnd-row"><div class="pn">${i+1}</div>
         <div><h4 class="ed" data-ed="${b.key}/${i}/t">${esc(txt(b.key+'/'+i+'/t',p.titulo))}</h4>
         <p class="ed" data-ed="${b.key}/${i}/d">${esc(txt(b.key+'/'+i+'/d',p.texto))}</p></div>
-        <button class="obj-x" data-phdel="${b._id}|${i}" title="Remover fase">×</button></div>`);
+        ${grip(b._id,'items',i)}<button class="obj-x" data-phdel="${b._id}|${i}" title="Remover fase">×</button></div>`);
       x+=`<button class="li-plus" data-phadd="${b._id}">＋ fase</button>`;
       return x+`</div>`;
     }
@@ -2967,13 +2970,13 @@ function renderBlock(b, sec, bi){
       return `<div class="block tbl-wrap"><table class="tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
     }
     case "ladder":{
-      let x=`<div class="block ladder">`;
+      let x=`<div class="block ladder" ${dz(b._id,'items')}>`;
       const n=b.items.length;
       b.items.forEach((s,i)=>{
         const w=20+ (i/Math.max(1,n-1))*80; // largura crescente
-        x+=`<div class="lstep"><div class="bar" style="width:${w}%"></div>
+        x+=`<div class="lstep dnd-row"><div class="bar" style="width:${w}%"></div>
           <div class="lk ed" data-ed="${b._id}/${i}/k">${esc(txt(b._id+'/'+i+'/k',s.k))}</div><div class="lv ed" data-ed="${b._id}/${i}/v">${esc(txt(b._id+'/'+i+'/v',s.v))}</div>
-          <button class="obj-x" data-ladel="${b._id}|${i}" title="Remover nível">×</button></div>`;
+          ${grip(b._id,'items',i)}<button class="obj-x" data-ladel="${b._id}|${i}" title="Remover nível">×</button></div>`;
       });
       x+=`<button class="li-plus" data-laadd="${b._id}">＋ nível</button>`;
       return x+`</div>`;
@@ -3034,9 +3037,10 @@ function renderBlock(b, sec, bi){
     }
     case "personas":{
       const cor = b.cor || 'var(--green)';
-      let x=`<div class="block personas">`;
+      let x=`<div class="block personas" ${dz(b._id,'items')}>`;
       b.items.forEach((p,i)=>{
-        x+=`<div class="persona">
+        x+=`<div class="persona dnd-row">
+          ${grip(b._id,'items',i)}
           <div class="ph" style="background:${cor}"><div class="pic">${p.icon||'◍'}</div>
             <div class="pn ed" data-ed="${b.key}/${i}/n">${esc(txt(b.key+'/'+i+'/n',p.nome))}</div></div>
           <div class="pbody">
@@ -3162,8 +3166,8 @@ function renderBlock(b, sec, bi){
       const act=Math.min(b.active||0,(b.items||[]).length-1);
       let x=`<div class="block tabsw" data-wid="${wid}">`;
       if(b.showTitle!==false && b.title) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title)}</div>`;
-      x+=`<div class="tb-head">`;
-      (b.items||[]).forEach((it,i)=>{ x+=`<button class="tb-tab ${i===act?'active':''}" data-tabsel="${wid}|${i}"><span class="wed" data-wedit="${wid}|o/${i}/label">${esc(it.label||('Aba '+(i+1)))}</span></button>`; });
+      x+=`<div class="tb-head" ${dz(wid,'items')} data-droph>`;
+      (b.items||[]).forEach((it,i)=>{ x+=`<button class="tb-tab dnd-row ${i===act?'active':''}" data-tabsel="${wid}|${i}">${grip(wid,'items',i)}<span class="wed" data-wedit="${wid}|o/${i}/label">${esc(it.label||('Aba '+(i+1)))}</span></button>`; });
       x+=`<button class="tb-add" data-tabadd="${wid}" title="Nova aba">＋</button></div>`;
       const cur=(b.items||[])[act];
       if(cur) x+=`<div class="tb-panel"><div class="tb-text wed wedrich" data-wedit="${wid}|o/${act}/text">${richHtml(cur.text||'')}</div>
@@ -3260,6 +3264,9 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'benchmark': reseatStr(b,b._id+'/fortes','fortes'); reseatStr(b,b._id+'/fracos','fracos'); break;
   case 'channel': reseatStr(b,b._id+'/obj','objetivos'); reseatStr(b,b._id+'/met','metricas'); break;
   case 'diagnostic': reseatDiag(b); break;
+  case 'phases': reseatObj(b,b.key,'items',[['titulo','t'],['texto','d']]); break;
+  case 'ladder': reseatObj(b,b._id,'items',[['k','k'],['v','v']]); break;
+  case 'personas': reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); break;
 } }
 function resolveList(b, cont){
   if(cont.indexOf('@')>=0){ const a=cont.split('@'); const field=a[0]==='des'?'desafios':(a[0]==='aco'?'acoes':a[0]); const p=b.items&&b.items[+a[1]]; return p?(p[field]=p[field]||[]):null; }
@@ -3271,10 +3278,12 @@ function moveItem(wid, srcCont, srcIdx, dstCont, dstIdx){
   consolidateWidget(b);
   const src=resolveList(b,srcCont), dst=resolveList(b,dstCont);
   if(!src||!dst||srcIdx<0||srcIdx>=src.length) return;
+  const wasActive = (b.type==='tabs' && b.active===srcIdx);
   const it=src.splice(srcIdx,1)[0];
   let di=dstIdx; if(src===dst && srcIdx<di) di--;
   di=Math.max(0,Math.min(dst.length,di));
   dst.splice(di,0,it);
+  if(b.type==='tabs'){ if(wasActive) b.active=di; else b.active=Math.max(0,Math.min(b.active||0,(b.items||[]).length-1)); }
   pushHistory('Mover item','widget'); saveState(); render();
 }
 function dropIndex(zone, e, horiz){
