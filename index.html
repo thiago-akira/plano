@@ -3086,11 +3086,14 @@ function bindGridDrag(canvas, key, layout){
     closeCtxMenu();
     const m=gridMetrics(); if(!m) return;
     const tileEl=e.target.closest(".gtile");
-    if(!tileEl){ if(e.target.closest(".gtoolbar")) return; startMarquee(e, m); return; } // laço no vazio
-    if(e.target.closest(".gtile-tools, button, select, input, textarea, a")) return;     // controles
+    if(!tileEl){ if(e.target.closest(".gtoolbar")) return; startMarquee(e, m); return; }   // laço no vazio
+    // 1) Resize tem prioridade (cantos/bordas)
+    const rEl=e.target.closest(".resize, .resize-r, .resize-b");
+    // 2) Os BOTÕES de ação (config/duplicar/excluir) e campos clicáveis NÃO iniciam arraste.
+    //    A alça ⠿ (.t-move) e as bordas de resize SIM iniciam.
+    if(!rEl && e.target.closest(".gtile-config, .gtile-dup, .gtile-del, .status-sel, button, select, input, textarea, a, .vinput")) return;
     const items=liveItems(key, layout);
     const item=items.find(it=>it.id===tileEl.dataset.id); if(!item) return;
-    const rEl=e.target.closest(".resize, .resize-r, .resize-b");
     if(rEl){
       GDRAG={ mode:"resize", key, item, el:tileEl, m,
         rdir:(rEl.classList.contains("resize-r")?"x":rEl.classList.contains("resize-b")?"y":"xy"),
@@ -3098,10 +3101,9 @@ function bindGridDrag(canvas, key, layout){
       tileEl.classList.add("resizing"); GDRAG.ghost=makeGhost(m.canvas);
       setGhost(GDRAG.ghost,m,item.x,item.y,item.w,item.h,false); e.preventDefault(); return;
     }
-    // arrastar de QUALQUER área: começa pendente (clique sem mover = editar texto)
     const onHandle=!!e.target.closest(".t-move");
     GDRAG={ mode:"move", key, item, el:tileEl, m, startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y, pending:!onHandle, group:null };
-    if(onHandle) activateDrag(e);
+    if(onHandle){ e.preventDefault(); activateDrag(e); }   // alça: arrasta já; corpo: por limiar
   });
   canvas.addEventListener("contextmenu", e=>{
     if(!EDIT) return; e.preventDefault();
