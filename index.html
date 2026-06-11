@@ -889,6 +889,19 @@
   .row-acts button.danger{color:var(--magenta)}
   body.grid-edit .row-acts .it-grip{position:static;transform:none}
   body.grid-edit .man-para{padding-right:8px}
+  /* coluna de controles da tabela (só no modo edição) */
+  .tbl-ctrl{display:none}
+  body.grid-edit .tbl .tbl-ctrl{display:table-cell;width:1px;white-space:nowrap;padding:0 6px;vertical-align:middle;border-left:1px solid var(--line)}
+  .tbl-rowacts{display:inline-flex;align-items:center;gap:2px;opacity:.25;transition:opacity .12s}
+  body.grid-edit .trow:hover .tbl-rowacts, body.grid-edit .grp:hover .tbl-rowacts{opacity:1}
+  .tbl-rowacts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:5px;font-size:10px;color:var(--ink2);cursor:pointer}
+  .tbl-rowacts button.tbl-pencil{color:var(--orange);font-weight:800}
+  .tbl-rowacts button.danger{color:var(--magenta)}
+  body.grid-edit .tbl-rowacts .it-grip{position:static;transform:none}
+  .bxe-rowacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
+  .bxe-rowacts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer}
+  .bxe-rowacts button.danger{color:var(--magenta)}
+  .bxe-rowacts button:hover{border-color:var(--orange)}
   /* caixa flutuante de edição de campos */
   .bxe-back{position:fixed;inset:0;z-index:84;background:rgba(20,14,60,.28);backdrop-filter:blur(1.5px)}
   .bxe{position:fixed;z-index:85;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -3251,13 +3264,16 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "table":{
-      let head=`<tr>${b.cols.map((c,ci)=>`<th class="ed" data-ed="${b._id}/h/${ci}">${esc(txt(b._id+'/h/'+ci,c))}</th>`).join("")}</tr>`;
+      const ncol=b.cols.length;
+      const rowCtrls=(ri)=>`<td class="tbl-ctrl"><span class="tbl-rowacts">${grip(b._id,'rows',ri)}<button class="tbl-pencil" data-rowedit="${b._id}|${ri}" title="Editar linha">✎</button><button data-itemmove="${b._id}|rows|${ri}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|rows|${ri}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|rows|${ri}" title="Apagar linha">×</button></span></td>`;
+      let head=`<tr>${b.cols.map((c,ci)=>`<th class="ed" data-ed="${b._id}/h/${ci}">${esc(txt(b._id+'/h/'+ci,c))}</th>`).join("")}<th class="tbl-ctrl"></th></tr>`;
       let body="";
       (b.rows||[]).forEach((r,ri)=>{
-        if(r.group){ body+=`<tr class="grp"><td colspan="${b.cols.length}" class="ed" data-ed="${b._id}/${ri}/g">${esc(txt(b._id+'/'+ri+'/g',r.group))}</td></tr>`; }
-        else { body+=`<tr>${r.map((cell,ci)=>`<td class="${ci===1?'meta':''} ed" data-ed="${b._id}/${ri}/${ci}">${esc(txt(b._id+'/'+ri+'/'+ci,cell))}</td>`).join("")}</tr>`; }
+        if(r&&r.group!=null){ body+=`<tr class="grp" data-rowidx="${ri}"><td colspan="${ncol}" class="ed" data-ed="${b._id}/${ri}/g">${esc(txt(b._id+'/'+ri+'/g',r.group))}</td>${rowCtrls(ri)}</tr>`; }
+        else { body+=`<tr class="dnd-row trow" data-rowidx="${ri}">${(r||[]).map((cell,ci)=>`<td class="${ci===1?'meta':''} ed" data-ed="${b._id}/${ri}/${ci}">${esc(txt(b._id+'/'+ri+'/'+ci,cell))}</td>`).join("")}${rowCtrls(ri)}</tr>`; }
       });
-      return `<div class="block tbl-wrap"><table class="tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+      return `<div class="block tbl-wrap" data-wid="${b._id}" ${dz(b._id,'rows')}><table class="tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+        <button class="li-plus" data-boxadd="${b._id}|rows" style="margin-top:8px">＋ linha</button>`;
     }
     case "ladder":{
       let x=`<div class="block ladder" ${dz(b._id,'items')}>`;
@@ -3565,6 +3581,11 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'chips': { const id=b._id; const a=(b.items||[]).map((it,i)=>{ const n=(it&&typeof it==='object')?Object.assign({},it):{t:it}; n.t=_ovf(id+'/'+i, n.t); return n; });
     (b.items||[]).forEach((it,i)=>delete STATE.overrides[id+'/'+i]); b.items=a; break; }
+  case 'table': { const id=b._id;
+    const a=(b.rows||[]).map((r,ri)=>{ if(r&&r.group!=null) return {group:_ovf(id+'/'+ri+'/g', r.group)};
+      return (r||[]).map((cell,ci)=>_ovf(id+'/'+ri+'/'+ci, cell)); });
+    (b.rows||[]).forEach((r,ri)=>{ if(r&&r.group!=null) delete STATE.overrides[id+'/'+ri+'/g']; else (r||[]).forEach((c,ci)=>delete STATE.overrides[id+'/'+ri+'/'+ci]); });
+    b.rows=a; break; }
   case 'groupList': { const id=b._id;   // grupos + itens internos (tudo por índice → consolida)
     const a=(b.items||[]).map((g,gi)=>{ const n=Object.assign({},g);
       n.titulo=_ovf(id+'/'+gi+'/t', g.titulo);
@@ -3675,9 +3696,13 @@ function addBox(wid, cont){
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
   else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
+  else if(b.type==='table') item=(b.cols||['']).map(()=>'');   // nova linha vazia
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
 }
+function addRowAt(wid, idx){ const b=findWidgetBlock(wid); if(!b) return; consolidateWidget(b);
+  const list=resolveList(b,'rows'); if(!list) return; list.splice(idx+1,0,(b.cols||['']).map(()=>''));
+  pushHistory('Nova linha','table'); saveState(); render(); }
 function addBoxItem(wid, cont){ const b=findWidgetBlock(wid); if(!b) return; consolidateWidget(b);
   const list=resolveList(b,cont); if(!list) return; list.push('Novo item'); pushHistory('Item','widget'); saveState(); render(); }
 // ===== arrastar o CONTEÚDO de uma linha entre cards (troca os dois conteúdos) =====
@@ -3726,7 +3751,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip')) return;   // chip é texto único → edição inline basta
+      if(box.classList.contains('chip') || box.tagName==='TR') return;   // chip/linha de tabela têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -3745,6 +3770,10 @@ function wireBlockEvents(){
   // mover/apagar linha genérico (tabelas etc.): wid|cont|idx|dir e wid|cont|idx
   $$("[data-itemmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i,d]=b.dataset.itemmove.split('|'); moveItem(id,cont,+i,cont,+i+(+d>0?2:-1)); }));
   $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
+  // tabela: lápis e clique direito por linha
+  $$("[data-rowedit]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const tr=b.closest('tr'); const tile=b.closest('.gtile'); if(tile&&tr) openFieldEditor(tile,null,tr); }));
+  $$(".tbl-wrap tr[data-rowidx]").forEach(tr=> tr.addEventListener("contextmenu",e=>{ if(!(EDIT&&can('editContent'))) return; e.preventDefault(); e.stopPropagation();
+    const wrap=tr.closest('[data-wid]'); if(wrap) openRowMenu(e.clientX,e.clientY, wrap.dataset.wid, +tr.dataset.rowidx); }));
   $$(".status-sel").forEach(sel=>{
     sel.addEventListener("change",()=>{
       STATE.statuses[sel.dataset.aid]=sel.value; pushHistory("Mudou status da ação","ação"); saveState();
@@ -4750,6 +4779,9 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
   let html='';
   if(scopeBox){
     html+=boxHtml(scopeBox);   // edita só ESTA caixa
+    if(scopeBox.hasAttribute('data-rowidx') && b){ const ri=scopeBox.dataset.rowidx;
+      html+=`<div class="bxe-rowacts"><button data-rowdup="${b._id}|${ri}">⧉ Duplicar linha</button><button data-rownew="${b._id}|${ri}">＋ Nova linha</button><button class="danger" data-rowdelete="${b._id}|${ri}">× Apagar linha</button></div>`;
+    }
   } else {
     const boxes=$$('.dnd-box, .dnd-row', body);
     if(boxes.length){
@@ -4779,6 +4811,9 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
   $$('[data-bxcolor]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.bxcolor.split('|'); setBoxColor(p[0],p[1],+p[2],p[3]); bxeReopen(); }));
   $$('[data-bxdel]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.bxdel.split('|'); deleteItemUx(p[0],p[1],+p[2]); bxeReopen(); }));
   $$('[data-bxadd]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.bxadd.split('|'); addBox(p[0],p[1]); bxeReopen(); }));
+  $$('[data-rowdup]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.rowdup.split('|'); duplicateItem(p[0],'rows',+p[1]); closeFieldEditor(); }));
+  $$('[data-rownew]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.rownew.split('|'); addRowAt(p[0],+p[1]); closeFieldEditor(); }));
+  $$('[data-rowdelete]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.rowdelete.split('|'); deleteItemUx(p[0],'rows',+p[1]); closeFieldEditor(); }));
   $('.bxe-close',pop).addEventListener('click',closeFieldEditor);
 }
 function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return; const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
@@ -4850,6 +4885,23 @@ function openTileMenu(x,y,key,id){
 function openCanvasMenu(x,y,key){
   const m=showCtxMenu(x,y, CLIP?`<button class="ctx-item" data-act="paste">📋 Colar widget</button>`:`<button class="ctx-item" disabled>Nada copiado</button>`);
   const pb=$('[data-act="paste"]',m); if(pb) pb.addEventListener("click",()=>{ closeCtxMenu(); pasteTile(key); });
+}
+function openRowMenu(x,y,wid,idx){
+  const m=showCtxMenu(x,y,`
+    <button class="ctx-item" data-act="edit">✎ Editar linha</button>
+    <button class="ctx-item" data-act="dup">⧉ Duplicar linha</button>
+    <button class="ctx-item" data-act="new">＋ Nova linha abaixo</button>
+    <button class="ctx-item" data-act="up">▲ Mover para cima</button>
+    <button class="ctx-item" data-act="down">▼ Mover para baixo</button>
+    <button class="ctx-item danger" data-act="del">× Apagar linha</button>`);
+  $$(".ctx-item[data-act]",m).forEach(b=> b.addEventListener("click",()=>{ const a=b.dataset.act; closeCtxMenu();
+    if(a==='edit'){ const tr=document.querySelector(`[data-wid="${wid}"] tr[data-rowidx="${idx}"]`); const tile=tr&&tr.closest('.gtile'); if(tile&&tr) openFieldEditor(tile,null,tr); }
+    else if(a==='dup') duplicateItem(wid,'rows',idx);
+    else if(a==='new') addRowAt(wid,idx);
+    else if(a==='up') moveItem(wid,'rows',idx,'rows',idx-1);
+    else if(a==='down') moveItem(wid,'rows',idx,'rows',idx+2);
+    else if(a==='del') deleteItemUx(wid,'rows',idx);
+  }));
 }
 function openSecTabMenu(x,y,chKey,secKey){
   const m=showCtxMenu(x,y,`
