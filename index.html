@@ -2858,10 +2858,14 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "image":{
-      const src = MEDIA[b.src] || b.src;
-      if(!src) return `<div class="block media-empty"><div class="mi">🖼️</div><b>Imagem a inserir.</b><br>${esc(b.caption||'')}</div>`;
+      const ik=b._id+'/img';
+      const src = MEDIA[b.src] || STATE.media[ik] || b.src;
+      const isAdmin = AUTH && AUTH.role==="admin";
+      const input = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Cole o link de uma imagem (https://…)…" value="${esc(STATE.media[ik]||(MEDIA[b.src]?'':b.src)||'')}">
+                 <button class="icon-btn" data-isave="${ik}">Salvar</button></div>` : '';
+      if(!src) return `<div class="block media-empty"><div class="mi">🖼️</div><b>Imagem a inserir.</b><br>${esc(b.caption||'')}${input}</div>`;
       return `<div class="block media"><figure><img src="${src}" alt="${esc(b.caption||'')}" loading="lazy">
-        <figcaption class="ed" data-ed="${b._id}/cap">${esc(txt(b._id+'/cap',b.caption||''))}</figcaption></figure></div>`;
+        <figcaption class="ed" data-ed="${b._id}/cap">${esc(txt(b._id+'/cap',b.caption||''))}</figcaption></figure>${input}</div>`;
     }
     case "infographic":{
       const src = MEDIA[b.src] || b.src;
@@ -3024,6 +3028,12 @@ function wireBlockEvents(){
     const inp=$(`[data-vid="${key}"]`);
     STATE.media[key]=inp.value.trim(); pushHistory("Alterou vídeo","vídeo"); saveState(); render();
   }));
+  $$("[data-isave]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation();
+    const key=btn.dataset.isave;
+    const inp=$(`[data-iurl="${key}"]`);
+    STATE.media[key]=inp.value.trim(); pushHistory("Alterou imagem","imagem"); saveState(); render();
+  }));
+  $$("[data-iurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
   // checklist
   $$("[data-ckbox]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.ckbox.split('|'); ckToggle(id,+i); }));
   $$("[data-ckmove]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=btn.dataset.ckmove.split('|'); ckMove(id,+i,+d); }));
