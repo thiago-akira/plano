@@ -839,17 +839,32 @@
   .gtile-config:hover,.gtile-dup:hover,.gtile-fields:hover{border-color:var(--ink);color:var(--ink)}
   .gtile-fields{color:var(--orange);font-weight:800}
   /* caixa flutuante de edição de campos */
-  .bxe{position:fixed;z-index:85;width:300px;max-width:92vw;max-height:74vh;background:#fff;border:1px solid var(--line);
-    border-radius:14px;box-shadow:0 18px 50px rgba(36,26,110,.22);display:flex;flex-direction:column;overflow:hidden}
-  .bxe-head{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--ink);color:#fff}
-  .bxe-head b{flex:1;font-size:14px}
-  .bxe-close{border:none;background:rgba(255,255,255,.18);color:#fff;width:24px;height:24px;border-radius:7px;font-size:15px;cursor:pointer}
-  .bxe-body{padding:12px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
-  .bxe-group{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px;border-top:1px dashed var(--line);padding-top:8px}
+  .bxe-back{position:fixed;inset:0;z-index:84;background:rgba(20,14,60,.28);backdrop-filter:blur(1.5px)}
+  .bxe{position:fixed;z-index:85;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(680px,94vw);max-height:90vh;background:var(--paper);border:1px solid var(--line);
+    border-radius:18px;box-shadow:0 26px 70px rgba(36,26,110,.34);display:flex;flex-direction:column;overflow:hidden}
+  .bxe-head{display:flex;align-items:center;gap:8px;padding:14px 18px;background:var(--ink);color:#fff}
+  .bxe-head b{flex:1;font-size:15.5px;font-weight:800}
+  .bxe-close{border:none;background:rgba(255,255,255,.18);color:#fff;width:28px;height:28px;border-radius:9px;font-size:17px;cursor:pointer}
+  .bxe-close:hover{background:rgba(255,255,255,.3)}
+  .bxe-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+  .bxe-body::-webkit-scrollbar{width:8px}
+  .bxe-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .bxe-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 8px;padding-top:12px;border-top:1px dashed var(--line)}
   .bxe-group:first-child{border-top:none;margin-top:0;padding-top:0}
-  .bxe-row{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--ink2)}
-  .bxe-row input,.bxe-row textarea{border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13.5px;font-weight:500;color:var(--ink);font-family:inherit;resize:vertical}
-  .bxe-row input:focus,.bxe-row textarea:focus{outline:none;border-color:var(--orange)}
+  .bxe-group > span{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 11px}
+  .bxe-cols{display:inline-flex;gap:4px;margin-left:2px}
+  .bxe-cols button{width:18px;height:18px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+  .bxe-cols button:hover{transform:scale(1.18)}
+  .bxe-del{margin-left:auto;border:1px solid var(--line);background:#fff;color:var(--magenta);width:26px;height:26px;border-radius:8px;font-size:15px;cursor:pointer}
+  .bxe-del:hover{background:rgba(229,22,123,.1);border-color:var(--magenta)}
+  .bxe-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px}
+  .bxe-row{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--ink2)}
+  .bxe-row.wide{grid-column:1/-1}
+  .bxe-row input,.bxe-row textarea{border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-weight:500;color:var(--ink);font-family:inherit;resize:vertical;background:#fff}
+  .bxe-row input:focus,.bxe-row textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(243,106,33,.12)}
+  .bxe-add{margin-top:16px;align-self:flex-start;border:2px dashed var(--line);background:#fff;border-radius:11px;padding:9px 16px;font-size:13.5px;font-weight:800;color:var(--ink2);cursor:pointer}
+  .bxe-add:hover{border-color:var(--orange);color:var(--orange)}
   .cpop .sw .szbtn{width:auto;height:24px;padding:0 9px;border:1.5px solid var(--line);border-radius:7px;
     background:#fff;font-size:12px;font-weight:700;color:var(--ink2)}
   .cpop .sw .szbtn:hover{border-color:var(--orange);color:var(--ink)}
@@ -4591,38 +4606,56 @@ function fieldLabel(el, i){
   return 'Campo '+(i+1);
 }
 function fieldText(el){ const c=el.cloneNode(true); c.querySelectorAll('.fgrip,.it-grip,.q-mark').forEach(n=>n.remove()); return c.textContent.replace(/\s+/g,' ').trim(); }
-let _bxeTimer=null;
+let _bxeTimer=null, _bxeTileId=null;
 function bxeApply(){ clearTimeout(_bxeTimer); _bxeTimer=setTimeout(()=>{ saveState(); render(); }, 200); }
-function _bxeOutside(e){ const p=$("#bxeditor"); if(p && !p.contains(e.target) && !e.target.closest(".gtile-fields")) closeFieldEditor(); }
-function closeFieldEditor(){ const p=$("#bxeditor"); if(p) p.remove(); document.removeEventListener("pointerdown", _bxeOutside, true); }
+function _bxeOutside(e){ const p=$("#bxeditor"); if(p && !p.contains(e.target) && !e.target.closest(".gtile-fields") && !e.target.closest('.bxe-back')) return; }
+function closeFieldEditor(){ const p=$("#bxeditor"); if(p) p.remove(); const bk=$("#bxeback"); if(bk) bk.remove(); _bxeTileId=null; }
+function bxeReopen(){ const tid=_bxeTileId; if(!tid) return; setTimeout(()=>{ const t=document.querySelector(`.gtile[data-id="${tid}"]`); if(t){ const a=t.querySelector('.gtile-fields'); openFieldEditor(t, a); } }, 230); }
+const COLOR_BOX={calloutGrid:1,list:1,statRow:1,groupList:1};
+function fieldInput(f, i){
+  const key=f.hasAttribute('data-ed')?('ed::'+f.getAttribute('data-ed')):('wed::'+f.getAttribute('data-wedit'));
+  const label=fieldLabel(f,i), val=fieldText(f);
+  const multi = val.length>40 || ['P','H3','LI'].includes(f.tagName) || /(q-text|ph-text|tb-text|ag-l|bd|cd|p\b|pf|pv)/.test(f.className);
+  return `<label class="bxe-row ${multi?'wide':''}"><span>${esc(label)}</span>${multi?`<textarea data-bxk="${esc(key)}" rows="3">${esc(val)}</textarea>`:`<input type="text" data-bxk="${esc(key)}" value="${esc(val)}">`}</label>`;
+}
+function bxeSwatches(wid,cont,idx){ return `<span class="bxe-cols">${COLOR_SWATCHES.map(([n,c])=>`<button title="${n}" data-bxcolor="${wid}|${cont}|${idx}|${c}" style="background:${c}"></button>`).join('')}</span>`; }
 function openFieldEditor(tileEl, anchorEl){
   closeFieldEditor();
+  _bxeTileId=tileEl.dataset.id;
+  const b=findWidgetBlock(tileEl.dataset.id);
   const body=tileEl.querySelector('.gtile-body')||tileEl;
-  const fields=$$('.ed[data-ed], .wed[data-wedit]', body).filter(f=> f.getAttribute('contenteditable')!=='false');
-  if(!fields.length){ return; }
-  let html='', lastBox=null, gi=0;
-  fields.forEach((f,i)=>{
-    const box=f.closest('.dnd-box, .dnd-row');
-    if(box && box!==lastBox){ gi++; lastBox=box; html+=`<div class="bxe-group">Caixa ${gi}</div>`; }
-    const key=f.hasAttribute('data-ed')?('ed::'+f.getAttribute('data-ed')):('wed::'+f.getAttribute('data-wedit'));
-    const label=fieldLabel(f,i), val=fieldText(f);
-    const multi = val.length>44 || ['P','H3','LI'].includes(f.tagName) || /(q-text|ph-text|tb-text|ag-l|bd|cd)/.test(f.className);
-    html+=`<label class="bxe-row"><span>${esc(label)}</span>${multi?`<textarea data-bxk="${esc(key)}" rows="2">${esc(val)}</textarea>`:`<input type="text" data-bxk="${esc(key)}" value="${esc(val)}">`}</label>`;
-  });
+  const boxes=$$('.dnd-box, .dnd-row', body);
+  const titleTxt = (b&&widgetLabel(b.type))||'conteúdo';
+  let html='';
+  if(boxes.length){
+    boxes.forEach((box,bi)=>{
+      const grip=box.querySelector('[data-dragitem]'); const dg=grip?grip.dataset.dragitem.split('|'):null;
+      const fields=$$('.ed[data-ed], .wed[data-wedit]', box).filter(f=>!f.closest('.dnd-row, .dnd-box') || f.closest('.dnd-row, .dnd-box')===box);
+      html+=`<div class="bxe-group"><span>Caixa ${bi+1}</span>`;
+      if(dg){ if(b&&COLOR_BOX[b.type]) html+=bxeSwatches(dg[0],dg[1],dg[2]); html+=`<button class="bxe-del" data-bxdel="${dg.join('|')}" title="Remover esta caixa">×</button>`; }
+      html+=`</div><div class="bxe-fields">${fields.map((f,i)=>fieldInput(f,i)).join('')}</div>`;
+    });
+    if(b) html+=`<button class="bxe-add" data-bxadd="${b._id}|items">＋ Adicionar caixa</button>`;
+  } else {
+    const fields=$$('.ed[data-ed], .wed[data-wedit]', body);
+    html+=`<div class="bxe-fields">${fields.map((f,i)=>fieldInput(f,i)).join('')}</div>`;
+  }
+  const back=document.createElement('div'); back.className='bxe-back'; back.id='bxeback'; document.body.appendChild(back);
   const pop=document.createElement('div'); pop.className='bxe'; pop.id='bxeditor';
-  pop.innerHTML=`<div class="bxe-head"><b>✎ Editar conteúdo</b><button class="bxe-close" title="Fechar">×</button></div><div class="bxe-body">${html}</div>`;
+  pop.innerHTML=`<div class="bxe-head"><b>✎ Editar ${esc(titleTxt)}</b><button class="bxe-close" title="Fechar">×</button></div><div class="bxe-body">${html}</div>`;
   document.body.appendChild(pop);
-  const r=anchorEl.getBoundingClientRect();
-  pop.style.left=Math.max(8, Math.min(window.innerWidth-pop.offsetWidth-12, r.right-pop.offsetWidth))+'px';
-  pop.style.top=Math.max(8, Math.min(window.innerHeight-pop.offsetHeight-12, r.bottom+6))+'px';
+  back.addEventListener('click', closeFieldEditor);
   $$('[data-bxk]',pop).forEach(inp=> inp.addEventListener('input',()=>{
-    const idx=inp.dataset.bxk.indexOf('::'); const t=inp.dataset.bxk.slice(0,idx), k=inp.dataset.bxk.slice(idx+2);
+    const i2=inp.dataset.bxk.indexOf('::'); const t=inp.dataset.bxk.slice(0,i2), k=inp.dataset.bxk.slice(i2+2);
     if(t==='ed'){ STATE.overrides[k]=inp.value; } else { const p=k.split('|'); updateWidgetField(p[0],p[1],inp.value); }
     bxeApply();
   }));
+  $$('[data-bxcolor]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.bxcolor.split('|'); setBoxColor(p[0],p[1],+p[2],p[3]); bxeReopen(); }));
+  $$('[data-bxdel]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.bxdel.split('|'); deleteItemUx(p[0],p[1],+p[2]); bxeReopen(); }));
+  $$('[data-bxadd]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.bxadd.split('|'); addBox(p[0],p[1]); bxeReopen(); }));
   $('.bxe-close',pop).addEventListener('click',closeFieldEditor);
-  setTimeout(()=>document.addEventListener("pointerdown", _bxeOutside, true),0);
 }
+function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return; const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
