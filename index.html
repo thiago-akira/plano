@@ -718,7 +718,8 @@
     border-radius:14px;box-shadow:var(--shadow);overflow:hidden;
     transition:left .14s ease,top .14s ease,width .14s ease,height .14s ease}
   .gtile.dragging,.gtile.resizing{transition:none;z-index:30}
-  .gtile-body{width:100%;height:100%;overflow:visible;padding:14px}
+  .gtile-body{width:100%;height:100%;overflow:visible;padding:14px;display:flex;flex-direction:column;justify-content:center}
+  .gtile-body > *{width:100%;margin-top:0;margin-bottom:0}   /* centraliza verticalmente o conteúdo (some o espaço extra só no fundo) */
   /* dentro do tile, anular as margens de topo dos blocos pra encaixar na caixa */
   .gtile-body > .block:first-child,.gtile-body > .p:first-child{margin-top:0}
   .gtile-body .section h3{margin-top:0}
@@ -1073,9 +1074,9 @@
 <div id="app" class="hidden">
   <aside id="sidebar">
     <div class="side-head">
-      <div class="destino" id="shDestino">Amapá · Amazônia Autêntica</div>
-      <div class="titulo" id="shTitulo">Plano de Marketing Turístico</div>
-      <div class="periodo" id="shPeriodo">2025 – 2030 · por Thiago Akira</div>
+      <div class="destino ed" id="shDestino" data-ed="meta/destino">Amapá · Amazônia Autêntica</div>
+      <div class="titulo ed" id="shTitulo" data-ed="meta/titulo">Plano de Marketing Turístico</div>
+      <div class="periodo ed" id="shPeriodo" data-ed="meta/periodo">2025 – 2030 · por Thiago Akira</div>
     </div>
     <nav class="side-nav" id="nav"></nav>
     <div class="side-foot">
@@ -2474,9 +2475,7 @@ function startApp(){
   $("#login").classList.add("hidden");
   $("#app").classList.remove("hidden");
   // identidade
-  $("#shDestino").textContent=PLAN.meta.destino;
-  $("#shTitulo").textContent=PLAN.meta.titulo;
-  $("#shPeriodo").textContent=PLAN.meta.periodo;
+  applySideHead(); wireSideHead();
   recomputeMe();
   refreshIdentity();
   ensureBlockIds();
@@ -2719,8 +2718,14 @@ function buildNav(){
   }));
   const mb=$("#navManageBtn",nav); if(mb) mb.addEventListener("click", openNavManager);
   updateNavProgress();
+  applySideHead();
 }
 function persistUi(){ STATE.ui=CUR; saveState(); }
+const SIDE_HEAD=[['shDestino','meta/destino','destino'],['shTitulo','meta/titulo','titulo'],['shPeriodo','meta/periodo','periodo']];
+function applySideHead(){ SIDE_HEAD.forEach(([id,key,metaK])=>{ const el=$("#"+id); if(!el||el===document.activeElement) return; el.textContent=txt(key, PLAN.meta[metaK]||''); }); }
+function wireSideHead(){ SIDE_HEAD.forEach(([id,key])=>{ const el=$("#"+id); if(!el||el._wired) return; el._wired=true;
+  el.addEventListener('blur', ()=>{ if(!(EDIT&&can('editContent'))) return; const v=el.textContent.trim();
+    if(STATE.overrides[key]===v) return; STATE.overrides[key]=v; pushHistory('Editou cabeçalho','cabeçalho'); saveState(); }); }); }
 // navega para um capítulo (e seção opcional) — usado pelo widget de menu clicável
 function navTo(chKey, secKey){
   const cm=chapterModel(chKey); if(!cm) return;
