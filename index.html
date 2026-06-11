@@ -2887,13 +2887,13 @@ function render(){
   }
   h += `</div>`;
 
-  const scroller=document.scrollingElement||document.documentElement;  // o documento é quem rola
+  const scroller=document.scrollingElement||document.documentElement;   // o documento é quem rola
   const navKey=String(CUR.chapter)+'/'+CUR.section;
   const navChanged = navKey!==_lastNav;
-  const keepScroll = navChanged ? 0 : scroller.scrollTop;   // preserva scroll se não mudou de aba
+  const keepScroll = navChanged ? 0 : (scroller?scroller.scrollTop:0);   // preserva scroll se não mudou de aba
   $("#view").innerHTML=h;
   _lastNav=navKey;
-  scroller.scrollTop = keepScroll;
+  if(scroller) scroller.scrollTop = keepScroll;   // restaura já (e de novo após layoutTiles, c/ alturas finais)
 
   $$(".sec-tab[data-sec]").forEach(t=>t.addEventListener("click",(e)=>{
     if(e.target.closest('.ed') && EDIT) return;           // clicou no nome editável da aba ativa → deixa editar
@@ -2916,6 +2916,7 @@ function render(){
   updateProgress();
   updateEditChrome();
   if($(".gridcanvas")) layoutTiles();
+  if(scroller) scroller.scrollTop = keepScroll;   // restaura a posição com as alturas dos tiles já aplicadas
   if(typeof updateSelDom==="function" && SEL && SEL.size) updateSelDom();
 }
 
