@@ -556,6 +556,19 @@
     padding:2px 8px;border-radius:20px;pointer-events:none;box-shadow:var(--shadow)}
   body.grid-edit .gtile-type{display:inline-block}
   .dev-btn[data-dev="auto"]{font-weight:800;font-size:12px}
+  /* tiles "planos" (cabeçalho/título): sem cartão branco, conteúdo preenche */
+  .gtile.gtile-plain{background:none;border:none;box-shadow:none}
+  .gtile.gtile-plain .gtile-body{padding:0;overflow:visible}
+  .gtile.gtile-plain .chap-hero{height:100%}
+  /* barra de estilo de texto (seleção) */
+  .selformat{position:fixed;z-index:80;display:none;align-items:center;gap:2px;background:var(--ink);
+    border-radius:10px;padding:4px;box-shadow:0 10px 30px rgba(36,26,110,.35)}
+  .selformat button,.selformat .sf-color{border:none;background:none;color:#fff;width:30px;height:28px;
+    border-radius:7px;font-size:13px;display:grid;place-items:center;cursor:pointer}
+  .selformat button:hover,.selformat .sf-color:hover{background:rgba(255,255,255,.16)}
+  .selformat .sf-div{width:1px;height:18px;background:rgba(255,255,255,.25);margin:0 2px}
+  .selformat .sf-color{position:relative;overflow:hidden}
+  .selformat .sf-color input{position:absolute;inset:0;opacity:0;cursor:pointer}
   body.grid-edit .gtile{cursor:default}
   .t-move{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
     background:#fff;color:var(--muted);font-size:14px;display:grid;place-items:center;
@@ -2185,14 +2198,10 @@ function liveVariant(key, sec){
 /* todas as variantes materializadas (p/ add/delete consistentes entre devices) */
 function allVariants(key){ const bag=layoutBag(key); if(!bag) return []; return DEVICES.map(d=>bag[d.id]).filter(Boolean); }
 
-/* resolve um item do layout -> o objeto bloco (base no PLAN ou inline 'add') */
+/* resolve um item do layout -> o objeto bloco (base no PLAN, inline 'add' ou especial) */
 function blockOfItem(sec, item){
-  if(item.add) return item.add;
-  return sec.blocks.find(b=>b._id===item.id) || null;
-}
-
-/* resolve um item do layout -> o objeto bloco (base no PLAN ou inline 'add') */
-function blockOfItem(sec, item){
+  if(item.id==='__hero') return {type:'hero', _id:'__hero'};
+  if(item.id==='__sec')  return {type:'secTitle', _id:'__sec'};
   if(item.add) return item.add;
   return sec.blocks.find(b=>b._id===item.id) || null;
 }
@@ -2412,7 +2421,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   groupList:'Grupos', table:'Tabela', ladder:'Escada', image:'Imagem', infographic:'Infográfico',
   gallery:'Galeria', audio:'Áudio', benchmark:'Benchmark', personas:'Personas', persona:'Persona',
   channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
-  placeholder:'Placeholder' };
+  placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 
 /* =========================================================================
@@ -2430,6 +2439,7 @@ function curSecObj(){
 }
 
 function render(){
+  if(typeof hideSelBar==="function") hideSelBar();
   const cm = chapterModel(CUR.chapter) || navModel()[0];
   const chKey = cm.chKey;
   CUR.chapter = chKey==='onb'?'onb':(/^\d+$/.test(chKey)?parseInt(chKey,10):chKey);  // normaliza
@@ -2448,12 +2458,22 @@ function render(){
   const subDef = isOnb ? (ch.intro||'') : (ch.resumo||'');
   const nameK='nav/'+chKey+'/nome', subK='nav/'+chKey+'/sub';
   const dark = cor==="var(--yellow)"; // texto escuro sobre amarelo
-  let h = `<div class="chap-hero" style="background:${cor};${dark?'color:#3a2e00':''}">
+
+  const key = secKey();
+  const secTitK='sec/'+chKey+'/'+CUR.section+'/titulo';
+  let layout = effectiveLayout(sec, key);
+  if(!layout && EDIT && can('editLayout')){ layout = autoSeedLayout(sec, key); }   // auto-grade ao editar
+  const heroInGrid = !!(layout && layout.items.some(it=>it.id==='__hero'));         // cabeçalho virou widget?
+
+  let h = "";
+  if(!heroInGrid){   // hero como banner fixo (seção sem grade / layout legado)
+    h += `<div class="chap-hero" style="background:${cor};${dark?'color:#3a2e00':''}">
              <div class="deco"><span></span><span></span><span></span></div>
              <div class="ch-num">${num}</div>
              <h2 class="ed" data-ed="${nameK}">${esc(cm.nome)}</h2>
              <div class="ch-sub ed" data-ed="${subK}">${esc(txt(subK,subDef))}</div>
            </div>`;
+  }
 
   // tabs de seção
   const visSecs = cm.sections.filter(s=> !s.hidden || (EDIT&&can('editLayout')));
@@ -2463,12 +2483,8 @@ function render(){
     h += `</div>`;
   }
 
-  const key = secKey();
-  const secTitK='sec/'+chKey+'/'+CUR.section+'/titulo';
-  let layout = effectiveLayout(sec, key);
-  // Editar já ativa a grade de TODOS os widgets: auto-semeia a seção (mede e converte)
-  if(!layout && EDIT && can('editLayout')){ layout = autoSeedLayout(sec, key); }
-  h += `<div class="section"><h3 class="ed" data-ed="${secTitK}">${esc(secModel.titulo)}</h3>`;
+  h += `<div class="section">`;
+  if(!heroInGrid) h += `<h3 class="ed" data-ed="${secTitK}">${esc(secModel.titulo)}</h3>`;  // título fixo se não for widget
   h += secProgressHtml(cm, CUR.section);
   _lastDevice = deviceForWidth(window.innerWidth);
   if(layout){
@@ -2486,6 +2502,7 @@ function render(){
       if(st.bg){ sv+="--w-bg:"+st.bg+";"; cls+=" has-bg"; }
       if(st.fg){ sv+="--w-fg:"+st.fg+";"; cls+=" has-fg"; }
       if(st.top){ sv+="--w-top:"+st.top+";"; cls+=" has-top"; }
+      if(blk.type==='hero'||blk.type==='secTitle') cls+=" gtile-plain";
       h += `<div class="gtile${cls}" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
               <span class="gtile-type">${esc(widgetLabel(blk.type))}</span>
               <div class="gtile-tools"><button class="gtile-config" title="Configurar (tamanho e cores)">⚙</button><button class="gtile-dup" title="Duplicar widget">⧉</button><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
@@ -2513,6 +2530,7 @@ function render(){
   wireBlockEvents();
   wireGridEvents(sec, key, layout);
   applyEdit();
+  applyRichText();   // aplica HTML formatado (negrito/cor/tamanho) onde houver
   updateProgress();
   updateEditChrome();
   if($(".gridcanvas")) layoutTiles();
@@ -2810,6 +2828,22 @@ function renderBlock(b, sec, bi){
     case "signature":{
       return `<div class="block signature ed" data-ed="${b.key}">${esc(txt(b.key,b.text))}<b>${esc(b.nome||'')}</b></div>`;
     }
+    case "hero":{
+      const cm=chapterModel(CUR.chapter)||{chKey:String(CUR.chapter)}; const chKey=cm.chKey;
+      const isOnb=cm.isOnb, cor=cm.cor||'var(--ink)';
+      const num = isOnb?"ONBOARDING":(cm.added?"NOVO MENU":"CAPÍTULO "+String(cm.num).padStart(2,'0'));
+      const subDef = isOnb?((cm.obj&&cm.obj.intro)||''):((cm.obj&&cm.obj.resumo)||'');
+      const dark = cor==="var(--yellow)";
+      return `<div class="chap-hero" style="background:${cor};${dark?'color:#3a2e00':''};margin:0;height:100%">
+        <div class="deco"><span></span><span></span><span></span></div>
+        <div class="ch-num">${num}</div>
+        <h2 class="ed" data-ed="nav/${chKey}/nome">${esc(cm.nome||'')}</h2>
+        <div class="ch-sub ed" data-ed="nav/${chKey}/sub">${esc(txt('nav/'+chKey+'/sub',subDef))}</div></div>`;
+    }
+    case "secTitle":{
+      const chKey=String(CUR.chapter), k='sec/'+chKey+'/'+CUR.section+'/titulo', so=curSecObj();
+      return `<h3 class="ed" data-ed="${k}" style="margin:0">${esc(txt(k, so.titulo||''))}</h3>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -2880,7 +2914,9 @@ $("#view").addEventListener("blur", e=>{
   const el=e.target;
   if(el && el.hasAttribute && el.hasAttribute("data-ed") && EDIT){
     const key=el.getAttribute("data-ed");
-    const val=el.textContent.trim();
+    const rawHtml=el.innerHTML;
+    const hasFmt=/<(b|i|u|strong|em|span|br)\b/i.test(rawHtml);
+    const val = hasFmt ? safeHtml(rawHtml) : el.textContent.trim();   // guarda HTML formatado quando há estilo
     if(STATE.overrides[key]===val) return;       // sem mudança real
     STATE.overrides[key]=val;
     const tile=el.closest&&el.closest(".gtile");
@@ -2889,6 +2925,68 @@ $("#view").addEventListener("blur", e=>{
     if(key.indexOf('nav/')===0){ buildNav(); $("#tbTitle").textContent=chapterName(curChapterObj(),String(CUR.chapter)); } // título do menu/topo
   }
 }, true);
+
+/* ===== C3: estilo de texto na seleção (negrito/itálico/sublinhado/tamanho/cor) ===== */
+function safeHtml(html){
+  const tmp=document.createElement('div'); tmp.innerHTML=html||'';
+  const allow={B:1,I:1,U:1,STRONG:1,EM:1,SPAN:1,BR:1};
+  const styleMap=[['fontWeight','font-weight'],['fontStyle','font-style'],['textDecoration','text-decoration'],['fontSize','font-size'],['color','color']];
+  const walk=node=>{ [...node.childNodes].forEach(c=>{
+    if(c.nodeType===3) return;
+    if(c.nodeType!==1){ node.removeChild(c); return; }
+    if(!allow[c.tagName]){ while(c.firstChild) node.insertBefore(c.firstChild,c); node.removeChild(c); return; }
+    const keep=[]; if(c.tagName==='SPAN'){ styleMap.forEach(([cam,css])=>{ if(c.style&&c.style[cam]) keep.push(css+':'+c.style[cam]); }); }
+    [...c.attributes].forEach(a=>c.removeAttribute(a.name));
+    if(keep.length) c.setAttribute('style', keep.join(';'));
+    walk(c);
+  }); };
+  walk(tmp); return tmp.innerHTML;
+}
+function applyRichText(){
+  $$("#view [data-ed]").forEach(el=>{ const v=STATE.overrides[el.getAttribute('data-ed')];
+    if(v!=null && /<(b|i|u|strong|em|span|br)\b/i.test(v)) el.innerHTML=safeHtml(v); });
+}
+function wrapSelection(prop,val){
+  const sel=window.getSelection(); if(!sel||!sel.rangeCount) return; const range=sel.getRangeAt(0); if(range.collapsed) return;
+  const span=document.createElement('span'); span.style[prop]=val;
+  try{ range.surroundContents(span); }catch(_){ const frag=range.extractContents(); span.appendChild(frag); range.insertNode(span); }
+  sel.removeAllRanges(); const r=document.createRange(); r.selectNodeContents(span); sel.addRange(r);
+}
+function saveEdElement(el){
+  if(!el) return; const key=el.getAttribute('data-ed'); const html=el.innerHTML;
+  const v=/<(b|i|u|strong|em|span|br)\b/i.test(html)?safeHtml(html):el.textContent.trim();
+  if(STATE.overrides[key]===v) return; STATE.overrides[key]=v; pushHistory('Formatou texto','texto'); saveState();
+}
+let _selBar=null, _selT=null;
+function hideSelBar(){ if(_selBar) _selBar.style.display='none'; }
+function selFmt(prop,val){ wrapSelection(prop,val); if(_selBar&&_selBar._ed) saveEdElement(_selBar._ed); }
+function showSelBar(){
+  if(!(EDIT && can('editContent'))){ return hideSelBar(); }
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.isCollapsed){ return hideSelBar(); }
+  let n=sel.anchorNode; n=n&&(n.nodeType===1?n:n.parentElement);
+  const ed=n&&n.closest&&n.closest('[data-ed]');
+  if(!ed||!$("#view").contains(ed)){ return hideSelBar(); }
+  if(!_selBar){
+    _selBar=document.createElement('div'); _selBar.className='selformat';
+    _selBar.innerHTML=`<button data-b><b>N</b></button><button data-i><i>I</i></button><button data-u style="text-decoration:underline">S</button>
+      <span class="sf-div"></span><button data-sz="13px">A-</button><button data-sz="17px">A</button><button data-sz="23px">A+</button>
+      <span class="sf-div"></span><label class="sf-color"><input type="color" value="#241a6e" data-color>🎨</label>`;
+    document.body.appendChild(_selBar);
+    _selBar.addEventListener('mousedown',e=>e.preventDefault());   // preserva a seleção/foco
+    $("[data-b]",_selBar).addEventListener('click',()=>selFmt('fontWeight','700'));
+    $("[data-i]",_selBar).addEventListener('click',()=>selFmt('fontStyle','italic'));
+    $("[data-u]",_selBar).addEventListener('click',()=>selFmt('textDecoration','underline'));
+    $$("[data-sz]",_selBar).forEach(b=>b.addEventListener('click',()=>selFmt('fontSize',b.dataset.sz)));
+    $("[data-color]",_selBar).addEventListener('input',e=>selFmt('color',e.target.value));
+  }
+  _selBar._ed=ed;
+  _selBar.style.display='flex';
+  const rect=sel.getRangeAt(0).getBoundingClientRect();
+  _selBar.style.left=Math.max(8, Math.min(window.innerWidth-_selBar.offsetWidth-8, rect.left))+'px';
+  _selBar.style.top=Math.max(8, rect.top-_selBar.offsetHeight-8)+'px';
+}
+document.addEventListener('selectionchange', ()=>{ clearTimeout(_selT); _selT=setTimeout(showSelBar,90); });
 $("#editBtn").addEventListener("click",()=>{
   EDIT=!EDIT;
   $("#editBtn").classList.toggle("on",EDIT);
@@ -3133,6 +3231,8 @@ function autoSeedLayout(sec, key){
   (view||document.body).appendChild(probe);
   const els=$$(":scope > *", probe);
   const items=[]; let y=0;
+  items.push({ id:'__hero', x:0, y, w:cols, h:3 }); y+=3;   // cabeçalho como widget
+  items.push({ id:'__sec',  x:0, y, w:cols, h:1 }); y+=1;   // título da seção como widget
   sec.blocks.forEach((b,i)=>{
     const el=els[i];
     const hh=el?Math.max(2,Math.ceil((el.offsetHeight+GRID_GAP)/cellH)):4;
