@@ -2769,7 +2769,7 @@ function renderBlock(b, sec, bi){
         const col=((it&&typeof it==='object')&&it.color)||b.color||'var(--orange)';
         x+=`<li class="li-item">
           <button class="li-bullet" data-libul="${wid}|${i}" style="background:${col}" title="Trocar cor"></button>
-          <span class="li-text wed" data-wedit="${wid}|i/${i}">${esc(t)}</span>
+          <span class="li-text wed wedrich" data-wedit="${wid}|i/${i}">${richHtml(t)}</span>
           <span class="li-acts"><button data-limove="${wid}|${i}|-1" title="Subir">▲</button><button data-limove="${wid}|${i}|1" title="Descer">▼</button><button class="danger" data-lidel="${wid}|${i}" title="Apagar">×</button></span>
         </li>`;
       });
@@ -2779,11 +2779,11 @@ function renderBlock(b, sec, bi){
     case "checklist":{
       const col=b.color||'var(--green)';
       let x=`<div class="block checklist" data-wid="${b._id}">`;
-      if(b.showTitle!==false) x+=`<div class="wtitle wed" data-wedit="${b._id}|title">${esc(b.title||'Checklist')}</div>`;
+      if(b.showTitle!==false) x+=`<div class="wtitle wed wedrich" data-wedit="${b._id}|title">${richHtml(b.title||'Checklist')}</div>`;
       (b.items||[]).forEach((it,i)=>{
         x+=`<div class="ck-item ${it.done?'done':''}">
           <button class="ck-box" data-ckbox="${b._id}|${i}" style="${it.done?('background:'+col+';border-color:'+col):''}" title="Concluir">${it.done?'✓':''}</button>
-          <span class="ck-text wed" data-wedit="${b._id}|i/${i}">${esc(it.t)}</span>
+          <span class="ck-text wed wedrich" data-wedit="${b._id}|i/${i}">${richHtml(it.t)}</span>
           <span class="ck-acts"><button data-ckmove="${b._id}|${i}|-1" title="Subir">▲</button><button data-ckmove="${b._id}|${i}|1" title="Descer">▼</button><button class="danger" data-ckdel="${b._id}|${i}" title="Apagar">×</button></span>
         </div>`;
       });
@@ -2792,16 +2792,16 @@ function renderBlock(b, sec, bi){
     }
     case "quote":{
       return `<div class="block quote"><div class="q-mark">❝</div>
-        <div class="q-text wed" data-wedit="${b._id}|f/text">${esc(b.text||'')}</div>
-        <div class="q-who wed" data-wedit="${b._id}|f/who">${esc(b.who||'')}</div></div>`;
+        <div class="q-text wed wedrich" data-wedit="${b._id}|f/text">${richHtml(b.text||'')}</div>
+        <div class="q-who wed wedrich" data-wedit="${b._id}|f/who">${richHtml(b.who||'')}</div></div>`;
     }
     case "pageHeader":{
       const col=b.color||'var(--ink)';
       const dark=!isLightColor(col);
       return `<div class="block pageheader" style="background:${col};${dark?'color:#fff':'color:var(--ink)'}">
-        <div class="ph-eyebrow wed" data-wedit="${b._id}|f/eyebrow">${esc(b.eyebrow||'')}</div>
-        <div class="ph-title wed" data-wedit="${b._id}|f/title">${esc(b.title||'')}</div>
-        <div class="ph-text wed" data-wedit="${b._id}|f/text">${esc(b.text||'')}</div></div>`;
+        <div class="ph-eyebrow wed wedrich" data-wedit="${b._id}|f/eyebrow">${richHtml(b.eyebrow||'')}</div>
+        <div class="ph-title wed wedrich" data-wedit="${b._id}|f/title">${richHtml(b.title||'')}</div>
+        <div class="ph-text wed wedrich" data-wedit="${b._id}|f/text">${richHtml(b.text||'')}</div></div>`;
     }
     case "action":{
       const st = STATE.statuses[b.id] || "todo";
@@ -2970,7 +2970,7 @@ function renderBlock(b, sec, bi){
       let x=`<div class="block gallery">`;
       b.items.forEach((it,i)=>{ const src=MEDIA[it.src]||it.src;
         x+=`<figure><img src="${src}" alt="${esc(it.caption||'')}" loading="lazy">
-          <figcaption class="wed" data-wedit="${wid}|cap/${i}">${esc(it.caption||'')}</figcaption>
+          <figcaption class="wed wedrich" data-wedit="${wid}|cap/${i}">${richHtml(it.caption||'')}</figcaption>
           <button class="gal-del" data-galdel="${wid}|${i}" title="Remover">×</button></figure>`; });
       return x+`</div>`+adder;
     }
@@ -3076,12 +3076,12 @@ function renderBlock(b, sec, bi){
     case "agenda":{
       const wid=b._id;
       let x=`<div class="block agenda" data-wid="${wid}">`;
-      if(b.showTitle!==false) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title||'Agenda')}</div>`;
+      if(b.showTitle!==false) x+=`<div class="wtitle wed wedrich" data-wedit="${wid}|title">${richHtml(b.title||'Agenda')}</div>`;
       (b.items||[]).forEach((it,i)=>{
         const cor=it.color||b.color||'var(--orange)';
         x+=`<div class="ag-item">
           <div class="ag-date" style="background:${cor}"><span class="ag-d wed" data-wedit="${wid}|o/${i}/data">${esc(it.data||'')}</span><span class="ag-h wed" data-wedit="${wid}|o/${i}/hora">${esc(it.hora||'')}</span></div>
-          <div class="ag-body"><div class="ag-t wed" data-wedit="${wid}|o/${i}/titulo">${esc(it.titulo||'')}</div>
+          <div class="ag-body"><div class="ag-t wed wedrich" data-wedit="${wid}|o/${i}/titulo">${richHtml(it.titulo||'')}</div>
             <div class="ag-l wed" data-wedit="${wid}|o/${i}/local">${esc(it.local||'')}</div></div>
           <span class="ck-acts"><button data-agmove="${wid}|${i}|-1" title="Subir">▲</button><button data-agmove="${wid}|${i}|1" title="Descer">▼</button><button class="danger" data-agdel="${wid}|${i}" title="Apagar">×</button></span>
         </div>`;
@@ -3132,7 +3132,7 @@ function renderBlock(b, sec, bi){
       (b.items||[]).forEach((it,i)=>{ x+=`<button class="tb-tab ${i===act?'active':''}" data-tabsel="${wid}|${i}"><span class="wed" data-wedit="${wid}|o/${i}/label">${esc(it.label||('Aba '+(i+1)))}</span></button>`; });
       x+=`<button class="tb-add" data-tabadd="${wid}" title="Nova aba">＋</button></div>`;
       const cur=(b.items||[])[act];
-      if(cur) x+=`<div class="tb-panel"><div class="tb-text wed" data-wedit="${wid}|o/${act}/text">${esc(cur.text||'')}</div>
+      if(cur) x+=`<div class="tb-panel"><div class="tb-text wed wedrich" data-wedit="${wid}|o/${act}/text">${richHtml(cur.text||'')}</div>
         <button class="danger tb-del" data-tabdel="${wid}|${act}" title="Apagar esta aba">Apagar aba</button></div>`;
       return x+`</div>`;
     }
@@ -3415,7 +3415,10 @@ $("#view").addEventListener("blur", e=>{
   // campos de dados de widgets criados (checklist, citação, cabeçalho…)
   if(el && el.classList && el.classList.contains("wed") && el.hasAttribute("data-wedit") && EDIT){
     const [id,path]=el.getAttribute("data-wedit").split('|');
-    updateWidgetField(id, path, el.textContent.trim());
+    let val;
+    if(el.classList.contains("wedrich")){ const h=el.innerHTML; val=/<(b|i|u|strong|em|span|br)\b/i.test(h)?safeHtml(h):el.textContent.trim(); }
+    else { val=el.textContent.trim(); }
+    updateWidgetField(id, path, val);
     return;
   }
   if(el && el.hasAttribute && el.hasAttribute("data-ed") && EDIT){
@@ -3452,6 +3455,8 @@ function applyRichText(){
   $$("#view [data-ed]").forEach(el=>{ const v=STATE.overrides[el.getAttribute('data-ed')];
     if(v!=null && /<(b|i|u|strong|em|span|br)\b/i.test(v)) el.innerHTML=safeHtml(v); });
 }
+// renderiza um valor de campo de widget: HTML formatado seguro se houver tags, senão texto escapado
+function richHtml(v){ v=(v==null)?'':String(v); return /<(b|i|u|strong|em|span|br)\b/i.test(v)?safeHtml(v):esc(v); }
 function wrapSelection(prop,val){
   const sel=window.getSelection(); if(!sel||!sel.rangeCount) return; const range=sel.getRangeAt(0); if(range.collapsed) return;
   const span=document.createElement('span'); span.style[prop]=val;
@@ -3465,20 +3470,29 @@ function saveEdElement(el){
 }
 let _selBar=null, _selT=null;
 function hideSelBar(){ if(_selBar) _selBar.style.display='none'; }
-function selFmt(prop,val){ wrapSelection(prop,val); if(_selBar&&_selBar._ed) saveEdElement(_selBar._ed); }
+function saveSelEl(el){
+  if(!el) return;
+  if(el.classList && el.classList.contains("wedrich") && el.hasAttribute("data-wedit")){
+    const [id,path]=el.getAttribute("data-wedit").split('|');
+    const h=el.innerHTML; const val=/<(b|i|u|strong|em|span|br)\b/i.test(h)?safeHtml(h):el.textContent.trim();
+    updateWidgetField(id,path,val); return;
+  }
+  saveEdElement(el);
+}
+function selFmt(prop,val){ wrapSelection(prop,val); if(_selBar&&_selBar._ed) saveSelEl(_selBar._ed); }
 function selHighlight(bg){
   const sel=window.getSelection(); if(!sel||!sel.rangeCount) return; const range=sel.getRangeAt(0); if(range.collapsed) return;
   const span=document.createElement('span'); span.style.backgroundColor=bg; span.style.color='#241a6e'; span.style.borderRadius='4px'; span.style.padding='0 3px';
   try{ range.surroundContents(span); }catch(_){ const frag=range.extractContents(); span.appendChild(frag); range.insertNode(span); }
   sel.removeAllRanges(); const r=document.createRange(); r.selectNodeContents(span); sel.addRange(r);
-  if(_selBar&&_selBar._ed) saveEdElement(_selBar._ed);
+  if(_selBar&&_selBar._ed) saveSelEl(_selBar._ed);
 }
 function showSelBar(){
   if(!(EDIT && can('editContent'))){ return hideSelBar(); }
   const sel=window.getSelection();
   if(!sel||sel.rangeCount===0||sel.isCollapsed){ return hideSelBar(); }
   let n=sel.anchorNode; n=n&&(n.nodeType===1?n:n.parentElement);
-  const ed=n&&n.closest&&n.closest('[data-ed]');
+  const ed=n&&n.closest&&n.closest('[data-ed], .wedrich');
   if(!ed||!$("#view").contains(ed)){ return hideSelBar(); }
   if(!_selBar){
     _selBar=document.createElement('div'); _selBar.className='selformat';
