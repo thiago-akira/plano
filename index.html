@@ -834,9 +834,22 @@
   .gtile.has-top::before{content:"";position:absolute;top:0;left:0;right:0;height:8px;
     background:var(--w-top);border-radius:14px 14px 0 0;z-index:3}
   .gtile.has-top .gtile-body .ttl,.gtile.has-top .gtile-body h4:first-child{color:var(--w-top)}
-  .gtile-color,.gtile-config,.gtile-dup{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
+  .gtile-color,.gtile-config,.gtile-dup,.gtile-fields{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
     background:#fff;font-size:13px;line-height:1;display:grid;place-items:center;box-shadow:var(--shadow);color:var(--ink2)}
-  .gtile-config:hover,.gtile-dup:hover{border-color:var(--ink);color:var(--ink)}
+  .gtile-config:hover,.gtile-dup:hover,.gtile-fields:hover{border-color:var(--ink);color:var(--ink)}
+  .gtile-fields{color:var(--orange);font-weight:800}
+  /* caixa flutuante de edição de campos */
+  .bxe{position:fixed;z-index:85;width:300px;max-width:92vw;max-height:74vh;background:#fff;border:1px solid var(--line);
+    border-radius:14px;box-shadow:0 18px 50px rgba(36,26,110,.22);display:flex;flex-direction:column;overflow:hidden}
+  .bxe-head{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--ink);color:#fff}
+  .bxe-head b{flex:1;font-size:14px}
+  .bxe-close{border:none;background:rgba(255,255,255,.18);color:#fff;width:24px;height:24px;border-radius:7px;font-size:15px;cursor:pointer}
+  .bxe-body{padding:12px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+  .bxe-group{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px;border-top:1px dashed var(--line);padding-top:8px}
+  .bxe-group:first-child{border-top:none;margin-top:0;padding-top:0}
+  .bxe-row{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--ink2)}
+  .bxe-row input,.bxe-row textarea{border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13.5px;font-weight:500;color:var(--ink);font-family:inherit;resize:vertical}
+  .bxe-row input:focus,.bxe-row textarea:focus{outline:none;border-color:var(--orange)}
   .cpop .sw .szbtn{width:auto;height:24px;padding:0 9px;border:1.5px solid var(--line);border-radius:7px;
     background:#fff;font-size:12px;font-weight:700;color:var(--ink2)}
   .cpop .sw .szbtn:hover{border-color:var(--orange);color:var(--ink)}
@@ -2890,7 +2903,7 @@ function render(){
       if(blk.type==='hero'||blk.type==='secTitle') cls+=" gtile-plain";
       h += `<div class="gtile${cls}" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
               <span class="gtile-type">${esc(widgetLabel(blk.type))}</span>
-              <div class="gtile-tools"><button class="gtile-config" title="Configurar (tamanho e cores)">⚙</button><button class="gtile-dup" title="Duplicar widget">⧉</button><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
+              <div class="gtile-tools"><button class="gtile-fields" title="Editar conteúdo em campos">✎</button><button class="gtile-config" title="Configurar (tamanho e cores)">⚙</button><button class="gtile-dup" title="Duplicar widget">⧉</button><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
               <div class="gtile-body">${st.title?`<div class="wtitle ed" data-ed="wt/${item.id}">${esc(txt('wt/'+item.id,'Título do widget'))}</div>`:''}${renderBlock(blk)}</div>
               <div class="resize-r"></div><div class="resize-b"></div><div class="resize"></div>
             </div>`;
@@ -4104,7 +4117,7 @@ function bindGridDrag(canvas, key, layout){
     //    A alça ⠿ (.t-move) e as bordas de resize SIM iniciam.
     // texto editável (contenteditable ativo) NÃO inicia arraste — deixa selecionar palavra/trecho livremente
     if(!rEl && e.target.closest('[contenteditable="true"]')) return;
-    if(!rEl && e.target.closest(".gtile-config, .gtile-dup, .gtile-del, .status-sel, button, select, input, textarea, a, .vinput")) return;
+    if(!rEl && e.target.closest(".gtile-fields, .gtile-config, .gtile-dup, .gtile-del, .status-sel, button, select, input, textarea, a, .vinput")) return;
     const items=liveItems(key, layout);
     const item=items.find(it=>it.id===tileEl.dataset.id); if(!item) return;
     if(rEl){
@@ -4563,6 +4576,53 @@ function openColorPopover(id, anchorEl){
 }
 function _cpopOutside(e){ const p=$("#cpop"); if(p && !p.contains(e.target) && !e.target.closest(".gtile-config")) closeColorPopover(); }
 function closeColorPopover(){ const p=$("#cpop"); if(p) p.remove(); document.removeEventListener("pointerdown", _cpopOutside, true); }
+/* ===== editor de campos em caixa flutuante (genérico, p/ qualquer widget) ===== */
+const FIELD_LABELS={ v:'Número/Valor', l:'Rótulo', src:'Fonte', ttl:'Título', 'q-text':'Frase', 'q-who':'Autor',
+  'ph-eyebrow':'Sobre-título', 'ph-title':'Título', 'ph-text':'Texto', 'ag-d':'Data', 'ag-h':'Hora',
+  'ag-t':'Título', 'ag-l':'Local', 'ck-text':'Tarefa', 'li-text':'Item', 'cl-label':'Cidade',
+  'tb-text':'Conteúdo', 'sc-label':'Rótulo', 'nm-label':'Rótulo', wtitle:'Título', lab:'Rótulo', val:'Valor',
+  'ch-sub':'Subtítulo', cn:'Nome', bn:'Nome', rt:'Título', 'lk':'Nível', 'lv':'Descrição' };
+function fieldLabel(el, i){
+  for(const c of el.classList){ if(FIELD_LABELS[c]) return FIELD_LABELS[c]; }
+  if(el.tagName==='H4'||el.tagName==='H3'||el.tagName==='H2') return 'Título';
+  if(el.tagName==='P'||el.tagName==='LI') return 'Texto';
+  const k=el.getAttribute('data-ed')||el.getAttribute('data-wedit')||'';
+  if(/\/(ttl|t|title|n|nome)$/.test(k)) return 'Título';
+  return 'Campo '+(i+1);
+}
+function fieldText(el){ const c=el.cloneNode(true); c.querySelectorAll('.fgrip,.it-grip,.q-mark').forEach(n=>n.remove()); return c.textContent.replace(/\s+/g,' ').trim(); }
+let _bxeTimer=null;
+function bxeApply(){ clearTimeout(_bxeTimer); _bxeTimer=setTimeout(()=>{ saveState(); render(); }, 200); }
+function _bxeOutside(e){ const p=$("#bxeditor"); if(p && !p.contains(e.target) && !e.target.closest(".gtile-fields")) closeFieldEditor(); }
+function closeFieldEditor(){ const p=$("#bxeditor"); if(p) p.remove(); document.removeEventListener("pointerdown", _bxeOutside, true); }
+function openFieldEditor(tileEl, anchorEl){
+  closeFieldEditor();
+  const body=tileEl.querySelector('.gtile-body')||tileEl;
+  const fields=$$('.ed[data-ed], .wed[data-wedit]', body).filter(f=> f.getAttribute('contenteditable')!=='false');
+  if(!fields.length){ return; }
+  let html='', lastBox=null, gi=0;
+  fields.forEach((f,i)=>{
+    const box=f.closest('.dnd-box, .dnd-row');
+    if(box && box!==lastBox){ gi++; lastBox=box; html+=`<div class="bxe-group">Caixa ${gi}</div>`; }
+    const key=f.hasAttribute('data-ed')?('ed::'+f.getAttribute('data-ed')):('wed::'+f.getAttribute('data-wedit'));
+    const label=fieldLabel(f,i), val=fieldText(f);
+    const multi = val.length>44 || ['P','H3','LI'].includes(f.tagName) || /(q-text|ph-text|tb-text|ag-l|bd|cd)/.test(f.className);
+    html+=`<label class="bxe-row"><span>${esc(label)}</span>${multi?`<textarea data-bxk="${esc(key)}" rows="2">${esc(val)}</textarea>`:`<input type="text" data-bxk="${esc(key)}" value="${esc(val)}">`}</label>`;
+  });
+  const pop=document.createElement('div'); pop.className='bxe'; pop.id='bxeditor';
+  pop.innerHTML=`<div class="bxe-head"><b>✎ Editar conteúdo</b><button class="bxe-close" title="Fechar">×</button></div><div class="bxe-body">${html}</div>`;
+  document.body.appendChild(pop);
+  const r=anchorEl.getBoundingClientRect();
+  pop.style.left=Math.max(8, Math.min(window.innerWidth-pop.offsetWidth-12, r.right-pop.offsetWidth))+'px';
+  pop.style.top=Math.max(8, Math.min(window.innerHeight-pop.offsetHeight-12, r.bottom+6))+'px';
+  $$('[data-bxk]',pop).forEach(inp=> inp.addEventListener('input',()=>{
+    const idx=inp.dataset.bxk.indexOf('::'); const t=inp.dataset.bxk.slice(0,idx), k=inp.dataset.bxk.slice(idx+2);
+    if(t==='ed'){ STATE.overrides[k]=inp.value; } else { const p=k.split('|'); updateWidgetField(p[0],p[1],inp.value); }
+    bxeApply();
+  }));
+  $('.bxe-close',pop).addEventListener('click',closeFieldEditor);
+  setTimeout(()=>document.addEventListener("pointerdown", _bxeOutside, true),0);
+}
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
@@ -4714,6 +4774,9 @@ function wireGridEvents(sec, key, layout){
   }));
   $$(".gtile-config").forEach(btn=> btn.addEventListener("click",e=>{
     e.stopPropagation(); openColorPopover(btn.closest(".gtile").dataset.id, btn);
+  }));
+  $$(".gtile-fields").forEach(btn=> btn.addEventListener("click",e=>{
+    e.stopPropagation(); openFieldEditor(btn.closest(".gtile"), btn);
   }));
   $$(".gtile-dup").forEach(btn=> btn.addEventListener("click",e=>{
     e.stopPropagation(); duplicateTile(key, btn.closest(".gtile").dataset.id);
