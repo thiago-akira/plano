@@ -945,6 +945,10 @@
     background:var(--green);color:#fff;font-size:13px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.28);opacity:0;transition:opacity .1s,transform .1s;padding:0}
   body.grid-edit .tbl tr:hover .tbl-rowins{opacity:1}
   body.grid-edit .tbl-rowins:hover{transform:scale(1.18)}
+  /* controles dos itens SEMPRE visiveis no modo edicao (sem fade de hover) — exceto o ＋ flutuante entre linhas (.tbl-rowins) */
+  body.grid-edit .li-acts, body.grid-edit .gl-acts, body.grid-edit .tbl-rowacts,
+  body.grid-edit .row-acts, body.grid-edit .box-edit, body.grid-edit .box-edit-in,
+  body.grid-edit .col-x, body.grid-edit .obj-x, body.grid-edit .li-x{ opacity:1 !important; }
   .bxe-rowacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
   .bxe-rowacts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer}
   .bxe-rowacts button.danger{color:var(--magenta)}
