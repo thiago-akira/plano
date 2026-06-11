@@ -1031,11 +1031,12 @@
     .progress-pill .ptxt{display:none}
     .chap-hero h2{font-size:24px}
   }
-  @media(max-width:560px){
+  @media(max-width:820px){
+    /* topo compacto e travado no mesmo limite direito do conteúdo (16px) — responsivo p/ qualquer tela */
     .tb-btn span.lbl{display:none}
-    .topbar{padding:9px 12px;gap:6px}
-    .tb-btn{padding:7px 10px;font-size:15px}
-    .progress-pill{display:none}   /* anel de progresso some no celular (libera espaço, evita estourar o topo) */
+    .topbar{padding:9px 16px;gap:6px}
+    .tb-btn{padding:7px 10px;font-size:15px;flex:0 0 auto}
+    .progress-pill{display:none}   /* anel de progresso some no celular (libera espaço) */
     #devSwitch{display:none}        /* atalhos de visualização por dispositivo não fazem sentido no celular */
     .tb-title{font-size:15px}
   }
@@ -4613,7 +4614,7 @@ $("#sideToggle").addEventListener("click",()=>{ STATE.sideCollapsed=!STATE.sideC
 function updateEditChrome(){
   const hasEdit = can('editContent')||can('editLayout');
   // cluster (desfazer/refazer/histórico) sempre visível p/ quem edita; alternador de device só em EDIT
-  const c=$("#editCluster"); if(c) c.style.display = (hasEdit && window.innerWidth>700) ? "flex" : "none";  // desfazer/refazer/histórico só em telas largas (libera o topo no celular)
+  const c=$("#editCluster"); if(c) c.style.display = (hasEdit && window.innerWidth>820) ? "flex" : "none";  // desfazer/refazer/histórico só em telas largas (libera o topo no celular/tablet)
   const dv=$("#devSwitch"); if(dv) dv.style.display = (hasEdit && window.innerWidth>980) ? "inline-flex" : "none";  // some no celular (não faz sentido + estoura o topo)
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
