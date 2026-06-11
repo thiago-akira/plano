@@ -243,6 +243,30 @@
   body.grid-edit .li-plus{display:inline-block;margin-top:6px;border:1px dashed var(--line);background:#fff;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer}
   body.grid-edit .phase,body.grid-edit .lstep,body.grid-edit .persona,body.grid-edit .diag{position:relative}
   body.grid-edit .obj-x{display:inline-grid;place-items:center;position:absolute;right:6px;top:6px;width:20px;height:20px;border:none;border-radius:6px;background:rgba(229,22,123,.12);color:var(--magenta);font-size:14px;line-height:1;cursor:pointer;z-index:2}
+  /* playlist youtube + mini-player PiP */
+  .ytpl-stage{position:relative}
+  .ytpl-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000}
+  .ytpl-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .ytpl-dock{display:none}
+  .ytpl-ph{display:none;align-items:center;justify-content:center;aspect-ratio:16/9;border:2px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13.5px;font-weight:700;background:#faf8f2}
+  .ytpl-stage.floating .ytpl-ph{display:flex}
+  .ytpl-player.ytpip-on{position:fixed;right:18px;bottom:18px;width:330px;max-width:46vw;z-index:90;box-shadow:0 12px 40px rgba(0,0,0,.32);border-radius:12px;overflow:hidden;background:#000}
+  .ytpl-player.ytpip-on .ytpl-frame{border-radius:0}
+  .ytpl-player.ytpip-on .ytpl-dock{display:block;position:absolute;top:6px;right:6px;z-index:2;border:none;border-radius:7px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer}
+  .ytpl-empty{display:flex;flex-direction:column;align-items:center;gap:6px;aspect-ratio:16/9;justify-content:center;border:2px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13.5px;background:#faf8f2}
+  .ytpl-empty .mi{font-size:30px;color:var(--orange)}
+  .ytpl-list{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+  .ytpl-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;cursor:pointer;border:1px solid transparent}
+  .ytpl-row:hover{background:#faf8f2}
+  .ytpl-row.active{background:#fff;border-color:var(--orange)}
+  .ytpl-ix{flex:0 0 auto;width:22px;height:22px;border-radius:6px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800}
+  .ytpl-row.active .ytpl-ix{background:var(--orange)}
+  .ytpl-t{flex:1;font-size:14px;color:var(--ink2);font-weight:600}
+  .ytpl-edit{display:none;gap:4px;flex:0 0 auto;align-items:center}
+  body.grid-edit .ytpl-edit{display:flex}
+  .ytpl-edit .ytpl-url{width:160px;max-width:34vw;border:1px solid var(--line);border-radius:7px;padding:4px 7px;font-size:11px}
+  .ytpl-edit button.danger{width:26px;height:26px;border:1px solid var(--line);border-radius:7px;color:var(--magenta)}
+  .ytpl-add{margin-top:9px}
   /* citação */
   .quote{position:relative;padding:6px 6px 6px 46px;border-left:4px solid var(--orange)}
   .quote .q-mark{position:absolute;left:8px;top:0;font-size:34px;color:var(--orange);line-height:1}
@@ -2543,7 +2567,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
-  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas' };
+  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3112,6 +3136,37 @@ function renderBlock(b, sec, bi){
         <button class="danger tb-del" data-tabdel="${wid}|${act}" title="Apagar esta aba">Apagar aba</button></div>`;
       return x+`</div>`;
     }
+    case "ytplaylist":{
+      const wid=b._id;
+      const items=b.items||[];
+      const act=Math.min(b.active||0, Math.max(0,items.length-1));
+      const cur=items[act];
+      const embed=cur?ytEmbed(cur.url):'';
+      const isAdmin=AUTH&&AUTH.role==="admin";
+      let x=`<div class="block ytpl" data-wid="${wid}">`;
+      if(b.showTitle!==false && b.title) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title)}</div>`;
+      x+=`<div class="ytpl-stage" data-ytstage="${wid}">`;
+      if(embed){
+        x+=`<div class="ytpl-player" id="ytp-${wid}"><div class="ytpl-frame"><iframe src="${embed}" allow="autoplay; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+          <button class="ytpl-dock" data-ytdock="${wid}" title="Voltar ao lugar">▢ voltar</button></div>
+          <div class="ytpl-ph">▶ Tocando em janela flutuante…</div>`;
+      } else {
+        x+=`<div class="ytpl-empty"><div class="mi">▶</div>${isAdmin?'Adicione um vídeo do YouTube abaixo.':'Playlist a preencher.'}</div>`;
+      }
+      x+=`</div><div class="ytpl-list">`;
+      items.forEach((it,i)=>{
+        x+=`<div class="ytpl-row ${i===act?'active':''}" data-ytsel="${wid}|${i}">
+          <span class="ytpl-ix">${i+1}</span>
+          <span class="ytpl-t wed" data-wedit="${wid}|o/${i}/title">${esc(it.title||('Vídeo '+(i+1)))}</span>
+          ${isAdmin?`<span class="ytpl-edit"><input class="ytpl-url" data-yturl="${wid}|${i}" value="${esc(it.url||'')}" placeholder="link do YouTube"><button class="danger" data-ytdel="${wid}|${i}" title="Remover">×</button></span>`:''}
+        </div>`;
+      });
+      x+=`</div>`;
+      if(isAdmin) x+=`<div class="vinput ytpl-add"><input data-ytaddurl="${wid}" placeholder="Cole um link do YouTube…"><button class="icon-btn" data-ytadd="${wid}">Adicionar</button></div>`;
+      x+=`</div>`;
+      setTimeout(()=>ytpipSetup(wid),0);
+      return x;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3211,6 +3266,13 @@ function wireBlockEvents(){
   $$("[data-dgdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.dgdel.split('|'); dgDel(id,+i); }));
   $$("[data-dgsadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,k]=b.dataset.dgsadd.split('|'); dgSubAdd(id,+i,k); }));
   $$("[data-dgsdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,k,j]=b.dataset.dgsdel.split('|'); dgSubDel(id,+i,k,+j); }));
+  // playlist youtube
+  $$("[data-ytsel]").forEach(r=> r.addEventListener("click",e=>{ if(e.target.closest('.ytpl-edit')||e.target.closest('.wed')&&EDIT) return; e.stopPropagation(); const [id,i]=r.dataset.ytsel.split('|'); ytSel(id,+i); }));
+  $$("[data-ytdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.ytdel.split('|'); ytDel(id,+i); }));
+  $$("[data-yturl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); inp.addEventListener("change",e=>{ const [id,i]=inp.dataset.yturl.split('|'); ytUrl(id,+i,inp.value); }); });
+  $$("[data-ytadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const inp=$(`[data-ytaddurl="${b.dataset.ytadd}"]`); ytAdd(b.dataset.ytadd, inp?inp.value:''); }));
+  $$("[data-ytaddurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
+  $$("[data-ytdock]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); ytDock(b.dataset.ytdock); }));
   // checklist
   $$("[data-ckbox]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.ckbox.split('|'); ckToggle(id,+i); }));
   $$("[data-ckmove]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=btn.dataset.ckmove.split('|'); ckMove(id,+i,+d); }));
@@ -3318,6 +3380,25 @@ function dgAdd(id){ const b=findWidgetBlock(id); if(!b) return; reseatDiag(b); b
 function dgDel(id,i){ const b=findWidgetBlock(id); if(!b||b.items.length<=1) return; reseatDiag(b); b.items.splice(i,1); pushHistory('Dimensão','diagnostic'); saveState(); render(); }
 function dgSubAdd(id,i,kind){ const b=findWidgetBlock(id); if(!b) return; reseatDiag(b); const f=kind==='des'?'desafios':'acoes'; (b.items[i][f]=b.items[i][f]||[]).push(kind==='des'?'Novo desafio':'Nova ação'); pushHistory('Item','diagnostic'); saveState(); render(); }
 function dgSubDel(id,i,kind,j){ const b=findWidgetBlock(id); if(!b) return; reseatDiag(b); const f=kind==='des'?'desafios':'acoes'; b.items[i][f].splice(j,1); pushHistory('Item','diagnostic'); saveState(); render(); }
+/* ===== Playlist do YouTube + PiP (mini-player flutuante) ===== */
+function ytEmbed(url){ const e=toEmbed(url||''); return e; }
+function ytSel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.active=i; saveState(); render(); }
+function ytUrl(id,i,v){ const b=findWidgetBlock(id); if(!b||!b.items[i]) return; b.items[i].url=(v||'').trim(); saveState(); render(); }
+function ytDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); if(b.active>=b.items.length) b.active=Math.max(0,b.items.length-1); pushHistory('Vídeo','ytplaylist'); saveState(); render(); }
+function ytAdd(id,url){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({url,title:''}); b.active=b.items.length-1; pushHistory('Vídeo','ytplaylist'); saveState(); render(); }
+function ytpipSetup(wid){
+  const stage=document.querySelector(`[data-ytstage="${wid}"]`); if(!stage) return;
+  const player=document.getElementById('ytp-'+wid); if(!player) return;
+  if(stage.__io){ stage.__io.disconnect(); }
+  if(typeof IntersectionObserver==="undefined") return;
+  const io=new IntersectionObserver(es=>{ const en=es[0];
+    const past = en.boundingClientRect.top < 0;   // só flutua quando o player já passou pra cima
+    if(!en.isIntersecting && past && !EDIT){ player.classList.add('ytpip-on'); stage.classList.add('floating'); }
+    else { player.classList.remove('ytpip-on'); stage.classList.remove('floating'); }
+  }, {threshold:0.01});
+  io.observe(stage); stage.__io=io;
+}
+function ytDock(wid){ const st=document.querySelector(`[data-ytstage="${wid}"]`); if(st) st.scrollIntoView({behavior:'smooth',block:'center'}); }
 
 /* edição inline (somente admin) */
 function applyEdit(){
@@ -3781,6 +3862,7 @@ const WIDGET_CATALOG=[
   {ic:"⏳", label:"Fases", desc:"Etapas em sequência", make:id=>({type:"phases", _id:id, key:id+"/f", items:[{titulo:"Fase 1", texto:"Descrição da primeira fase."},{titulo:"Fase 2", texto:"Descrição da segunda fase."},{titulo:"Fase 3", texto:"Descrição da terceira fase."}]})},
   {ic:"📶", label:"Escada", desc:"Níveis crescentes", make:id=>({type:"ladder", _id:id, items:[{k:"Base", v:"Primeiro nível."},{k:"Meio", v:"Nível intermediário."},{k:"Topo", v:"Nível mais alto."}]})},
   {ic:"🩺", label:"Diagnóstico (8 Ps)", desc:"Análise por dimensão", make:id=>({type:"diagnostic", _id:id, key:id+"/p", items:[{num:1, nome:"Dimensão", diagnostico:"Situação atual da dimensão.", desafios:["Desafio identificado"], acoes:["Ação estratégica"]}]})},
+  {ic:"📺", label:"Playlist YouTube", desc:"Vídeos + mini-player flutuante", make:id=>({type:"ytplaylist", _id:id, title:"Playlist", showTitle:true, active:0, items:[]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
