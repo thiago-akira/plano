@@ -994,8 +994,9 @@
     #sidebar.open{transform:none}
     .hamburger{display:flex;align-items:center;justify-content:center}
     .wrap{padding:22px 16px 80px}
-    /* alinha os itens do topo (hero, abas, título e progresso da seção) com o conteúdo da grade (~+7px) */
-    .chap-hero, .sec-tabs, .section > h3, .section > .sec-progress{ margin-left:7px; margin-right:7px }
+    /* mobile: tiles da grade encostam na mesma margem (16px) dos demais elementos —
+       desloca o canvas 7px p/ cada lado p/ anular a folga de borda, sem mexer no arraste */
+    .gridcanvas{ width:calc(100% + 14px); margin-left:-7px; margin-right:-7px }
     .swot{grid-template-columns:1fr}
     .twocol{grid-template-columns:1fr}
     .ltable .row{grid-template-columns:120px 1fr}
