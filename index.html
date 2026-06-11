@@ -544,7 +544,7 @@
     border-radius:14px;box-shadow:var(--shadow);overflow:hidden;
     transition:left .14s ease,top .14s ease,width .14s ease,height .14s ease}
   .gtile.dragging,.gtile.resizing{transition:none;z-index:30}
-  .gtile-body{width:100%;height:100%;overflow:auto;padding:14px}
+  .gtile-body{width:100%;height:100%;overflow:visible;padding:14px}
   /* dentro do tile, anular as margens de topo dos blocos pra encaixar na caixa */
   .gtile-body > .block:first-child,.gtile-body > .p:first-child{margin-top:0}
   .gtile-body .section h3{margin-top:0}
@@ -3022,17 +3022,33 @@ function gridMetrics(){
   const cols=+canvas.dataset.cols||GRID_COLS, cellH=+canvas.dataset.cellh||GRID_CELLH;
   return { canvas, cols, cellH, cellW: canvas.clientWidth/cols, key:canvas.dataset.seckey };
 }
+/* posiciona tiles: largura por colunas; ALTURA acompanha o conteúdo (sem barra de rolagem),
+   empurrando para baixo os que ficariam por cima (responsivo) */
 function layoutTiles(){
   const m=gridMetrics(); if(!m) return;
-  const g=GRID_GAP;
-  let maxB=0;
-  $$(".gtile",m.canvas).forEach(el=>{
-    const x=+el.dataset.gx, y=+el.dataset.gy, w=+el.dataset.gw, hh=+el.dataset.gh;
-    el.style.left=(x*m.cellW + g/2)+"px"; el.style.top=(y*m.cellH + g/2)+"px";
-    el.style.width=Math.max(20,(w*m.cellW - g))+"px"; el.style.height=Math.max(20,(hh*m.cellH - g))+"px";
-    maxB=Math.max(maxB,(y+hh)*m.cellH);
+  const g=GRID_GAP, cv=m.canvas;
+  const arr=$$(".gtile",cv).map(el=>({ el, x:+el.dataset.gx, y:+el.dataset.gy, w:+el.dataset.gw, hh:+el.dataset.gh }));
+  if(!arr.length){ cv.style.height=""; return; }
+  // 1) fixa largura/coluna e mede a altura natural do conteúdo
+  arr.forEach(t=>{ t.el.style.left=(t.x*m.cellW + g/2)+"px"; t.el.style.width=Math.max(20,(t.w*m.cellW - g))+"px"; t.el.style.height="auto"; });
+  arr.forEach(t=>{ const ch=t.el.offsetHeight; t.effH=Math.max(t.hh, Math.ceil((ch+g)/m.cellH)); }); // nunca menor que o conteúdo
+  // 2) empacota verticalmente a partir do y desejado, empurrando para baixo quem sobreporia
+  const sorted=arr.slice().sort((a,b)=>(a.y-b.y)||(a.x-b.x));
+  const placed=[];
+  sorted.forEach(t=>{
+    let ny=t.y, moved=true, guard=0;
+    while(moved && guard++<3000){ moved=false;
+      for(const p of placed){
+        const overlapX = t.x < p.x+p.w && t.x+t.w > p.x;
+        if(overlapX && ny < p.by && ny + t.effH > p.ny){ ny = p.by; moved=true; }
+      }
+    }
+    t.ny=ny; t.by=ny+t.effH; placed.push(t);
   });
-  m.canvas.style.height = (maxB+g)+"px";
+  // 3) aplica posição e altura final
+  let maxB=0;
+  arr.forEach(t=>{ t.el.style.top=(t.ny*m.cellH + g/2)+"px"; t.el.style.height=Math.max(20,(t.effH*m.cellH - g))+"px"; maxB=Math.max(maxB,(t.ny+t.effH)*m.cellH); });
+  cv.style.height=(maxB+g)+"px";
 }
 let _gridResizeBound=false, _lastDevice=null;
 function bindGridResize(){
