@@ -152,7 +152,9 @@
   .ed{outline:none;border-radius:5px}
   body.editing .ed{box-shadow:0 0 0 1.5px #d8d2c2 inset;transition:box-shadow .1s}
   body.editing .ed:hover{box-shadow:0 0 0 1.5px var(--orange) inset;cursor:text}
-  body.editing .ed:focus{box-shadow:0 0 0 2px var(--orange) inset;background:#fffdf8}
+  /* ao editar, SEMPRE legível: texto escuro sobre fundo claro (independe das cores do widget) */
+  body.editing .ed:focus{box-shadow:0 0 0 2px var(--orange) inset;background:#fffdf8;color:var(--ink) !important;border-radius:5px;padding:1px 4px;-webkit-text-fill-color:var(--ink)}
+  body.editing .ed:focus *{color:var(--ink) !important;-webkit-text-fill-color:var(--ink) !important;background:transparent !important}
 
   /* zig divider (autêntico do plano) */
   .zig{height:14px;margin:22px 0;background-repeat:repeat-x;background-position:center;
@@ -743,6 +745,18 @@
   body.grid-edit .gtile{cursor:grab}
   body.grid-edit .gtile .gtile-body [data-ed]{cursor:text}
   body.dragging-grid{user-select:none}
+  /* lixeira ao arrastar (centro-inferior) */
+  .trashzone{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);z-index:70;
+    display:none;align-items:center;gap:9px;background:#fff;border:2px dashed var(--magenta);color:var(--magenta);
+    border-radius:14px;padding:12px 22px;font-weight:800;font-size:13.5px;box-shadow:0 14px 40px rgba(36,26,110,.25);
+    opacity:0;transition:opacity .15s,transform .15s,background .15s}
+  body.dragging-grid .trashzone{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}
+  .trashzone.hot{background:var(--magenta);color:#fff;transform:translateX(-50%) translateY(0) scale(1.06)}
+  .gtile.to-trash{opacity:.4;outline:2px dashed var(--magenta)}
+  /* confete */
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+  .confetti i{position:absolute;width:9px;height:14px;border-radius:2px;top:-20px;animation:confFall linear forwards}
+  @keyframes confFall{to{transform:translateY(105vh) rotate(720deg);opacity:.9}}
   body.dragging-grid .gtile{cursor:grabbing}
   .gtile.sel{outline:2.5px solid var(--cyan);outline-offset:2px}
   .marquee{position:fixed;z-index:60;border:1.5px solid var(--cyan);border-radius:4px;
@@ -2431,6 +2445,18 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
+/* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
+function isLightColor(c){
+  if(!c) return false;
+  const map={ 'var(--ink)':false,'var(--ink2)':false,'var(--orange)':false,'var(--green)':false,
+    'var(--magenta)':false,'var(--cyan)':true,'var(--yellow)':true,'#ffffff':true,'#fff':true,'var(--paper)':true,'var(--card)':true };
+  if(map[c]!==undefined) return map[c];
+  const m=String(c).match(/^#?([0-9a-fA-F]{6})$/); if(m){ const n=parseInt(m[1],16);
+    return (0.299*((n>>16)&255)+0.587*((n>>8)&255)+0.114*(n&255))>150; }
+  const rgb=String(c).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if(rgb){ return (0.299*+rgb[1]+0.587*+rgb[2]+0.114*+rgb[3])>150; }
+  return false;
+}
 
 /* =========================================================================
    RENDER
@@ -2508,8 +2534,12 @@ function render(){
       if(!blk) return;
       const st = STATE.styles[item.id] || {};
       let sv="", cls="";
-      if(st.bg){ sv+="--w-bg:"+st.bg+";"; cls+=" has-bg"; }
-      if(st.fg){ sv+="--w-fg:"+st.fg+";"; cls+=" has-fg"; }
+      let bg=st.bg, fg=st.fg;
+      // contraste inteligente: fonte clara sem fundo -> fundo escuro; fundo escuro sem fonte -> fonte clara
+      if(fg && !bg && isLightColor(fg)) bg='var(--ink)';
+      if(bg && !fg && !isLightColor(bg)) fg='#ffffff';
+      if(bg){ sv+="--w-bg:"+bg+";"; cls+=" has-bg"; }
+      if(fg){ sv+="--w-fg:"+fg+";"; cls+=" has-fg"; }
       if(st.top){ sv+="--w-top:"+st.top+";"; cls+=" has-top"; }
       if(blk.type==='hero'||blk.type==='secTitle') cls+=" gtile-plain";
       h += `<div class="gtile${cls}" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
@@ -2886,6 +2916,7 @@ function wireBlockEvents(){
   $$(".status-sel").forEach(sel=>{
     sel.addEventListener("change",()=>{
       STATE.statuses[sel.dataset.aid]=sel.value; pushHistory("Mudou status da ação","ação"); saveState();
+      if(sel.value==="done" && typeof confetti==="function") confetti();   // 🎉 comemora a conclusão
       const card=sel.closest(".action"); if(card) card.dataset.st=sel.value;
       updateProgress();
     });
@@ -3099,6 +3130,19 @@ function setGhost(g,m,x,y,w,h,bad){ if(!g) return;
   g.style.width=Math.max(20,(w*m.cellW - gp))+"px"; g.style.height=Math.max(20,(h*m.cellH - gp))+"px";
   g.style.display=""; g.classList.toggle("bad",!!bad); }
 
+/* ----- lixeira ao arrastar + confete ----- */
+function ensureTrashZone(){ let t=$("#trashzone"); if(!t){ t=document.createElement("div"); t.className="trashzone"; t.id="trashzone"; t.innerHTML="🗑️ Soltar aqui para apagar"; document.body.appendChild(t); } return t; }
+function pointerOverTrash(x,y){ const t=$("#trashzone"); if(!t) return false; const r=t.getBoundingClientRect(); return x>=r.left-30&&x<=r.right+30&&y>=r.top-30&&y<=r.bottom+30; }
+function confetti(){
+  const c=document.createElement("div"); c.className="confetti"; document.body.appendChild(c);
+  const cols=["var(--orange)","var(--green)","var(--yellow)","var(--magenta)","var(--cyan)","var(--ink)"];
+  for(let i=0;i<80;i++){ const s=document.createElement("i");
+    s.style.left=(Math.random()*100)+"vw"; s.style.background=cols[i%cols.length];
+    s.style.animationDuration=(1.6+Math.random()*1.4)+"s"; s.style.animationDelay=(Math.random()*0.25)+"s";
+    s.style.opacity=String(0.7+Math.random()*0.3); c.appendChild(s); }
+  setTimeout(()=>c.remove(), 3400);
+}
+
 /* ----- drag / resize ----- */
 let GDRAG=null, MARQUEE=null, SEL=new Set(), CLIP=null;
 function bindGridDrag(canvas, key, layout){
@@ -3139,7 +3183,7 @@ function activateDrag(e){
   const d=GDRAG, m=d.m; if(!d) return; d.pending=false;
   if(document.activeElement && document.activeElement.isContentEditable) document.activeElement.blur();
   const s=window.getSelection&&window.getSelection(); if(s&&s.removeAllRanges) s.removeAllRanges();
-  document.body.classList.add("dragging-grid");
+  document.body.classList.add("dragging-grid"); ensureTrashZone();
   if(SEL.has(d.item.id) && SEL.size>1){            // mover grupo
     const items=layoutItemsOf(d.key);
     d.group=[...SEL].map(id=>{ const it=items.find(x=>x.id===id); const el=m.canvas.querySelector('.gtile[data-id="'+id+'"]'); return (it&&el)?{it,el,ox:it.x,oy:it.y}:null; }).filter(Boolean);
@@ -3180,6 +3224,12 @@ function onGridMove(e){
     d._gx=gx; d._gy=gy;
     setGhost(d.ghost,m,gx,gy,d.item.w,d.item.h, collidesAny({x:gx,y:gy,w:d.item.w,h:d.item.h},d.item.id,items));
   }
+  if(d.mode!=="resize" && !d.pending){   // detecta lixeira (centro-inferior)
+    const over=pointerOverTrash(e.clientX,e.clientY); d.overTrash=over;
+    const tz=$("#trashzone"); if(tz) tz.classList.toggle("hot",over);
+    (d.group?d.group.map(g=>g.el):[d.el]).forEach(el=>el&&el.classList.toggle("to-trash",over));
+    if(d.ghost) d.ghost.style.display=over?"none":"";
+  }
 }
 function onGridUp(){
   if(MARQUEE){ endMarquee(); return; }
@@ -3187,6 +3237,12 @@ function onGridUp(){
   document.body.classList.remove("dragging-grid");
   if(d.pending){ GDRAG=null; return; }   // foi clique, não arrasto
   if(d.ghost) d.ghost.remove();
+  const tz0=$("#trashzone"); if(tz0) tz0.classList.remove("hot");
+  if(d.overTrash && d.mode!=="resize"){   // soltou na lixeira -> apaga
+    const bag=layoutBag(d.key); const ids = d.group? d.group.map(g=>g.it.id) : [d.item.id];
+    if(bag) ids.forEach(id=>{ DEVICES.forEach(dv=>{ if(bag[dv.id]) bag[dv.id].items=bag[dv.id].items.filter(x=>x.id!==id); }); if(STATE.styles[id]) delete STATE.styles[id]; });
+    SEL.clear(); GDRAG=null; pushHistory("Apagou na lixeira", ids.length>1?"grupo":widgetNameOfItem(d.item)); saveState(); render(); return;
+  }
   const items=layoutItemsOf(d.key);
   if(d.mode==="resize"){ d.item.w=d._nw||d.item.w; d.item.h=d._nh||d.item.h; placeAndReflow(items, d.item, d.item.x, d.item.y, m.cols); }
   else if(d.group){
