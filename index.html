@@ -3151,12 +3151,15 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "groupList":{
-      let x=`<div class="block glist">`;
+      let x=`<div class="block glist" data-wid="${b._id}" ${dz(b._id,'items')}>`;
       b.items.forEach((g,gi)=>{
-        let li=g.items.map((i,ii)=>`<li class="ed" data-ed="${b._id}/${gi}/${ii}">${esc(txt(b._id+'/'+gi+'/'+ii,i))}</li>`).join("");
-        x+=`<div class="group" ${g.color?`style="border-top-color:${g.color}"`:''}>
-          <h4 class="ed" data-ed="${b._id}/${gi}/t">${esc(txt(b._id+'/'+gi+'/t',g.titulo))}</h4><ul>${li}</ul></div>`;
+        let li=(g.items||[]).map((it,ii)=>`<li class="ed editli dnd-row" data-ed="${b._id}/${gi}/${ii}">${esc(txt(b._id+'/'+gi+'/'+ii,it))}${grip(b._id,'items@'+gi,ii)}<button class="li-x" data-boxitemdel="${b._id}|items@${gi}|${ii}" title="Remover">×</button></li>`).join("");
+        x+=`<div class="group dnd-box" ${g.color?`style="border-top-color:${g.color}"`:''}>${grip(b._id,'items',gi)}
+          <h4 class="ed" data-ed="${b._id}/${gi}/t">${esc(txt(b._id+'/'+gi+'/t',g.titulo))}</h4>
+          <ul ${dz(b._id,'items@'+gi)}>${li}</ul>
+          <button class="li-plus" data-boxitemadd="${b._id}|items@${gi}">＋ item</button></div>`;
       });
+      x+=`<button class="addbox" data-boxadd="${b._id}|items">＋ grupo</button>`;
       return x+`</div>`;
     }
     case "table":{
@@ -3470,6 +3473,12 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'personas': reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); break;
   case 'statRow': reseatObj(b,b._id,'items',[['v','v'],['l','l'],['src','src']]); break;
   case 'calloutGrid': reseatObj(b,b._id,'items',[['ttl','ttl']]); break;  // texto é por it.key, viaja com o item
+  case 'groupList': { const id=b._id;   // grupos + itens internos (tudo por índice → consolida)
+    const a=(b.items||[]).map((g,gi)=>{ const n=Object.assign({},g);
+      n.titulo=_ovf(id+'/'+gi+'/t', g.titulo);
+      n.items=(g.items||[]).map((t,ii)=>_ovf(id+'/'+gi+'/'+ii, t)); return n; });
+    (b.items||[]).forEach((g,gi)=>{ delete STATE.overrides[id+'/'+gi+'/t']; (g.items||[]).forEach((t,ii)=>delete STATE.overrides[id+'/'+gi+'/'+ii]); });
+    b.items=a; break; }
 } }
 function resolveList(b, cont){
   if(cont.indexOf('@')>=0){ const a=cont.split('@'); const field=a[0]==='des'?'desafios':(a[0]==='aco'?'acoes':a[0]); const p=b.items&&b.items[+a[1]]; return p?(p[field]=p[field]||[]):null; }
@@ -3499,6 +3508,15 @@ function itemDropRef(zone, x, y){
   return null;
 }
 function refIndex(ref){ const g=ref&&ref.querySelector('[data-dragitem]'); return g? +g.dataset.dragitem.split('|')[2] : null; }
+// zona de soltura compatível: mesmo widget e mesmo "formato" (item de grupo vs item interno)
+function resolveDropZone(target, sp){
+  const wid=sp[0], srcAt=sp[1].indexOf('@')>=0;
+  let z=target&&target.closest&&target.closest('[data-dropzone]');
+  while(z){ const zp=z.dataset.dropzone.split('|');
+    if(zp[0]===wid && (zp[1].indexOf('@')>=0)===srcAt) return z;
+    z=z.parentElement?z.parentElement.closest('[data-dropzone]'):null; }
+  return null;
+}
 let _dndPh=null;
 function ensurePh(){ if(!_dndPh){ _dndPh=document.createElement('div'); _dndPh.className='dnd-ph'; } return _dndPh; }
 function clearPh(){ if(_dndPh&&_dndPh.parentNode) _dndPh.parentNode.removeChild(_dndPh); }
@@ -3521,8 +3539,7 @@ function bindItemDnD(){
       $$('.fld-over').forEach(x=>x.classList.remove('fld-over'));
       if(line && line!==FDRAG.el && line.closest('[data-wid]')===FDRAG.el.closest('[data-wid]')){ e.preventDefault(); try{e.dataTransfer.dropEffect='move';}catch(_){}; line.classList.add('fld-over'); }
       return; }
-    if(!ITEMDRAG) return; const zone=e.target.closest('[data-dropzone]'); if(!zone) return;
-    if(zone.dataset.dropzone.split('|')[0]!==ITEMDRAG.split('|')[0]){ clearPh(); return; }   // só dentro do mesmo widget
+    if(!ITEMDRAG) return; const zone=resolveDropZone(e.target, ITEMDRAG.split('|')); if(!zone){ clearPh(); return; }
     e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){}
     const ref=itemDropRef(zone, e.clientX, e.clientY); const ph=ensurePh();
     if(ref){ if(ph.nextSibling!==ref) zone.insertBefore(ph, ref); }
@@ -3531,8 +3548,8 @@ function bindItemDnD(){
     if(FDRAG){ const line=e.target.closest('[data-fdrop]');
       if(line && line!==FDRAG.el && line.closest('[data-wid]')===FDRAG.el.closest('[data-wid]')){ e.preventDefault(); swapFields(FDRAG.el, line); }
       FDRAG=null; return; }
-    if(!ITEMDRAG) return; const zone=e.target.closest('[data-dropzone]'); if(!zone){ clearPh(); return; }
-    const sp=ITEMDRAG.split('|'), zp=zone.dataset.dropzone.split('|'); if(zp[0]!==sp[0]){ clearPh(); return; }
+    if(!ITEMDRAG) return; const sp=ITEMDRAG.split('|'); const zone=resolveDropZone(e.target, sp); if(!zone){ clearPh(); ITEMDRAG=null; return; }
+    const zp=zone.dataset.dropzone.split('|');
     e.preventDefault();
     const ref=itemDropRef(zone, e.clientX, e.clientY); let di=refIndex(ref);
     if(di==null){ const b=findWidgetBlock(zp[0]); const list=b?resolveList(b,zp[1]):[]; di=list.length; }
@@ -3562,9 +3579,12 @@ function addBox(wid, cont){
   if(b.type==='statRow') item={v:'00', l:'Novo indicador'};
   else if(b.type==='cards') item={key:newAddId()+'/c', titulo:'Novo card', text:'Conteúdo do card.'};
   else if(b.type==='calloutGrid') item={ttl:'Novo ponto', color:'var(--cyan)', key:newAddId()+'/c', text:'Conteúdo.'};
+  else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
 }
+function addBoxItem(wid, cont){ const b=findWidgetBlock(wid); if(!b) return; consolidateWidget(b);
+  const list=resolveList(b,cont); if(!list) return; list.push('Novo item'); pushHistory('Item','widget'); saveState(); render(); }
 // ===== arrastar o CONTEÚDO de uma linha entre cards (troca os dois conteúdos) =====
 let FDRAG=null;
 function fieldVal(el){ const c=el.cloneNode(true); const g=c.querySelector('.fgrip'); if(g) g.remove();
@@ -3608,8 +3628,10 @@ function wireBlockEvents(){
     row.addEventListener("contextmenu",e=>{ if(!EDIT) return; e.preventDefault(); e.stopPropagation();
       const p=g.dataset.dragitem.split('|'); openItemMenu(e.clientX,e.clientY,p[0],p[1],+p[2]); });
   });
-  // botão "＋ card" nos widgets de caixas
+  // botão "＋ card/grupo" nos widgets de caixas
   $$("[data-boxadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont]=b.dataset.boxadd.split('|'); addBox(id,cont); }));
+  $$("[data-boxitemadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont]=b.dataset.boxitemadd.split('|'); addBoxItem(id,cont); }));
+  $$("[data-boxitemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,cont,i]=b.dataset.boxitemdel.split('|'); deleteItemUx(id,cont,+i); }));
   $$(".status-sel").forEach(sel=>{
     sel.addEventListener("change",()=>{
       STATE.statuses[sel.dataset.aid]=sel.value; pushHistory("Mudou status da ação","ação"); saveState();
@@ -4301,6 +4323,7 @@ const WIDGET_CATALOG=[
   {ic:"❞", label:"Citação", desc:"Frase de destaque", make:id=>({type:"quote", _id:id, text:"Uma frase de destaque que inspira.", who:"Autor"})},
   {ic:"▭", label:"Cabeçalho de página", desc:"Topo com título e texto", make:id=>({type:"pageHeader", _id:id, color:"var(--ink)", eyebrow:"Seção", title:"Título principal", text:"Texto de apoio do cabeçalho."})},
   {ic:"▤", label:"Cards", desc:"Cartões título+texto", make:id=>({type:"cards", _id:id, items:[{key:id+"/c1", titulo:"Card 1", text:"..."},{key:id+"/c2", titulo:"Card 2", text:"..."}]})},
+  {ic:"▦", label:"Grupos", desc:"Listas agrupadas em cards", make:id=>({type:"groupList", _id:id, items:[{titulo:"Grupo 1", color:"var(--cyan)", items:["Item","Item"]},{titulo:"Grupo 2", color:"var(--green)", items:["Item"]}]})},
   {ic:"№", label:"Indicadores", desc:"Números em linha", make:id=>({type:"statRow", _id:id, items:[{v:"100%", l:"Meta"},{v:"3x", l:"Crescimento"},{v:"12", l:"Ações"}]})},
   {ic:"◍", label:"Chips", desc:"Etiquetas coloridas", make:id=>({type:"chips", _id:id, items:[{t:"Tag A", color:"var(--cyan)"},{t:"Tag B", color:"var(--magenta)"},{t:"Tag C", color:"var(--green)"}]})},
   {ic:"▦", label:"Tabela", desc:"Tabela simples", make:id=>({type:"table", _id:id, cols:["Coluna A","Coluna B"], rows:[["Linha 1","..."],["Linha 2","..."]]})},
