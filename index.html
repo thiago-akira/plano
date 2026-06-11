@@ -277,6 +277,10 @@
   body.grid-edit .phase.dnd-row .it-grip,body.grid-edit .lstep.dnd-row .it-grip{position:absolute;right:30px;top:6px;z-index:3}
   body.grid-edit .persona.dnd-row .it-grip{position:absolute;right:30px;top:6px;z-index:3;color:#fff}
   body.grid-edit .tb-tab.dnd-row .it-grip{width:14px;height:16px;font-size:11px;margin-right:2px}
+  /* alça nas caixas internas (cards, indicadores, grade de callouts) */
+  body.grid-edit .dnd-box{position:relative}
+  .dnd-box .it-grip{display:none}
+  body.grid-edit .dnd-box .it-grip{display:inline-grid;position:absolute;top:5px;right:6px;z-index:3;width:20px;height:20px;background:rgba(36,26,110,.08);border-radius:6px}
   /* playlist youtube + mini-player PiP */
   .ytpl-stage{position:relative}
   .ytpl-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000}
@@ -2618,7 +2622,13 @@ function pasteSection(chKey){ if(!SEC_CLIP) return; const sk=materializeSection(
   pushHistory('Colou sub-menu','sub-menu'); saveState(); CUR={chapter:CUR.chapter,section:sk}; render(); }
 function deleteSectionUx(chKey, secKey){
   const added=!!(STATE.nav.secAdd&&STATE.nav.secAdd[chKey+'/'+secKey]);
-  if(added){ if(!confirm('Apagar este sub-menu? Esta ação não pode ser desfeita.')) return; if(STATE.layout[chKey+'/'+secKey]) delete STATE.layout[chKey+'/'+secKey]; delSection(chKey,secKey); }
+  if(added){ if(!confirm('Apagar este sub-menu? Você poderá recuperá-lo na Lixeira (dentro do Histórico).')) return;
+    const lkey=chKey+'/'+secKey, tkey='sec/'+chKey+'/'+secKey+'/titulo', bag=STATE.layout[lkey], ov={}, sty={}, ids=new Set();
+    if(STATE.overrides[tkey]!=null) ov[tkey]=STATE.overrides[tkey];
+    if(bag) DEVICES.forEach(d=>{ if(bag[d.id]) bag[d.id].items.forEach(it=>ids.add(it.id)); });
+    ids.forEach(id=>{ if(STATE.styles[id]) sty[id]=JSON.parse(JSON.stringify(STATE.styles[id])); Object.keys(STATE.overrides).forEach(k=>{ if(k===id||k.indexOf(id+'/')===0) ov[k]=STATE.overrides[k]; }); });
+    trashAdd({kind:'section', label:'Sub-menu: '+txt(tkey,'Seção'), chKey, secKey, title:STATE.overrides[tkey], layout:bag?JSON.parse(JSON.stringify(bag)):null, overrides:ov, styles:sty});
+    if(bag) delete STATE.layout[lkey]; delSection(chKey,secKey); }
   else { if(!confirm('Este é um sub-menu original do plano — ele será OCULTADO (pode reexibir depois no Gerenciar menus). Continuar?')) return; hideSection(chKey,secKey,true); }
   const cm=chapterModel(chKey), first=cm.sections.find(s=>!s.hidden);
   CUR={chapter:CUR.chapter, section:first?first.secKey:'0'}; pushHistory('Removeu sub-menu','sub-menu'); saveState(); render();
@@ -2911,8 +2921,8 @@ function renderBlock(b, sec, bi){
                         <div class="ttl ed" data-ed="${b._id}/ttl" style="color:${b.color||'var(--orange)'}">${esc(txt(b._id+'/ttl',b.ttl))}</div>
                         <div class="ed" data-ed="${b.key}">${esc(txt(b.key,b.text))}</div></div>`;
     case "calloutGrid":{
-      let x=`<div class="block callout-grid">`;
-      b.items.forEach((it,i)=> x+=`<div class="callout" style="border-left-color:${it.color}">
+      let x=`<div class="block callout-grid" ${dz(b._id,'items')}>`;
+      b.items.forEach((it,i)=> x+=`<div class="callout dnd-box" style="border-left-color:${it.color}">${grip(b._id,'items',i)}
         <div class="ttl ed" data-ed="${b._id}/${i}/ttl" style="color:${it.color}">${esc(txt(b._id+'/'+i+'/ttl',it.ttl))}</div>
         <div class="ed" data-ed="${it.key}">${esc(txt(it.key,it.text))}</div></div>`);
       return x+`</div>`;
@@ -2952,8 +2962,8 @@ function renderBlock(b, sec, bi){
         <div class="gc what"><div class="k">O quê?</div><div class="v ed" data-ed="${b.what.key}">${esc(txt(b.what.key,b.what.text))}</div></div>
       </div>`;
     case "cards":{
-      let x=`<div class="block cards">`;
-      b.items.forEach(it=> x+=`<div class="ucard"><h4 class="ed" data-ed="${it.key}/t">${esc(txt(it.key+'/t',it.titulo))}</h4>
+      let x=`<div class="block cards" ${dz(b._id,'items')}>`;
+      b.items.forEach((it,i)=> x+=`<div class="ucard dnd-box">${grip(b._id,'items',i)}<h4 class="ed" data-ed="${it.key}/t">${esc(txt(it.key+'/t',it.titulo))}</h4>
         <p class="ed" data-ed="${it.key}">${esc(txt(it.key,it.text))}</p></div>`);
       return x+`</div>`;
     }
@@ -3081,8 +3091,8 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "statRow":{
-      let x=`<div class="block stats">`;
-      b.items.forEach((s,i)=> x+=`<div class="stat" ${s.color?`style="border-top-color:${s.color}"`:''}>
+      let x=`<div class="block stats" ${dz(b._id,'items')}>`;
+      b.items.forEach((s,i)=> x+=`<div class="stat dnd-box" ${s.color?`style="border-top-color:${s.color}"`:''}>${grip(b._id,'items',i)}
         <div class="v ed" data-ed="${b._id}/${i}/v">${esc(txt(b._id+'/'+i+'/v',s.v))}</div>
         <div class="l ed" data-ed="${b._id}/${i}/l">${esc(txt(b._id+'/'+i+'/l',s.l))}</div>
         ${s.src?`<div class="src ed" data-ed="${b._id}/${i}/src">${esc(txt(b._id+'/'+i+'/src',s.src))}</div>`:''}</div>`);
@@ -3433,6 +3443,8 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'phases': reseatObj(b,b.key,'items',[['titulo','t'],['texto','d']]); break;
   case 'ladder': reseatObj(b,b._id,'items',[['k','k'],['v','v']]); break;
   case 'personas': reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); break;
+  case 'statRow': reseatObj(b,b._id,'items',[['v','v'],['l','l'],['src','src']]); break;
+  case 'calloutGrid': reseatObj(b,b._id,'items',[['ttl','ttl']]); break;  // texto é por it.key, viaja com o item
 } }
 function resolveList(b, cont){
   if(cont.indexOf('@')>=0){ const a=cont.split('@'); const field=a[0]==='des'?'desafios':(a[0]==='aco'?'acoes':a[0]); const p=b.items&&b.items[+a[1]]; return p?(p[field]=p[field]||[]):null; }
@@ -4150,9 +4162,13 @@ function deleteTile(key, id){
     bag=layoutBag(key);
   }
   if(!bag) return;
-  let nome="";
+  let nome=""; const snapItems={};
   DEVICES.forEach(d=>{ const v=bag[d.id]; if(v){ const it=v.items.find(x=>x.id===id);
-    if(it&&!nome) nome=widgetNameOfItem(it); v.items=v.items.filter(x=>x.id!==id); } });
+    if(it){ if(!nome) nome=widgetNameOfItem(it); snapItems[d.id]=JSON.parse(JSON.stringify(it)); }
+    v.items=v.items.filter(x=>x.id!==id); } });
+  const ov={}; Object.keys(STATE.overrides||{}).forEach(k=>{ if(k===id||k.indexOf(id+'/')===0) ov[k]=STATE.overrides[k]; });
+  const sty=STATE.styles[id]?JSON.parse(JSON.stringify(STATE.styles[id])):null;
+  if(Object.keys(snapItems).length) trashAdd({kind:'widget', label:'Widget: '+(nome||'?'), key, wid:id, items:snapItems, styles:sty, overrides:ov});
   if(STATE.styles[id]) delete STATE.styles[id];
   pushHistory("Removeu widget", nome); saveState(); render();
 }
@@ -4312,9 +4328,49 @@ function openHistory(){
       <span class="hi-meta">${esc([m.ctx,m.widget].filter(Boolean).join(' › '))}${m.ts?' · '+m.ts:''}</span></span>${rec}
     </div>`;
   }).join("");
-  const card=showModal("Histórico de alterações", `<div class="hist-list">${rows}</div>`);
+  const card=showModal("Histórico de alterações",
+    `<button class="gt-btn ghost" id="openTrashBtn" style="margin-bottom:10px">🗑 Ver lixeira${TRASH.length?' ('+TRASH.length+')':''}</button>
+     <div class="hist-list">${rows}</div>`);
+  $("#openTrashBtn",card)&&$("#openTrashBtn",card).addEventListener("click",()=>{ closeModal(); openTrash(); });
   $$(".hi-recover",card).forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); restoreSnapshot(+b.dataset.rec); closeModal(); }));
   $$(".hist-item",card).forEach(b=> b.addEventListener("click",()=>{ restoreSnapshot(+b.dataset.hi); closeModal(); }));
+}
+/* ===== Lixeira (itens apagados) ===== */
+let TRASH=[];
+function trashAdd(e){ e.id='tr'+(TRASH._n=(TRASH._n||0)+1); e.ctx=curContextLabel(); e.ts=nowHM(); TRASH.unshift(e); if(TRASH.length>60) TRASH.pop(); }
+function recoverWidget(e){
+  let bag=STATE.layout[e.key]; if(!bag) bag=STATE.layout[e.key]={};
+  DEVICES.forEach(d=>{ const it=e.items[d.id]; if(!it) return;
+    let v=bag[d.id]; if(!v) v=bag[d.id]={cols:GRID_COLS,cellH:GRID_CELLH,items:[]};
+    if(!v.items.find(x=>x.id===e.wid)){ const spot=findFreeSpot({x:it.x,y:it.y,w:it.w,h:it.h},null,v.items,v.cols||GRID_COLS); v.items.push(Object.assign({},JSON.parse(JSON.stringify(it)),{x:spot.x,y:spot.y})); } });
+  if(e.styles) STATE.styles[e.wid]=JSON.parse(JSON.stringify(e.styles));
+  Object.keys(e.overrides||{}).forEach(k=> STATE.overrides[k]=e.overrides[k]);
+}
+function recoverSection(e){
+  STATE.nav.secAdd=STATE.nav.secAdd||{}; STATE.nav.secAdd[e.chKey+'/'+e.secKey]=true;
+  const o=ensureSecOrder(e.chKey); if(o.indexOf(e.secKey)<0) o.push(e.secKey);
+  if(e.title!=null) STATE.overrides['sec/'+e.chKey+'/'+e.secKey+'/titulo']=e.title;
+  if(e.layout) STATE.layout[e.chKey+'/'+e.secKey]=JSON.parse(JSON.stringify(e.layout));
+  Object.keys(e.overrides||{}).forEach(k=> STATE.overrides[k]=e.overrides[k]);
+  Object.keys(e.styles||{}).forEach(k=> STATE.styles[k]=JSON.parse(JSON.stringify(e.styles[k])));
+  CUR={chapter:CUR.chapter, section:e.secKey};
+}
+function recoverTrash(id){ const e=TRASH.find(t=>t.id===id); if(!e) return;
+  if(e.kind==='widget') recoverWidget(e); else if(e.kind==='section') recoverSection(e);
+  TRASH=TRASH.filter(t=>t.id!==id); pushHistory('Recuperou da lixeira', e.label); saveState(); render(); }
+function openTrash(){
+  const rows = TRASH.length ? TRASH.map(e=>`
+    <div class="hist-item">
+      <span class="hi-dot" style="background:var(--magenta)"></span>
+      <span><span class="hi-lbl">${e.kind==='section'?'🗂 ':'▣ '}${esc(e.label)}</span>
+      <span class="hi-meta">${esc(e.ctx||'')}${e.ts?' · '+e.ts:''}</span></span>
+      <button class="hi-recover" data-rec="${e.id}">↩ Recuperar</button>
+    </div>`).join('') : `<div class="hist-empty" style="padding:18px;text-align:center;color:var(--muted)">A lixeira está vazia.</div>`;
+  const card=showModal("Lixeira — itens apagados",
+    `<button class="gt-btn ghost" id="backHistBtn" style="margin-bottom:10px">← Voltar ao histórico</button>
+     <div class="hist-list">${rows}</div>`);
+  $("#backHistBtn",card)&&$("#backHistBtn",card).addEventListener("click",()=>{ closeModal(); openHistory(); });
+  $$(".hi-recover",card).forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); recoverTrash(b.dataset.rec); closeModal(); }));
 }
 
 /* =========================================================================
