@@ -157,6 +157,13 @@
   .sec-tab-ed{outline:none;display:inline-block;min-width:10px}
   body.editing .sec-tab.active .sec-tab-ed{cursor:text}
   body.editing .sec-tab.active .sec-tab-ed:hover{text-decoration:underline dotted;text-underline-offset:3px}
+  .sec-grip{display:inline-block;margin-right:6px;color:var(--muted);cursor:grab;font-size:12px;vertical-align:middle;user-select:none}
+  .sec-tab.active .sec-grip{color:rgba(255,255,255,.7)}
+  .sec-grip:active{cursor:grabbing}
+  .sec-tab.dnd-dragging{opacity:.4}
+  .sec-tabs.dnd-over{outline:2px dashed var(--orange);outline-offset:4px;border-radius:12px}
+  .sec-tab.sec-add{border-style:dashed;color:var(--ink2);background:#fff;font-weight:700}
+  .sec-tab.sec-add:hover{border-color:var(--orange);color:var(--orange)}
 
   .section{background:transparent;margin-top:6px}
   .section h3{font-size:20px;font-weight:800;color:var(--ink);margin:32px 0 8px;letter-spacing:.005em}
@@ -2539,6 +2546,24 @@ function ensureOrder(){ if(!STATE.nav.order||!STATE.nav.order.length) STATE.nav.
 function ensureSecOrder(chKey){ STATE.nav.secOrder=STATE.nav.secOrder||{}; if(!STATE.nav.secOrder[chKey]){ const cm=chapterModel(chKey); STATE.nav.secOrder[chKey]=cm?cm.sections.map(s=>s.secKey):[]; } return STATE.nav.secOrder[chKey]; }
 function moveChapter(chKey,dir){ const o=ensureOrder(),i=o.indexOf(chKey),j=i+dir; if(i<0||j<0||j>=o.length)return; o[i]=o.splice(j,1,o[i])[0]; saveState(); buildNav(); }
 function moveSection(chKey,secKey,dir){ const o=ensureSecOrder(chKey),i=o.indexOf(secKey),j=i+dir; if(i<0||j<0||j>=o.length)return; o[i]=o.splice(j,1,o[i])[0]; saveState(); render(); }
+function reorderSection(chKey, sk, to){ const o=ensureSecOrder(chKey); const from=o.indexOf(sk); if(from<0) return;
+  o.splice(from,1); let t=to; if(from<t) t--; t=Math.max(0,Math.min(o.length,t)); o.splice(t,0,sk); pushHistory('Reordenou sub-menu','sub-menu'); saveState(); render(); }
+let SECDRAG=null;
+function bindSecTabsDnD(){
+  const cont=$(".sec-tabs[data-sectabs]"); if(!cont) return;
+  const chKey=cont.dataset.sectabs;
+  $$(".sec-grip", cont).forEach(g=>{
+    g.addEventListener("dragstart", e=>{ SECDRAG=g.dataset.secdrag; try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',SECDRAG); }catch(_){}
+      const tab=g.closest('.sec-tab'); if(tab) tab.classList.add('dnd-dragging'); });
+    g.addEventListener("dragend", ()=>{ SECDRAG=null; $$(".sec-tab",cont).forEach(t=>t.classList.remove('dnd-dragging')); cont.classList.remove('dnd-over'); });
+  });
+  cont.addEventListener("dragover", e=>{ if(SECDRAG==null) return; e.preventDefault(); try{e.dataTransfer.dropEffect='move';}catch(_){} cont.classList.add('dnd-over'); });
+  cont.addEventListener("dragleave", e=>{ if(!cont.contains(e.relatedTarget)) cont.classList.remove('dnd-over'); });
+  cont.addEventListener("drop", e=>{ if(SECDRAG==null) return; e.preventDefault();
+    const tabs=$$(".sec-tab[data-sec]",cont); let to=tabs.length;
+    for(let k=0;k<tabs.length;k++){ const r=tabs[k].getBoundingClientRect(); if(e.clientX < r.left+r.width/2){ to=k; break; } }
+    reorderSection(chKey, SECDRAG, to); SECDRAG=null; });
+}
 function addChapter(){ STATE.nav.add=STATE.nav.add||{}; const k='x'+navSeq(); STATE.nav.add[k]={num:'+'}; STATE.nav.secAdd=STATE.nav.secAdd||{}; STATE.nav.secAdd[k+'/s0']=true; ensureOrder().push(k); saveState(); buildNav(); return k; }
 function addSection(chKey){ STATE.nav.secAdd=STATE.nav.secAdd||{}; const sk='s'+navSeq(); STATE.nav.secAdd[chKey+'/'+sk]=true; ensureSecOrder(chKey).push(sk); saveState(); render(); return sk; }
 function hideChapter(chKey,hide){ const s=new Set(STATE.nav.hidden||[]); hide?s.add(chKey):s.delete(chKey); STATE.nav.hidden=[...s]; saveState(); buildNav(); }
@@ -2735,16 +2760,19 @@ function render(){
 
   // tabs de seção
   const visSecs = cm.sections.filter(s=> !s.hidden || (EDIT&&can('editLayout')));
-  if(visSecs.length>1){
-    h += `<div class="sec-tabs">`;
+  const canMngSec = EDIT && (can('editLayout')||can('manageUsers'));
+  if(visSecs.length>1 || canMngSec){
+    h += `<div class="sec-tabs" data-sectabs="${chKey}">`;
     visSecs.forEach(s=>{
       const isActive=s.secKey===String(CUR.section);
       const editable=isActive && EDIT && can('editContent');
+      const grip = canMngSec ? `<span class="sec-grip" contenteditable="false" draggable="true" data-secdrag="${s.secKey}" title="Arrastar para reordenar">⠿</span>` : '';
       const label=editable
         ? `<span class="ed sec-tab-ed" data-ed="sec/${chKey}/${s.secKey}/titulo">${esc(plainTxt(s.titulo))}</span>`
         : esc(plainTxt(s.titulo));
-      h += `<div class="sec-tab ${isActive?'active':''} ${s.hidden?'nav-hidden':''}" role="button" tabindex="0" data-sec="${s.secKey}">${label}</div>`;
+      h += `<div class="sec-tab ${isActive?'active':''} ${s.hidden?'nav-hidden':''}" role="button" tabindex="0" data-sec="${s.secKey}">${grip}${label}</div>`;
     });
+    if(canMngSec) h += `<button class="sec-tab sec-add" data-secadd="${chKey}" title="Adicionar sub-menu em branco">＋ Sub-menu</button>`;
     h += `</div>`;
   }
 
@@ -2794,12 +2822,17 @@ function render(){
   _lastNav=navKey;
   scroller.scrollTop = keepScroll;
 
-  $$(".sec-tab").forEach(t=>t.addEventListener("click",(e)=>{
+  $$(".sec-tab[data-sec]").forEach(t=>t.addEventListener("click",(e)=>{
     if(e.target.closest('.ed') && EDIT) return;           // clicou no nome editável da aba ativa → deixa editar
+    if(e.target.closest('.sec-grip')) return;             // clicou na alça de arraste → não troca
     const sk=t.dataset.sec;
     if(sk===String(CUR.section)) return;                  // já é a ativa → não re-renderiza (preserva o cursor)
     CUR.section=sk; persistUi(); render();
   }));
+  // adicionar sub-menu em branco e já começar a editar
+  $$("[data-secadd]").forEach(b=>b.addEventListener("click",(e)=>{ e.stopPropagation();
+    const ck=b.dataset.secadd; const sk=addSection(ck); CUR={chapter:CUR.chapter, section:sk}; persistUi(); render(); }));
+  bindSecTabsDnD();
   wireBlockEvents();
   wireGridEvents(sec, key, layout);
   applyEdit();
