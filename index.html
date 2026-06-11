@@ -27,7 +27,7 @@
     --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
+  html,body{margin:0;padding:0;overflow-anchor:none}
   body{font-family:var(--font);background:var(--paper);color:var(--ink2);
     -webkit-font-smoothing:antialiased;line-height:1.6;font-size:15.5px}
   button{font-family:inherit;cursor:pointer}
@@ -618,8 +618,12 @@
   .gtile.has-top::before{content:"";position:absolute;top:0;left:0;right:0;height:8px;
     background:var(--w-top);border-radius:14px 14px 0 0;z-index:3}
   .gtile.has-top .gtile-body .ttl,.gtile.has-top .gtile-body h4:first-child{color:var(--w-top)}
-  .gtile-color{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
-    background:#fff;font-size:13px;line-height:1;display:grid;place-items:center;box-shadow:var(--shadow)}
+  .gtile-color,.gtile-config,.gtile-dup{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;font-size:13px;line-height:1;display:grid;place-items:center;box-shadow:var(--shadow);color:var(--ink2)}
+  .gtile-config:hover,.gtile-dup:hover{border-color:var(--ink);color:var(--ink)}
+  .cpop .sw .szbtn{width:auto;height:24px;padding:0 9px;border:1.5px solid var(--line);border-radius:7px;
+    background:#fff;font-size:12px;font-weight:700;color:var(--ink2)}
+  .cpop .sw .szbtn:hover{border-color:var(--orange);color:var(--ink)}
   /* popover de cores */
   .cpop{position:fixed;z-index:65;background:#fff;border:1px solid var(--line);border-radius:13px;
     box-shadow:0 18px 50px rgba(36,26,110,.25);padding:12px;width:236px}
@@ -1758,6 +1762,7 @@ let STATE = loadState();
 let AUTH = loadAuth();
 let CUR = { chapter:"onb", section:0 }; // onb = onboarding; senão índice do capítulo
 let EDIT = false;
+let _lastNav = null; // aba renderizada por último (p/ preservar scroll)
 
 function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_STATE)) || {} }catch(e){ return {} } }
 function saveState(){
@@ -1795,8 +1800,11 @@ function cloudPush(){
       .catch(e=> console.warn("cloudPush falhou:", e.code||e));
   }, 400);
 }
+function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},n:o._addSeq||0}); }
 function applyRemote(data){
   if(!data) return;
+  // deduplica o "eco" do próprio autosave: se nada mudou, não re-renderiza (evita scroll voltar ao topo)
+  if(syncSig(data)===syncSig(STATE)) return;
   _applyingRemote=true;
   STATE.overrides = data.overrides || {};
   STATE.statuses  = data.statuses  || {};
@@ -2213,16 +2221,17 @@ function refreshIdentity(){
 /* =========================================================================
    NAV
    ========================================================================= */
+function chapterName(chRef, chKey){ return txt('nav/'+chKey+'/nome', chRef.nome); }
 function buildNav(){
   const nav=$("#nav");
   let h = `<button class="nav-item special ${CUR.chapter==='onb'?'active':''}" data-ch="onb">
-             <span class="dot" style="background:var(--ink)"></span>${PLAN.onboarding.icone} ${PLAN.onboarding.nome}
+             <span class="dot" style="background:var(--ink)"></span>${PLAN.onboarding.icone} ${esc(chapterName(PLAN.onboarding,'onb'))}
            </button>`;
   h += `<div class="nav-group-label">O Plano</div>`;
   PLAN.chapters.forEach((c,i)=>{
     h += `<button class="nav-item ${CUR.chapter===i?'active':''}" data-ch="${i}">
             <span class="num">${String(c.num).padStart(2,'0')}</span>
-            <span class="dot" style="background:${c.cor}"></span>${c.nome}
+            <span class="dot" style="background:${c.cor}"></span>${esc(chapterName(c,String(i)))}
           </button>`;
   });
   nav.innerHTML=h;
@@ -2242,7 +2251,7 @@ function curChapterObj(){ return CUR.chapter==='onb' ? PLAN.onboarding : PLAN.ch
 
 function render(){
   const ch=curChapterObj();
-  $("#tbTitle").textContent=ch.nome;
+  $("#tbTitle").textContent=chapterName(ch,String(CUR.chapter));
   $$(".nav-item").forEach(b=>{
     const v=b.dataset.ch; const on = (v==='onb'&&CUR.chapter==='onb')||(v!=='onb'&&parseInt(v,10)===CUR.chapter);
     b.classList.toggle("active",on);
@@ -2250,29 +2259,32 @@ function render(){
 
   const cor = ch.cor;
   const isOnb = CUR.chapter==='onb';
+  const chKey = String(CUR.chapter);
   const num = isOnb ? "ONBOARDING" : "CAPÍTULO "+String(ch.num).padStart(2,'0');
-  const sub = isOnb ? ch.intro : ch.resumo;
+  const subDef = isOnb ? ch.intro : ch.resumo;
+  const nameK='nav/'+chKey+'/nome', subK='nav/'+chKey+'/sub';
   const dark = cor==="var(--yellow)"; // texto escuro sobre amarelo
   let h = `<div class="chap-hero" style="background:${cor};${dark?'color:#3a2e00':''}">
              <div class="deco"><span></span><span></span><span></span></div>
              <div class="ch-num">${num}</div>
-             <h2>${esc(ch.nome)}</h2>
-             <div class="ch-sub">${esc(sub)}</div>
+             <h2 class="ed" data-ed="${nameK}">${esc(txt(nameK,ch.nome))}</h2>
+             <div class="ch-sub ed" data-ed="${subK}">${esc(txt(subK,subDef))}</div>
            </div>`;
 
   // tabs de seção
   if(ch.sections.length>1){
     h += `<div class="sec-tabs">`;
-    ch.sections.forEach((s,i)=> h += `<button class="sec-tab ${i===CUR.section?'active':''}" data-sec="${i}">${esc(s.titulo)}</button>`);
+    ch.sections.forEach((s,i)=> h += `<button class="sec-tab ${i===CUR.section?'active':''}" data-sec="${i}">${esc(txt('sec/'+chKey+'/'+i+'/titulo', s.titulo))}</button>`);
     h += `</div>`;
   }
 
   const sec = ch.sections[CUR.section] || ch.sections[0];
   const key = secKey();
+  const secTitK='sec/'+chKey+'/'+CUR.section+'/titulo';
   let layout = effectiveLayout(sec, key);
   // Editar já ativa a grade de TODOS os widgets: auto-semeia a seção (mede e converte)
   if(!layout && EDIT && can('editLayout')){ layout = autoSeedLayout(sec, key); }
-  h += `<div class="section"><h3>${esc(sec.titulo)}</h3>`;
+  h += `<div class="section"><h3 class="ed" data-ed="${secTitK}">${esc(txt(secTitK,sec.titulo))}</h3>`;
   h += secProgressHtml(ch, CUR.section);
   _lastDevice = deviceForWidth(window.innerWidth);
   if(layout){
@@ -2291,7 +2303,7 @@ function render(){
       if(st.fg){ sv+="--w-fg:"+st.fg+";"; cls+=" has-fg"; }
       if(st.top){ sv+="--w-top:"+st.top+";"; cls+=" has-top"; }
       h += `<div class="gtile${cls}" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
-              <div class="gtile-tools"><button class="gtile-color" title="Cores do widget">🎨</button><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
+              <div class="gtile-tools"><button class="gtile-config" title="Configurar (tamanho e cores)">⚙</button><button class="gtile-dup" title="Duplicar widget">⧉</button><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
               <div class="gtile-body">${renderBlock(blk)}</div>
               <div class="resize-r"></div><div class="resize-b"></div><div class="resize"></div>
             </div>`;
@@ -2302,8 +2314,13 @@ function render(){
   }
   h += `</div>`;
 
+  const scroller=document.scrollingElement||document.documentElement;  // o documento é quem rola
+  const navKey=String(CUR.chapter)+'/'+CUR.section;
+  const navChanged = navKey!==_lastNav;
+  const keepScroll = navChanged ? 0 : scroller.scrollTop;   // preserva scroll se não mudou de aba
   $("#view").innerHTML=h;
-  $("#view").parentElement.scrollTop=0;
+  _lastNav=navKey;
+  scroller.scrollTop = keepScroll;
 
   $$(".sec-tab").forEach(t=>t.addEventListener("click",()=>{
     CUR.section=parseInt(t.dataset.sec,10); persistUi(); render();
@@ -2683,14 +2700,14 @@ $("#view").addEventListener("blur", e=>{
     const tile=el.closest&&el.closest(".gtile");
     pushHistory("Editou texto", tile?widgetNameOfItem({id:tile.dataset.id}):"texto");
     saveState();
+    if(key.indexOf('nav/')===0){ buildNav(); $("#tbTitle").textContent=chapterName(curChapterObj(),String(CUR.chapter)); } // título do menu/topo
   }
 }, true);
 $("#editBtn").addEventListener("click",()=>{
   EDIT=!EDIT;
   $("#editBtn").classList.toggle("on",EDIT);
-  $("#editBtn").querySelector(".lbl").textContent = EDIT ? "Salvar" : "Editar";
-  if(!EDIT){ saveState(); }
-  render();   // re-render para inserir/remover alças, toolbar e banner de grade
+  $("#editBtn").querySelector(".lbl").textContent = EDIT ? "Concluir" : "Editar";  // autosave sempre ativo
+  render();   // re-render para inserir/remover alças e ferramentas
 });
 
 /* =========================================================================
@@ -2700,7 +2717,7 @@ function isMobileGrid(){ return window.innerWidth<=820; }
 
 function gridToolbarHtml(key){
   return `<div class="gtoolbar" data-seckey="${key}">
-    <span class="gt-info">arraste pela alça ⠿ · redimensione pelas bordas · 🎨 cores</span>
+    <span class="gt-info">arraste pela alça ⠿ · bordas redimensionam · ⚙ configurar · ⧉ duplicar</span>
     <button class="gt-btn accent" data-gadd>＋ Widget</button>
     <button class="gt-btn ghost" data-gexport>⤓ Exportar</button>
     <button class="gt-btn ghost" data-gdeactivate>↺ Empilhar</button>
@@ -2887,7 +2904,12 @@ function deactivateGrid(key){
   delete STATE.layout[key]; saveState(); render();
 }
 function deleteTile(key, id){
-  const bag=layoutBag(key); if(!bag) return;
+  let bag=layoutBag(key);
+  if(!bag || !DEVICES.some(d=>bag[d.id])){   // seção baked/derivada ainda não materializada
+    liveVariant(key, curChapterObj().sections[CUR.section]||curChapterObj().sections[0]);
+    bag=layoutBag(key);
+  }
+  if(!bag) return;
   let nome="";
   DEVICES.forEach(d=>{ const v=bag[d.id]; if(v){ const it=v.items.find(x=>x.id===id);
     if(it&&!nome) nome=widgetNameOfItem(it); v.items=v.items.filter(x=>x.id!==id); } });
@@ -3045,16 +3067,25 @@ const COLOR_SWATCHES=[["Índigo","var(--ink)"],["Laranja","var(--orange)"],["Ver
 function openColorPopover(id, anchorEl){
   closeColorPopover();
   const st=STATE.styles[id]||{};
+  const m=gridMetrics(); const cols=m?m.cols:GRID_COLS;
   const group=(prop,titulo)=>{
     const sw=COLOR_SWATCHES.map(([n,c])=>`<button title="${n}" data-prop="${prop}" data-col="${c}" style="background:${c}"></button>`).join("");
     return `<div class="crow"><h5>${titulo}</h5><div class="sw">${sw}
       <input type="color" data-propc="${prop}" value="#888888" title="Cor personalizada">
       <button class="clear" data-propx="${prop}">Limpar</button></div></div>`;
   };
+  const sizeRow = `<div class="crow"><h5>Largura</h5><div class="sw">
+      <button class="szbtn" data-w="${Math.round(cols/3)}">⅓</button>
+      <button class="szbtn" data-w="${Math.round(cols/2)}">½</button>
+      <button class="szbtn" data-w="${Math.round(cols*2/3)}">⅔</button>
+      <button class="szbtn" data-w="${cols}">Cheia</button></div></div>
+    <div class="crow"><h5>Altura</h5><div class="sw">
+      <button class="szbtn" data-h="4">Baixa</button>
+      <button class="szbtn" data-h="8">Média</button>
+      <button class="szbtn" data-h="14">Alta</button></div></div>`;
   const pop=document.createElement("div"); pop.className="cpop"; pop.id="cpop";
-  pop.innerHTML=group("bg","Fundo")+group("top","Topo / destaque")+group("fg","Texto");
+  pop.innerHTML=sizeRow+group("bg","Fundo")+group("top","Topo / destaque")+group("fg","Texto");
   document.body.appendChild(pop);
-  // posiciona perto do botão
   const r=anchorEl.getBoundingClientRect();
   pop.style.top=Math.min(window.innerHeight-pop.offsetHeight-10, r.bottom+6)+"px";
   pop.style.left=Math.min(window.innerWidth-pop.offsetWidth-10, Math.max(10, r.right-pop.offsetWidth))+"px";
@@ -3065,13 +3096,54 @@ function openColorPopover(id, anchorEl){
     pushHistory("Mudou cor ("+prop+")");
     saveState(); render();
   };
+  const key=m?m.key:null;
+  $$(".szbtn",pop).forEach(b=> b.addEventListener("click",()=>{ if(key) setTileSize(key,id, b.dataset.w?+b.dataset.w:null, b.dataset.h?+b.dataset.h:null); closeColorPopover(); }));
   $$(".sw button[data-col]",pop).forEach(b=> b.addEventListener("click",()=>{ apply(b.dataset.prop,b.dataset.col); closeColorPopover(); }));
   $$("input[type=color]",pop).forEach(inp=> inp.addEventListener("change",()=>{ apply(inp.dataset.propc, inp.value); closeColorPopover(); }));
   $$("button[data-propx]",pop).forEach(b=> b.addEventListener("click",()=>{ apply(b.dataset.propx, null); closeColorPopover(); }));
   setTimeout(()=> document.addEventListener("pointerdown", _cpopOutside, true), 0);
 }
-function _cpopOutside(e){ const p=$("#cpop"); if(p && !p.contains(e.target) && !e.target.closest(".gtile-color")) closeColorPopover(); }
+function _cpopOutside(e){ const p=$("#cpop"); if(p && !p.contains(e.target) && !e.target.closest(".gtile-config")) closeColorPopover(); }
 function closeColorPopover(){ const p=$("#cpop"); if(p) p.remove(); document.removeEventListener("pointerdown", _cpopOutside, true); }
+/* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
+function setTileSize(key, id, w, h){
+  const v=liveVariant(key, curChapterObj().sections[CUR.section]);
+  const it=v.items.find(x=>x.id===id); if(!it) return;
+  const cols=v.cols||GRID_COLS;
+  if(w){ it.w=Math.max(1,Math.min(cols,w)); if(it.x+it.w>cols) it.x=Math.max(0,cols-it.w); }
+  if(h){ it.h=Math.max(1,h); }
+  pushHistory("Redimensionou widget", widgetNameOfItem(it)); saveState(); render();
+}
+/* duplica um widget na variante atual + propaga às demais */
+function duplicateTile(key, id){
+  const sec=curChapterObj().sections[CUR.section]||curChapterObj().sections[0];
+  const v=liveVariant(key, sec); const it=v.items.find(x=>x.id===id); if(!it) return;
+  const src=blockOfItem(sec, it); if(!src) return;
+  const newId=newAddId();
+  const clone=JSON.parse(JSON.stringify(src)); clone._id=newId;
+  const oldId=src._id;
+  // remapeia chaves baseadas no _id e copia os overrides correspondentes
+  remapIdInObj(clone, oldId, newId);
+  Object.keys(STATE.overrides).forEach(k=>{ if(oldId && k.indexOf(oldId)===0){ STATE.overrides[newId+k.slice(oldId.length)] = STATE.overrides[k]; } });
+  if(STATE.styles[oldId]) STATE.styles[newId]=JSON.parse(JSON.stringify(STATE.styles[oldId]));
+  const cols=v.cols||GRID_COLS;
+  const spot=findFreeSpot({x:it.x,y:it.y+it.h,w:it.w,h:it.h}, null, v.items, cols);
+  v.items.push({ id:newId, x:spot.x, y:spot.y, w:it.w, h:it.h, add:clone });
+  const bag=layoutBag(key);
+  DEVICES.forEach(d=>{ const ov=bag[d.id]; if(ov && ov!==v && !ov.items.find(x=>x.id===newId)){
+    const maxY=ov.items.length?Math.max(...ov.items.map(x=>x.y+x.h)):0;
+    ov.items.push({ id:newId, x:0, y:maxY, w:(ov.cols||cols), h:it.h, add:clone });
+  }});
+  pushHistory("Duplicou widget", widgetNameOfItem(it)); saveState(); render();
+}
+function remapIdInObj(o, oldId, newId){
+  if(!oldId) return;
+  if(Array.isArray(o)){ o.forEach(x=>remapIdInObj(x,oldId,newId)); return; }
+  if(o && typeof o==='object'){ Object.keys(o).forEach(k=>{
+    if(typeof o[k]==='string' && o[k].indexOf(oldId)===0){ o[k]=newId+o[k].slice(oldId.length); }
+    else if(typeof o[k]==='object'){ remapIdInObj(o[k],oldId,newId); }
+  }); }
+}
 
 /* ----- modal genérico ----- */
 function showModal(title, bodyHtml){
@@ -3094,8 +3166,11 @@ function wireGridEvents(sec, key, layout){
   $$(".gtile-del").forEach(btn=> btn.addEventListener("click",e=>{
     e.stopPropagation(); deleteTile(key, btn.closest(".gtile").dataset.id);
   }));
-  $$(".gtile-color").forEach(btn=> btn.addEventListener("click",e=>{
+  $$(".gtile-config").forEach(btn=> btn.addEventListener("click",e=>{
     e.stopPropagation(); openColorPopover(btn.closest(".gtile").dataset.id, btn);
+  }));
+  $$(".gtile-dup").forEach(btn=> btn.addEventListener("click",e=>{
+    e.stopPropagation(); duplicateTile(key, btn.closest(".gtile").dataset.id);
   }));
   const canvas=$(".gridcanvas"); if(canvas) bindGridDrag(canvas, key, layout);
 }
@@ -3129,13 +3204,15 @@ $("#sideToggle").addEventListener("click",()=>{ STATE.sideCollapsed=!STATE.sideC
 
 /* cluster de edição no topo (desfazer/refazer/histórico) — só admin em edição */
 function updateEditChrome(){
-  const on = EDIT && (can('editContent')||can('editLayout'));
-  const c=$("#editCluster"); if(c) c.style.display = on ? "flex" : "none";
+  const hasEdit = can('editContent')||can('editLayout');
+  // cluster (desfazer/refazer/histórico) sempre visível p/ quem edita; alternador de device só em EDIT
+  const c=$("#editCluster"); if(c) c.style.display = hasEdit ? "flex" : "none";
+  const dv=$("#devSwitch"); if(dv) dv.style.display = (hasEdit && EDIT) ? "inline-flex" : "none";
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
   if(r) r.disabled = !(HI<HIST.length-1);
   $$("#devSwitch .dev-btn").forEach(b=> b.classList.toggle("active", b.dataset.dev===EDIT_DEVICE));
-  if(!on){ const p=$("#savePill"); if(p){ p.textContent=""; p.className="save-pill"; } }
+  if(!(hasEdit && EDIT)){ const p=$("#savePill"); if(p){ p.textContent=""; p.className="save-pill"; } }
 }
 $("#undoBtn").addEventListener("click", ()=>undo());
 $("#redoBtn").addEventListener("click", ()=>redo());
