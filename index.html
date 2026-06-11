@@ -869,15 +869,16 @@
   body.grid-edit .box-edit-in{display:inline-grid;place-items:center;width:24px;height:24px;border:1px solid var(--line);
     border-radius:6px;background:#fff;color:var(--orange);font-size:12px;font-weight:800;cursor:pointer}
   body.grid-edit .box-edit-in:hover{border-color:var(--orange)}
-  /* ações por linha de tabela (alça/▲▼/×) */
-  body.grid-edit .ltable .row{position:relative}
-  .ltable .row-acts{display:none}
-  body.grid-edit .ltable .row-acts{display:inline-flex;align-items:center;gap:3px;position:absolute;top:8px;right:8px;z-index:3;
+  /* ações por linha/parágrafo (alça/▲▼/×) — tabela de rótulos, manifesto, etc. */
+  body.grid-edit .ltable .row, body.grid-edit .man-para{position:relative}
+  .row-acts{display:none}
+  body.grid-edit .row-acts{display:inline-flex;align-items:center;gap:3px;position:absolute;top:8px;right:8px;z-index:3;
     background:rgba(255,255,255,.92);border-radius:8px;padding:2px;opacity:0;transition:opacity .12s}
-  body.grid-edit .ltable .row:hover .row-acts{opacity:1}
-  .ltable .row-acts button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer}
-  .ltable .row-acts button.danger{color:var(--magenta)}
-  body.grid-edit .ltable .row-acts .it-grip{position:static;transform:none}
+  body.grid-edit .ltable .row:hover .row-acts, body.grid-edit .man-para:hover .row-acts{opacity:1}
+  .row-acts button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer}
+  .row-acts button.danger{color:var(--magenta)}
+  body.grid-edit .row-acts .it-grip{position:static;transform:none}
+  body.grid-edit .man-para{padding-right:8px}
   /* caixa flutuante de edição de campos */
   .bxe-back{position:fixed;inset:0;z-index:84;background:rgba(20,14,60,.28);backdrop-filter:blur(1.5px)}
   .bxe{position:fixed;z-index:85;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -3021,8 +3022,10 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "manifesto":{
-      let x=`<div class="block manifesto"><div class="mlabel">Manifesto · Amazônia Autêntica</div>`;
-      (b.paras).forEach((p,i)=> x+=`<p class="ed" data-ed="${b.key}/${i}">${esc(txt(b.key+'/'+i,p))}</p>`);
+      let x=`<div class="block manifesto" data-wid="${b._id}" ${dz(b._id,'paras')}><div class="mlabel ed" data-ed="${b._id}/label">${esc(txt(b._id+'/label','Manifesto · Amazônia Autêntica'))}</div>`;
+      (b.paras).forEach((p,i)=> x+=`<div class="man-para dnd-row"><p class="ed" data-ed="${b.key}/${i}">${esc(txt(b.key+'/'+i,p))}</p>
+        <span class="li-acts row-acts">${grip(b._id,'paras',i)}<button data-itemmove="${b._id}|paras|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|paras|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|paras|${i}" title="Apagar">×</button></span></div>`);
+      x+=`<button class="li-plus" data-boxadd="${b._id}|paras" style="margin-top:8px">＋ parágrafo</button>`;
       return x+`</div>`;
     }
     case "labelTable":{
@@ -3548,6 +3551,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'statRow': reseatObj(b,b._id,'items',[['v','v'],['l','l'],['src','src']]); break;
   case 'calloutGrid': reseatObj(b,b._id,'items',[['ttl','ttl']]); break;  // texto é por it.key, viaja com o item
   case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
+  case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'groupList': { const id=b._id;   // grupos + itens internos (tudo por índice → consolida)
     const a=(b.items||[]).map((g,gi)=>{ const n=Object.assign({},g);
       n.titulo=_ovf(id+'/'+gi+'/t', g.titulo);
@@ -3656,6 +3660,7 @@ function addBox(wid, cont){
   else if(b.type==='calloutGrid') item={ttl:'Novo ponto', color:'var(--cyan)', key:newAddId()+'/c', text:'Conteúdo.'};
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
+  else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
 }
