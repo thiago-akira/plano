@@ -3132,7 +3132,7 @@ $("#view").addEventListener("blur", e=>{
 function safeHtml(html){
   const tmp=document.createElement('div'); tmp.innerHTML=html||'';
   const allow={B:1,I:1,U:1,STRONG:1,EM:1,SPAN:1,BR:1};
-  const styleMap=[['fontWeight','font-weight'],['fontStyle','font-style'],['textDecoration','text-decoration'],['fontSize','font-size'],['color','color']];
+  const styleMap=[['fontWeight','font-weight'],['fontStyle','font-style'],['textDecoration','text-decoration'],['fontSize','font-size'],['color','color'],['backgroundColor','background-color'],['borderRadius','border-radius'],['padding','padding']];
   const walk=node=>{ [...node.childNodes].forEach(c=>{
     if(c.nodeType===3) return;
     if(c.nodeType!==1){ node.removeChild(c); return; }
@@ -3162,6 +3162,13 @@ function saveEdElement(el){
 let _selBar=null, _selT=null;
 function hideSelBar(){ if(_selBar) _selBar.style.display='none'; }
 function selFmt(prop,val){ wrapSelection(prop,val); if(_selBar&&_selBar._ed) saveEdElement(_selBar._ed); }
+function selHighlight(bg){
+  const sel=window.getSelection(); if(!sel||!sel.rangeCount) return; const range=sel.getRangeAt(0); if(range.collapsed) return;
+  const span=document.createElement('span'); span.style.backgroundColor=bg; span.style.color='#241a6e'; span.style.borderRadius='4px'; span.style.padding='0 3px';
+  try{ range.surroundContents(span); }catch(_){ const frag=range.extractContents(); span.appendChild(frag); range.insertNode(span); }
+  sel.removeAllRanges(); const r=document.createRange(); r.selectNodeContents(span); sel.addRange(r);
+  if(_selBar&&_selBar._ed) saveEdElement(_selBar._ed);
+}
 function showSelBar(){
   if(!(EDIT && can('editContent'))){ return hideSelBar(); }
   const sel=window.getSelection();
@@ -3171,15 +3178,17 @@ function showSelBar(){
   if(!ed||!$("#view").contains(ed)){ return hideSelBar(); }
   if(!_selBar){
     _selBar=document.createElement('div'); _selBar.className='selformat';
-    _selBar.innerHTML=`<button data-b><b>N</b></button><button data-i><i>I</i></button><button data-u style="text-decoration:underline">S</button>
-      <span class="sf-div"></span><button data-sz="13px">A-</button><button data-sz="17px">A</button><button data-sz="23px">A+</button>
-      <span class="sf-div"></span><label class="sf-color"><input type="color" value="#241a6e" data-color>🎨</label>`;
+    _selBar.innerHTML=`<button data-b title="Negrito"><b>N</b></button><button data-i title="Itálico"><i>I</i></button><button data-u title="Sublinhado" style="text-decoration:underline">S</button><button data-strike title="Tachado" style="text-decoration:line-through">T</button>
+      <span class="sf-div"></span><button data-sz="13px" title="Menor">A-</button><button data-sz="17px" title="Médio">A</button><button data-sz="23px" title="Maior">A+</button>
+      <span class="sf-div"></span><button data-hl title="Realce" style="background:#ffe08a;color:#241a6e;border-radius:5px">✏</button><label class="sf-color" title="Cor do texto"><input type="color" value="#241a6e" data-color>🎨</label>`;
     document.body.appendChild(_selBar);
     _selBar.addEventListener('mousedown',e=>e.preventDefault());   // preserva a seleção/foco
     $("[data-b]",_selBar).addEventListener('click',()=>selFmt('fontWeight','700'));
     $("[data-i]",_selBar).addEventListener('click',()=>selFmt('fontStyle','italic'));
     $("[data-u]",_selBar).addEventListener('click',()=>selFmt('textDecoration','underline'));
+    $("[data-strike]",_selBar).addEventListener('click',()=>selFmt('textDecoration','line-through'));
     $$("[data-sz]",_selBar).forEach(b=>b.addEventListener('click',()=>selFmt('fontSize',b.dataset.sz)));
+    $("[data-hl]",_selBar).addEventListener('click',()=>selHighlight('#ffe08a'));
     $("[data-color]",_selBar).addEventListener('input',e=>selFmt('color',e.target.value));
   }
   _selBar._ed=ed;
