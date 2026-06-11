@@ -769,11 +769,12 @@
   .resize-r{top:30%;bottom:30%;right:0;width:10px;cursor:ew-resize}
   .resize-b{left:30%;right:30%;bottom:0;height:10px;cursor:ns-resize}
   /* ghost de pré-visualização */
-  .tile-ghost{position:absolute;z-index:1;box-sizing:border-box;border:2px dashed var(--cyan);
-    border-radius:14px;background:color-mix(in srgb,var(--cyan) 12%,transparent);pointer-events:none;
-    transition:left .07s ease,top .07s ease,width .07s ease,height .07s ease}
-  .tile-ghost.bad{border-color:var(--magenta);background:color-mix(in srgb,var(--magenta) 14%,transparent)}
-  .gtile.reorder-target{box-shadow:0 -3px 0 0 var(--cyan)}
+  .tile-ghost{position:absolute;z-index:2;box-sizing:border-box;border:2.5px dashed var(--orange);
+    border-radius:14px;background:rgba(243,106,33,.12);pointer-events:none;
+    transition:left .07s ease,top .07s ease,width .07s ease,height .07s ease;animation:phpulse 1s ease-in-out infinite}
+  .tile-ghost.bad{border-color:var(--magenta);background:color-mix(in srgb,var(--magenta) 14%,transparent);animation:none}
+  .gtile.dragging{opacity:.35}
+  .gtile.reorder-target{box-shadow:0 0 0 2px var(--orange), 0 6px 18px rgba(243,106,33,.2);transition:transform .12s ease}
   /* barra de ferramentas do grid */
   .gtoolbar{display:none;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 2px;
     padding:10px 12px;background:var(--ink);border-radius:12px}
@@ -4093,12 +4094,18 @@ function onGridMove(e){
     const gy=Math.max(0,Math.round(parseFloat(d.el.style.top)/m.cellH));
     d._gx=gx; d._gy=gy;
     setGhost(d.ghost,m,gx,gy,d.item.w,d.item.h, collidesAny({x:gx,y:gy,w:d.item.w,h:d.item.h},d.item.id,items));
+    // destaca os widgets vizinhos que serão empurrados pra abrir espaço
+    const gr={x:gx,y:gy,w:d.item.w,h:d.item.h};
+    const ov=(a,b)=> a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y;
+    $$('.gtile',m.canvas).forEach(el=>{ if(el===d.el) return; const it=items.find(x=>x.id===el.dataset.id);
+      el.classList.toggle('reorder-target', !!(it && it.id!==d.item.id && ov(gr,it))); });
   }
   if(d.mode!=="resize" && !d.pending){   // detecta lixeira (centro-inferior)
     const over=pointerOverTrash(e.clientX,e.clientY); d.overTrash=over;
     const tz=$("#trashzone"); if(tz) tz.classList.toggle("hot",over);
     (d.group?d.group.map(g=>g.el):[d.el]).forEach(el=>el&&el.classList.toggle("to-trash",over));
     if(d.ghost) d.ghost.style.display=over?"none":"";
+    if(over) $$('.gtile.reorder-target',m.canvas).forEach(el=>el.classList.remove('reorder-target'));
   }
 }
 function onGridUp(){
@@ -4107,6 +4114,7 @@ function onGridUp(){
   document.body.classList.remove("dragging-grid");
   if(d.pending){ GDRAG=null; return; }   // foi clique, não arrasto
   if(d.ghost) d.ghost.remove();
+  $$('.gtile.reorder-target',m.canvas).forEach(el=>el.classList.remove('reorder-target'));
   const tz0=$("#trashzone"); if(tz0) tz0.classList.remove("hot");
   if(d.overTrash && d.mode!=="resize"){   // soltou na lixeira -> apaga
     const bag=layoutBag(d.key); const ids = d.group? d.group.map(g=>g.it.id) : [d.item.id];
