@@ -3565,10 +3565,11 @@ function selHighlight(bg){
 function showSelBar(){
   if(!(EDIT && can('editContent'))){ return hideSelBar(); }
   const sel=window.getSelection();
-  if(!sel||sel.rangeCount===0||sel.isCollapsed){ return hideSelBar(); }
+  if(!sel||sel.rangeCount===0){ return hideSelBar(); }
   let n=sel.anchorNode; n=n&&(n.nodeType===1?n:n.parentElement);
   const ed=n&&n.closest&&n.closest('[data-ed], .wedrich');
-  if(!ed||!$("#view").contains(ed)){ return hideSelBar(); }
+  // mostra a barra mesmo só com o cursor (clique) dentro de texto editável — acesso rápido ao estilo
+  if(!ed||!$("#view").contains(ed)||ed.getAttribute('contenteditable')!=='true'){ return hideSelBar(); }
   if(!_selBar){
     _selBar=document.createElement('div'); _selBar.className='selformat';
     _selBar.innerHTML=`<button data-b title="Negrito"><b>N</b></button><button data-i title="Itálico"><i>I</i></button><button data-u title="Sublinhado" style="text-decoration:underline">S</button><button data-strike title="Tachado" style="text-decoration:line-through">T</button>
@@ -3586,7 +3587,8 @@ function showSelBar(){
   }
   _selBar._ed=ed;
   _selBar.style.display='flex';
-  const rect=sel.getRangeAt(0).getBoundingClientRect();
+  let rect=sel.getRangeAt(0).getBoundingClientRect();
+  if(!rect.width && !rect.height){ rect=ed.getBoundingClientRect(); }   // cursor sem seleção: ancora no campo
   _selBar.style.left=Math.max(8, Math.min(window.innerWidth-_selBar.offsetWidth-8, rect.left))+'px';
   _selBar.style.top=Math.max(8, rect.top-_selBar.offsetHeight-8)+'px';
 }
@@ -3722,6 +3724,8 @@ function bindGridDrag(canvas, key, layout){
     const rEl=e.target.closest(".resize, .resize-r, .resize-b");
     // 2) Os BOTÕES de ação (config/duplicar/excluir) e campos clicáveis NÃO iniciam arraste.
     //    A alça ⠿ (.t-move) e as bordas de resize SIM iniciam.
+    // texto editável (contenteditable ativo) NÃO inicia arraste — deixa selecionar palavra/trecho livremente
+    if(!rEl && e.target.closest('[contenteditable="true"]')) return;
     if(!rEl && e.target.closest(".gtile-config, .gtile-dup, .gtile-del, .status-sel, button, select, input, textarea, a, .vinput")) return;
     const items=liveItems(key, layout);
     const item=items.find(it=>it.id===tileEl.dataset.id); if(!item) return;
