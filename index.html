@@ -747,6 +747,28 @@
     align-items:center;background:var(--ink);color:#fff;padding:9px 14px;border-radius:13px;box-shadow:0 12px 34px rgba(36,26,110,.3)}
   .selbar span{font-size:13px;font-weight:700;margin-right:4px}
   .selbar .gt-btn{padding:7px 11px;font-size:12.5px}
+  /* gerenciar menus/sub-menus */
+  .nav-manage{margin:8px 10px 4px;width:calc(100% - 20px);border:1px dashed var(--line);background:#fff;
+    border-radius:9px;padding:8px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+  .nav-manage:hover{border-color:var(--ink);color:var(--ink)}
+  .nav-item.nav-hidden,.sec-tab.nav-hidden{opacity:.45}
+  .nm-list{display:flex;flex-direction:column;gap:10px}
+  .nm-ch{border:1px solid var(--line);border-radius:11px;padding:10px}
+  .nm-ch.nm-hidden{opacity:.55}
+  .nm-ch-head{display:flex;gap:7px;align-items:center}
+  .nm-icon{width:42px;text-align:center;padding:7px 4px;border:1.5px solid var(--line);border-radius:8px;font-size:15px}
+  .nm-name{flex:1;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;font-weight:700;color:var(--ink)}
+  .nm-acts{display:flex;gap:3px;flex:0 0 auto}
+  .nm-mini{width:26px;height:28px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:12px;color:var(--ink2)}
+  .nm-mini.danger{color:var(--magenta)} .nm-mini:hover{border-color:var(--ink)}
+  .nm-colors{display:flex;gap:5px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .nm-sw{width:20px;height:20px;border-radius:5px;border:1.5px solid rgba(0,0,0,.12)}
+  .nm-color{width:24px;height:22px;border:none;background:none;padding:0}
+  .nm-secs{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+  .nm-sec{display:flex;gap:5px;align-items:center}
+  .nm-sec.nm-hidden{opacity:.55}
+  .nm-sname{flex:1;padding:6px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink2)}
+  .nm-addsec{align-self:flex-start;padding:6px 11px;font-size:12px}
   @media (max-width:820px){
     .side-toggle{display:none}
     body.sidebar-collapsed #sidebar{width:var(--sidebar)}
@@ -1802,7 +1824,8 @@ STATE.statuses  = STATE.statuses  || {};
 STATE.media     = STATE.media     || {};
 STATE.layout    = STATE.layout    || {};   // { [secKey]: { cols, cellH, items:[{id,x,y,w,h,add?}] } }
 STATE.styles    = STATE.styles    || {};   // { [blockId]: { bg?, top?, fg? } }
-if(STATE.ui){ CUR = STATE.ui; }
+STATE.nav       = STATE.nav       || {};   // { order[], hidden[], add{}, secAdd{}, secOrder{}, secHidden[], _seq }
+if(STATE.ui){ CUR = STATE.ui; if(CUR.section!=null) CUR.section=String(CUR.section); } // seção vira chave (string)
 
 function txt(key, def){ return (key && STATE.overrides[key]!=null) ? STATE.overrides[key] : def; }
 function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -1814,7 +1837,7 @@ let _cloudTimer=null, _applyingRemote=false;
 function isCloudAdmin(){ return !!(CLOUD && fbAuth && fbAuth.currentUser); }
 function cloudPayload(){
   return { overrides:STATE.overrides||{}, statuses:STATE.statuses||{}, media:STATE.media||{},
-    layout:STATE.layout||{}, styles:STATE.styles||{}, _addSeq:_addSeq||0,
+    layout:STATE.layout||{}, styles:STATE.styles||{}, nav:STATE.nav||{}, _addSeq:_addSeq||0,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 }
 function cloudPush(){
@@ -1826,7 +1849,7 @@ function cloudPush(){
       .catch(e=> console.warn("cloudPush falhou:", e.code||e));
   }, 400);
 }
-function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},n:o._addSeq||0}); }
+function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},v:o.nav||{},n:o._addSeq||0}); }
 function applyRemote(data){
   if(!data) return;
   // deduplica o "eco" do próprio autosave: se nada mudou, não re-renderiza (evita scroll voltar ao topo)
@@ -1837,6 +1860,7 @@ function applyRemote(data){
   STATE.media     = data.media     || {};
   STATE.layout    = data.layout    || {};
   STATE.styles    = data.styles    || {};
+  STATE.nav       = data.nav       || {};
   _addSeq = Math.max(_addSeq||0, data._addSeq||0); STATE._addSeq=_addSeq;
   localStorage.setItem(LS_STATE, JSON.stringify(STATE));   // cache local
   _applyingRemote=false;
@@ -2248,24 +2272,124 @@ function refreshIdentity(){
    NAV
    ========================================================================= */
 function chapterName(chRef, chKey){ return txt('nav/'+chKey+'/nome', chRef.nome); }
+function chapterColor(chKey, def){ return txt('nav/'+chKey+'/cor', def||'var(--ink)'); }
+function chapterIcon(chKey, def){ return txt('nav/'+chKey+'/icone', def||'◆'); }
+
+/* ===== modelo de navegação (PLAN + STATE.nav): ordem desacoplada da identidade ===== */
+function navSeq(){ STATE.nav._seq=(STATE.nav._seq||0)+1; return STATE.nav._seq; }
+function addedChapterObj(chKey){ const a=(STATE.nav.add||{})[chKey]||{}; return { nome:'Novo capítulo', cor:'var(--cyan)', icone:'◆', resumo:'', intro:'', num:a.num||'+', sections:[], _added:true }; }
+function addedSectionObj(chKey,sk){ return { titulo:'Nova seção', blocks:[], _added:true }; }
+function sectionsOf(chKey, chObj){
+  const base=(chObj.sections||[]).map((s,i)=>({secKey:String(i), obj:s}));
+  const secAdd=STATE.nav.secAdd||{};
+  const added=Object.keys(secAdd).filter(k=>k.indexOf(chKey+'/')===0).map(k=>{ const sk=k.slice(chKey.length+1); return {secKey:sk, obj:addedSectionObj(chKey,sk), added:true}; });
+  let all=base.concat(added);
+  const ord=(STATE.nav.secOrder||{})[chKey];
+  if(ord&&ord.length) all.sort((a,b)=>{ const ia=ord.indexOf(a.secKey),ib=ord.indexOf(b.secKey); return (ia<0?999:ia)-(ib<0?999:ib); });
+  const sh=new Set(STATE.nav.secHidden||[]);
+  return all.map(s=>({ ...s, hidden:sh.has(chKey+'/'+s.secKey), titulo:txt('sec/'+chKey+'/'+s.secKey+'/titulo', s.obj.titulo||'Seção') }));
+}
+function navModel(){
+  let all=[{chKey:'onb', obj:PLAN.onboarding, isOnb:true}].concat(PLAN.chapters.map((c,i)=>({chKey:String(i), obj:c, num:c.num})));
+  const add=STATE.nav.add||{};
+  Object.keys(add).forEach(k=> all.push({chKey:k, obj:addedChapterObj(k), added:true, num:add[k].num}));
+  const order=STATE.nav.order;
+  if(order&&order.length) all.sort((a,b)=>{ const ia=order.indexOf(a.chKey),ib=order.indexOf(b.chKey); return (ia<0?999:ia)-(ib<0?999:ib); });
+  const hidden=new Set(STATE.nav.hidden||[]);
+  return all.map(c=>({ chKey:c.chKey, isOnb:!!c.isOnb, added:!!c.added, obj:c.obj, num:c.num,
+    nome:chapterName(c.obj,c.chKey), cor:chapterColor(c.chKey,c.obj.cor), icone:chapterIcon(c.chKey,c.obj.icone),
+    hidden:hidden.has(c.chKey), sections:sectionsOf(c.chKey,c.obj) }));
+}
+function chapterModel(chKey){ return navModel().find(c=>c.chKey===String(chKey)); }
+
+/* ----- gestão de menus/sub-menus ----- */
+function ensureOrder(){ if(!STATE.nav.order||!STATE.nav.order.length) STATE.nav.order=navModel().map(c=>c.chKey); return STATE.nav.order; }
+function ensureSecOrder(chKey){ STATE.nav.secOrder=STATE.nav.secOrder||{}; if(!STATE.nav.secOrder[chKey]){ const cm=chapterModel(chKey); STATE.nav.secOrder[chKey]=cm?cm.sections.map(s=>s.secKey):[]; } return STATE.nav.secOrder[chKey]; }
+function moveChapter(chKey,dir){ const o=ensureOrder(),i=o.indexOf(chKey),j=i+dir; if(i<0||j<0||j>=o.length)return; o[i]=o.splice(j,1,o[i])[0]; saveState(); buildNav(); }
+function moveSection(chKey,secKey,dir){ const o=ensureSecOrder(chKey),i=o.indexOf(secKey),j=i+dir; if(i<0||j<0||j>=o.length)return; o[i]=o.splice(j,1,o[i])[0]; saveState(); render(); }
+function addChapter(){ STATE.nav.add=STATE.nav.add||{}; const k='x'+navSeq(); STATE.nav.add[k]={num:'+'}; STATE.nav.secAdd=STATE.nav.secAdd||{}; STATE.nav.secAdd[k+'/s0']=true; ensureOrder().push(k); saveState(); buildNav(); return k; }
+function addSection(chKey){ STATE.nav.secAdd=STATE.nav.secAdd||{}; const sk='s'+navSeq(); STATE.nav.secAdd[chKey+'/'+sk]=true; ensureSecOrder(chKey).push(sk); saveState(); render(); return sk; }
+function hideChapter(chKey,hide){ const s=new Set(STATE.nav.hidden||[]); hide?s.add(chKey):s.delete(chKey); STATE.nav.hidden=[...s]; saveState(); buildNav(); }
+function hideSection(chKey,secKey,hide){ const k=chKey+'/'+secKey, s=new Set(STATE.nav.secHidden||[]); hide?s.add(k):s.delete(k); STATE.nav.secHidden=[...s]; saveState(); render(); }
+function delChapter(chKey){ if(!(STATE.nav.add&&STATE.nav.add[chKey])) return; delete STATE.nav.add[chKey];
+  if(STATE.nav.order) STATE.nav.order=STATE.nav.order.filter(x=>x!==chKey);
+  Object.keys(STATE.nav.secAdd||{}).forEach(k=>{ if(k.indexOf(chKey+'/')===0) delete STATE.nav.secAdd[k]; });
+  if(String(CUR.chapter)===chKey) CUR={chapter:'onb',section:'0'};
+  saveState(); buildNav(); render(); }
+function delSection(chKey,secKey){ const k=chKey+'/'+secKey; if(!(STATE.nav.secAdd&&STATE.nav.secAdd[k])) return; delete STATE.nav.secAdd[k];
+  if(STATE.nav.secOrder&&STATE.nav.secOrder[chKey]) STATE.nav.secOrder[chKey]=STATE.nav.secOrder[chKey].filter(x=>x!==secKey);
+  if(String(CUR.chapter)===chKey && String(CUR.section)===secKey) CUR.section='0'; saveState(); render(); }
+function setNavMeta(chKey,field,val){ STATE.overrides['nav/'+chKey+'/'+field]=val; saveState(); buildNav(); render(); }
+
+function openNavManager(){
+  const model=navModel();
+  const swatches=(chKey)=> COLOR_SWATCHES.map(([n,c])=>`<button class="nm-sw" title="${n}" data-chk="${chKey}" data-col="${c}" style="background:${c}"></button>`).join('')+`<input type="color" class="nm-color" data-chk="${chKey}" value="#888888" title="Cor personalizada">`;
+  const chRow=cm=>`<div class="nm-ch ${cm.hidden?'nm-hidden':''}">
+    <div class="nm-ch-head">
+      <input class="nm-icon" data-chk="${cm.chKey}" value="${esc(cm.icone)}" maxlength="3" title="Ícone">
+      <input class="nm-name" data-chk="${cm.chKey}" value="${esc(cm.nome)}">
+      <span class="nm-acts">
+        <button class="nm-mini" data-up="${cm.chKey}" title="Subir">▲</button>
+        <button class="nm-mini" data-down="${cm.chKey}" title="Descer">▼</button>
+        <button class="nm-mini" data-hide="${cm.chKey}" title="${cm.hidden?'Mostrar':'Ocultar'}">${cm.hidden?'🙈':'👁'}</button>
+        ${cm.added?`<button class="nm-mini danger" data-delch="${cm.chKey}" title="Excluir">×</button>`:''}
+        <button class="nm-mini" data-expand="${cm.chKey}" title="Sub-menus">▾</button>
+      </span>
+    </div>
+    <div class="nm-colors">${swatches(cm.chKey)}</div>
+    <div class="nm-secs" id="nmsec-${cm.chKey}" style="display:none">
+      ${cm.sections.map(s=>`<div class="nm-sec ${s.hidden?'nm-hidden':''}">
+        <input class="nm-sname" data-chk="${cm.chKey}" data-sk="${s.secKey}" value="${esc(s.titulo)}">
+        <button class="nm-mini" data-sup="${cm.chKey}|${s.secKey}">▲</button>
+        <button class="nm-mini" data-sdown="${cm.chKey}|${s.secKey}">▼</button>
+        <button class="nm-mini" data-shide="${cm.chKey}|${s.secKey}">${s.hidden?'🙈':'👁'}</button>
+        ${s.added?`<button class="nm-mini danger" data-sdel="${cm.chKey}|${s.secKey}">×</button>`:''}
+      </div>`).join('')}
+      <button class="gt-btn ghost nm-addsec" data-addsec="${cm.chKey}">＋ Sub-menu</button>
+    </div></div>`;
+  const card=showModal("Menus e sub-menus", `<div class="nm-list">${model.map(chRow).join('')}</div>
+    <button class="gt-btn accent" id="nmAddCh" style="margin-top:12px">＋ Novo menu</button>`);
+  const reopen=()=> openNavManager();
+  $("#nmAddCh",card).addEventListener("click",()=>{ addChapter(); reopen(); });
+  $$("[data-up]",card).forEach(b=>b.addEventListener("click",()=>{ moveChapter(b.dataset.up,-1); reopen(); }));
+  $$("[data-down]",card).forEach(b=>b.addEventListener("click",()=>{ moveChapter(b.dataset.down,1); reopen(); }));
+  $$("[data-hide]",card).forEach(b=>b.addEventListener("click",()=>{ const cm=chapterModel(b.dataset.hide); hideChapter(b.dataset.hide,!cm.hidden); reopen(); }));
+  $$("[data-delch]",card).forEach(b=>b.addEventListener("click",()=>{ if(confirm("Excluir este menu adicionado?")){ delChapter(b.dataset.delch); reopen(); } }));
+  $$("[data-expand]",card).forEach(b=>b.addEventListener("click",()=>{ const el=$("#nmsec-"+b.dataset.expand,card); if(el) el.style.display=el.style.display==='none'?'block':'none'; }));
+  $$(".nm-name",card).forEach(i=>i.addEventListener("change",()=> setNavMeta(i.dataset.chk,'nome',i.value.trim())));
+  $$(".nm-icon",card).forEach(i=>i.addEventListener("change",()=> setNavMeta(i.dataset.chk,'icone',i.value.trim()||'◆')));
+  $$(".nm-sw",card).forEach(b=>b.addEventListener("click",()=> setNavMeta(b.dataset.chk,'cor',b.dataset.col)));
+  $$(".nm-color",card).forEach(i=>i.addEventListener("change",()=> setNavMeta(i.dataset.chk,'cor',i.value)));
+  $$(".nm-sname",card).forEach(i=>i.addEventListener("change",()=>{ STATE.overrides['sec/'+i.dataset.chk+'/'+i.dataset.sk+'/titulo']=i.value.trim(); saveState(); render(); }));
+  $$("[data-addsec]",card).forEach(b=>b.addEventListener("click",()=>{ addSection(b.dataset.addsec); reopen(); }));
+  $$("[data-sup]",card).forEach(b=>b.addEventListener("click",()=>{ const p=b.dataset.sup.split('|'); moveSection(p[0],p[1],-1); reopen(); }));
+  $$("[data-sdown]",card).forEach(b=>b.addEventListener("click",()=>{ const p=b.dataset.sdown.split('|'); moveSection(p[0],p[1],1); reopen(); }));
+  $$("[data-shide]",card).forEach(b=>b.addEventListener("click",()=>{ const p=b.dataset.shide.split('|'); const cm=chapterModel(p[0]); const sm=cm.sections.find(x=>x.secKey===p[1]); hideSection(p[0],p[1],!(sm&&sm.hidden)); reopen(); }));
+  $$("[data-sdel]",card).forEach(b=>b.addEventListener("click",()=>{ const p=b.dataset.sdel.split('|'); if(confirm("Excluir este sub-menu adicionado?")){ delSection(p[0],p[1]); reopen(); } }));
+}
+
 function buildNav(){
   const nav=$("#nav");
-  let h = `<button class="nav-item special ${CUR.chapter==='onb'?'active':''}" data-ch="onb">
-             <span class="dot" style="background:var(--ink)"></span>${PLAN.onboarding.icone} ${esc(chapterName(PLAN.onboarding,'onb'))}
-           </button>`;
-  h += `<div class="nav-group-label">O Plano</div>`;
-  PLAN.chapters.forEach((c,i)=>{
-    h += `<button class="nav-item ${CUR.chapter===i?'active':''}" data-ch="${i}">
-            <span class="num">${String(c.num).padStart(2,'0')}</span>
-            <span class="dot" style="background:${c.cor}"></span>${esc(chapterName(c,String(i)))}
+  const model=navModel();
+  const canEditNav = can('editLayout')||can('manageUsers');
+  let h="", grouped=false;
+  model.forEach(c=>{
+    if(c.hidden && !canEditNav) return;                 // ocultos: só admin vê (atenuados)
+    if(!c.isOnb && !grouped){ h+=`<div class="nav-group-label">O Plano</div>`; grouped=true; }
+    const numHtml = c.isOnb ? "" : `<span class="num">${c.added?'＋':String(c.num).padStart(2,'0')}</span>`;
+    h += `<button class="nav-item ${c.isOnb?'special ':''}${String(CUR.chapter)===c.chKey?'active':''} ${c.hidden?'nav-hidden':''}" data-ch="${c.chKey}">
+            ${numHtml}<span class="dot" style="background:${c.isOnb?'var(--ink)':c.cor}"></span>${c.isOnb?(esc(c.icone)+' '):''}${esc(c.nome)}
           </button>`;
   });
+  if(canEditNav) h += `<button class="nav-manage" id="navManageBtn">⚙ Gerenciar menus</button>`;
   nav.innerHTML=h;
   $$(".nav-item",nav).forEach(b=>b.addEventListener("click",()=>{
     const ch=b.dataset.ch;
-    CUR={ chapter: ch==='onb'?'onb':parseInt(ch,10), section:0 };
+    const cm=chapterModel(ch); const firstSec=cm&&cm.sections.find(s=>!s.hidden)||(cm&&cm.sections[0]);
+    CUR={ chapter: ch==='onb'?'onb':(/^\d+$/.test(ch)?parseInt(ch,10):ch), section:(firstSec?firstSec.secKey:'0') };
     persistUi(); render(); closeDrawer();
   }));
+  const mb=$("#navManageBtn",nav); if(mb) mb.addEventListener("click", openNavManager);
   updateNavProgress();
 }
 function persistUi(){ STATE.ui=CUR; saveState(); }
@@ -2273,45 +2397,58 @@ function persistUi(){ STATE.ui=CUR; saveState(); }
 /* =========================================================================
    RENDER
    ========================================================================= */
-function curChapterObj(){ return CUR.chapter==='onb' ? PLAN.onboarding : PLAN.chapters[CUR.chapter]; }
+function curChapterObj(){
+  if(CUR.chapter==='onb') return PLAN.onboarding;
+  if(typeof CUR.chapter==='number') return PLAN.chapters[CUR.chapter];
+  return addedChapterObj(String(CUR.chapter));
+}
+function curSecObj(){
+  const cm=chapterModel(CUR.chapter); if(!cm) return {titulo:'',blocks:[]};
+  const s=cm.sections.find(x=>x.secKey===String(CUR.section))||cm.sections[0];
+  return s?s.obj:{titulo:'',blocks:[]};
+}
 
 function render(){
-  const ch=curChapterObj();
-  $("#tbTitle").textContent=chapterName(ch,String(CUR.chapter));
-  $$(".nav-item").forEach(b=>{
-    const v=b.dataset.ch; const on = (v==='onb'&&CUR.chapter==='onb')||(v!=='onb'&&parseInt(v,10)===CUR.chapter);
-    b.classList.toggle("active",on);
-  });
+  const cm = chapterModel(CUR.chapter) || navModel()[0];
+  const chKey = cm.chKey;
+  CUR.chapter = chKey==='onb'?'onb':(/^\d+$/.test(chKey)?parseInt(chKey,10):chKey);  // normaliza
+  const ch = cm.obj, isOnb = cm.isOnb;
+  $("#tbTitle").textContent=cm.nome;
+  $$(".nav-item").forEach(b=> b.classList.toggle("active", b.dataset.ch===chKey));
 
-  const cor = ch.cor;
-  const isOnb = CUR.chapter==='onb';
-  const chKey = String(CUR.chapter);
-  const num = isOnb ? "ONBOARDING" : "CAPÍTULO "+String(ch.num).padStart(2,'0');
-  const subDef = isOnb ? ch.intro : ch.resumo;
+  // seção atual por chave estável
+  let secModel = cm.sections.find(s=>s.secKey===String(CUR.section)) || cm.sections.find(s=>!s.hidden) || cm.sections[0]
+              || {secKey:'0', obj:{titulo:cm.nome, blocks:[]}, titulo:cm.nome};
+  CUR.section = secModel.secKey;
+  const sec = secModel.obj;
+
+  const cor = cm.cor;
+  const num = isOnb ? "ONBOARDING" : (cm.added? "NOVO MENU" : "CAPÍTULO "+String(cm.num).padStart(2,'0'));
+  const subDef = isOnb ? (ch.intro||'') : (ch.resumo||'');
   const nameK='nav/'+chKey+'/nome', subK='nav/'+chKey+'/sub';
   const dark = cor==="var(--yellow)"; // texto escuro sobre amarelo
   let h = `<div class="chap-hero" style="background:${cor};${dark?'color:#3a2e00':''}">
              <div class="deco"><span></span><span></span><span></span></div>
              <div class="ch-num">${num}</div>
-             <h2 class="ed" data-ed="${nameK}">${esc(txt(nameK,ch.nome))}</h2>
+             <h2 class="ed" data-ed="${nameK}">${esc(cm.nome)}</h2>
              <div class="ch-sub ed" data-ed="${subK}">${esc(txt(subK,subDef))}</div>
            </div>`;
 
   // tabs de seção
-  if(ch.sections.length>1){
+  const visSecs = cm.sections.filter(s=> !s.hidden || (EDIT&&can('editLayout')));
+  if(visSecs.length>1){
     h += `<div class="sec-tabs">`;
-    ch.sections.forEach((s,i)=> h += `<button class="sec-tab ${i===CUR.section?'active':''}" data-sec="${i}">${esc(txt('sec/'+chKey+'/'+i+'/titulo', s.titulo))}</button>`);
+    visSecs.forEach(s=> h += `<button class="sec-tab ${s.secKey===String(CUR.section)?'active':''} ${s.hidden?'nav-hidden':''}" data-sec="${s.secKey}">${esc(s.titulo)}</button>`);
     h += `</div>`;
   }
 
-  const sec = ch.sections[CUR.section] || ch.sections[0];
   const key = secKey();
   const secTitK='sec/'+chKey+'/'+CUR.section+'/titulo';
   let layout = effectiveLayout(sec, key);
   // Editar já ativa a grade de TODOS os widgets: auto-semeia a seção (mede e converte)
   if(!layout && EDIT && can('editLayout')){ layout = autoSeedLayout(sec, key); }
-  h += `<div class="section"><h3 class="ed" data-ed="${secTitK}">${esc(txt(secTitK,sec.titulo))}</h3>`;
-  h += secProgressHtml(ch, CUR.section);
+  h += `<div class="section"><h3 class="ed" data-ed="${secTitK}">${esc(secModel.titulo)}</h3>`;
+  h += secProgressHtml(cm, CUR.section);
   _lastDevice = deviceForWidth(window.innerWidth);
   if(layout){
     h += gridToolbarHtml(key);
@@ -2349,7 +2486,7 @@ function render(){
   scroller.scrollTop = keepScroll;
 
   $$(".sec-tab").forEach(t=>t.addEventListener("click",()=>{
-    CUR.section=parseInt(t.dataset.sec,10); persistUi(); render();
+    CUR.section=t.dataset.sec; persistUi(); render();
   }));
   wireBlockEvents();
   wireGridEvents(sec, key, layout);
@@ -2946,7 +3083,7 @@ function groupAction(key,what){
 }
 function widgetNameOfItem(item){
   if(item&&item.add) return item.add.type;
-  const ch=curChapterObj(); const sec=ch.sections[CUR.section]||ch.sections[0];
+  const sec=curSecObj();
   const b=sec&&sec.blocks.find(x=>x._id===(item&&item.id));
   return b?b.type:"widget";
 }
@@ -2992,7 +3129,7 @@ function deactivateGrid(key){
 function deleteTile(key, id){
   let bag=layoutBag(key);
   if(!bag || !DEVICES.some(d=>bag[d.id])){   // seção baked/derivada ainda não materializada
-    liveVariant(key, curChapterObj().sections[CUR.section]||curChapterObj().sections[0]);
+    liveVariant(key, curSecObj());
     bag=layoutBag(key);
   }
   if(!bag) return;
@@ -3099,7 +3236,7 @@ function histInit(){ if(HIST.length) return; HIST=[snapshotState()]; HMETA=[{lab
 function curContextLabel(){
   const ch=curChapterObj();
   const capN = CUR.chapter==='onb' ? "Onboarding" : "Cap "+String(ch.num).padStart(2,'0');
-  const sec=ch.sections[CUR.section]||ch.sections[0];
+  const sec=curSecObj();
   return capN+" › "+(sec?sec.titulo:"");
 }
 function pushHistory(label, widget){
@@ -3193,7 +3330,7 @@ function _cpopOutside(e){ const p=$("#cpop"); if(p && !p.contains(e.target) && !
 function closeColorPopover(){ const p=$("#cpop"); if(p) p.remove(); document.removeEventListener("pointerdown", _cpopOutside, true); }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
-  const v=liveVariant(key, curChapterObj().sections[CUR.section]);
+  const v=liveVariant(key, curSecObj());
   const it=v.items.find(x=>x.id===id); if(!it) return;
   const cols=v.cols||GRID_COLS;
   if(w){ it.w=Math.max(1,Math.min(cols,w)); if(it.x+it.w>cols) it.x=Math.max(0,cols-it.w); }
@@ -3202,7 +3339,7 @@ function setTileSize(key, id, w, h){
 }
 /* duplica um widget na variante atual + propaga às demais */
 function duplicateTile(key, id, silent){
-  const sec=curChapterObj().sections[CUR.section]||curChapterObj().sections[0];
+  const sec=curSecObj();
   const v=liveVariant(key, sec); const it=v.items.find(x=>x.id===id); if(!it) return;
   const src=blockOfItem(sec, it); if(!src) return;
   const newId=newAddId();
@@ -3235,11 +3372,8 @@ function showCtxMenu(x,y,html){
   return m;
 }
 function navTargetsHtml(){
-  let h="";
-  const sec=(ch,ci,nome)=> ch.sections.map((s,si)=>`<button class="ctx-sub-item" data-mch="${ci}" data-msi="${si}">${esc(nome)} › ${esc(txt('sec/'+ci+'/'+si+'/titulo',s.titulo))}</button>`).join("");
-  h+=sec(PLAN.onboarding,'onb',chapterName(PLAN.onboarding,'onb'));
-  PLAN.chapters.forEach((c,i)=> h+=sec(c,String(i),chapterName(c,String(i))));
-  return h;
+  return navModel().filter(c=>!c.hidden).map(cm=> cm.sections.filter(s=>!s.hidden).map(s=>
+    `<button class="ctx-sub-item" data-mch="${cm.chKey}" data-msi="${s.secKey}">${esc(cm.nome)} › ${esc(s.titulo)}</button>`).join("")).join("");
 }
 function openTileMenu(x,y,key,id){
   const m=showCtxMenu(x,y,`
@@ -3257,20 +3391,20 @@ function openTileMenu(x,y,key,id){
     else if(a==='dup'){ duplicateTile(key,id); }
     else if(a==='del'){ deleteTile(key,id); }
   }));
-  $$(".ctx-sub-item",m).forEach(b=> b.addEventListener("click",()=>{ closeCtxMenu(); moveTileTo(key,id,b.dataset.mch==='onb'?'onb':parseInt(b.dataset.mch,10), parseInt(b.dataset.msi,10)); }));
+  $$(".ctx-sub-item",m).forEach(b=> b.addEventListener("click",()=>{ closeCtxMenu(); moveTileTo(key,id,b.dataset.mch, b.dataset.msi); }));
 }
 function openCanvasMenu(x,y,key){
   const m=showCtxMenu(x,y, CLIP?`<button class="ctx-item" data-act="paste">📋 Colar widget</button>`:`<button class="ctx-item" disabled>Nada copiado</button>`);
   const pb=$('[data-act="paste"]',m); if(pb) pb.addEventListener("click",()=>{ closeCtxMenu(); pasteTile(key); });
 }
 function copyTile(key,id){
-  const sec=curChapterObj().sections[CUR.section]; const it=layoutItemsOf(key).find(x=>x.id===id);
+  const sec=curSecObj(); const it=layoutItemsOf(key).find(x=>x.id===id);
   const src=it&&blockOfItem(sec,it); if(!src) return;
   CLIP={ block:JSON.parse(JSON.stringify(src)), oldId:src._id, w:it.w, h:it.h };
 }
 function pasteTile(key){
   if(!CLIP) return;
-  const sec=curChapterObj().sections[CUR.section]; const v=liveVariant(key, sec);
+  const sec=curSecObj(); const v=liveVariant(key, sec);
   const newId=newAddId(); const clone=JSON.parse(JSON.stringify(CLIP.block)); clone._id=newId;
   remapIdInObj(clone, CLIP.oldId, newId);
   Object.keys(STATE.overrides).forEach(k=>{ if(CLIP.oldId && k.indexOf(CLIP.oldId)===0){ STATE.overrides[newId+k.slice(CLIP.oldId.length)]=STATE.overrides[k]; } });
@@ -3279,12 +3413,12 @@ function pasteTile(key){
   pushHistory("Colou widget", clone.type); saveState(); render();
 }
 function moveTileTo(key,id,tch,tsi){
-  if(String(tch)===String(CUR.chapter) && tsi===CUR.section) return;  // mesma aba
-  const sec=curChapterObj().sections[CUR.section]; const it=layoutItemsOf(key).find(x=>x.id===id);
+  if(String(tch)===String(CUR.chapter) && String(tsi)===String(CUR.section)) return;  // mesma aba
+  const sec=curSecObj(); const it=layoutItemsOf(key).find(x=>x.id===id);
   const src=it&&blockOfItem(sec,it); if(!src) return;
   const tKey=String(tch)+'/'+tsi;
-  const tChObj = tch==='onb'?PLAN.onboarding:PLAN.chapters[tch];
-  const tSec=tChObj.sections[tsi];
+  const tcm=chapterModel(tch); const tSecModel=tcm&&tcm.sections.find(s=>s.secKey===String(tsi));
+  const tSec=tSecModel?tSecModel.obj:{blocks:[]};
   const tv=liveVariant(tKey, tSec);
   const newId=newAddId(); const clone=JSON.parse(JSON.stringify(src)); clone._id=newId;
   remapIdInObj(clone, src._id, newId);
@@ -3390,29 +3524,28 @@ function setSaveStatus(s){
   else if(s==='saved'){ p.textContent="Salvo ✓ "+nowHM(); p.className="save-pill saved"; }
 }
 
-/* progresso de ações por seção / capítulo */
-function sectionActionIds(chRef, si){
-  const ids=[]; const sec=chRef.sections[si]; if(!sec) return ids;
-  sec.blocks.forEach(b=>{ if(b.type==="action"&&b.id) ids.push(b.id); });
-  const key=(chRef===PLAN.onboarding?'onb':PLAN.chapters.indexOf(chRef))+'/'+si;
-  const bag=STATE.layout[key];
+/* progresso de ações por seção / capítulo (chaves estáveis chKey/secKey) */
+function sectionActionIds(chKey, secKey, secObj){
+  const ids=[]; if(secObj&&secObj.blocks) secObj.blocks.forEach(b=>{ if(b.type==="action"&&b.id) ids.push(b.id); });
+  const bag=STATE.layout[chKey+'/'+secKey];
   const v = bag ? (bag.desktop || (bag.items?bag:(bag.tablet||bag.mobile))) : null;
   const seen={};
   if(v&&v.items) v.items.forEach(it=>{ if(it.add&&it.add.type==="action"&&it.add.id&&!seen[it.add.id]){ seen[it.add.id]=1; ids.push(it.add.id); } });
   return ids;
 }
-function chapterActionIds(chRef){ let ids=[]; chRef.sections.forEach((s,si)=> ids=ids.concat(sectionActionIds(chRef,si))); return ids; }
+function chapterActionIds(cm){ let ids=[]; (cm.sections||[]).forEach(s=> ids=ids.concat(sectionActionIds(cm.chKey, s.secKey, s.obj))); return ids; }
 function progOf(ids){ const total=ids.length, done=ids.filter(id=>STATE.statuses[id]==="done").length; return {done,total,pct: total?Math.round(done/total*100):0}; }
-function secProgressHtml(chRef, si){
-  const p=progOf(sectionActionIds(chRef,si)); if(!p.total) return "";
+function secProgressHtml(cm, secKey){
+  const s=(cm.sections||[]).find(x=>x.secKey===String(secKey)); if(!s) return "";
+  const p=progOf(sectionActionIds(cm.chKey, s.secKey, s.obj)); if(!p.total) return "";
   return `<div class="sec-progress"><span class="sptxt">✓ ${p.done} de ${p.total} ações</span>
     <span class="spbar"><i style="width:${p.pct}%"></i></span><span class="sptxt">${p.pct}%</span></div>`;
 }
 function updateNavProgress(){
+  const model=navModel();
   $$(".nav-item").forEach(b=>{
-    const v=b.dataset.ch; const chRef = v==='onb'?PLAN.onboarding:PLAN.chapters[parseInt(v,10)];
-    if(!chRef) return;
-    const p=progOf(chapterActionIds(chRef));
+    const cm=model.find(c=>c.chKey===b.dataset.ch); if(!cm) return;
+    const p=progOf(chapterActionIds(cm));
     let chip=b.querySelector(".nav-prog");
     if(!p.total){ if(chip) chip.remove(); return; }
     if(!chip){ chip=document.createElement("span"); chip.className="nav-prog"; b.appendChild(chip); }
