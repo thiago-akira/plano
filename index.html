@@ -1152,6 +1152,27 @@
     body.sidebar-collapsed #sidebar{width:var(--sidebar)}
   }
 
+  /* widget "O que aprendemos" — caixa colorida com seta direcional */
+  .learn{position:relative;background:var(--learn-bg,#123a8a);color:#fff;border-radius:14px;padding:26px 28px;margin:16px 0;box-shadow:var(--shadow)}
+  .learn .learn-t{margin:0 0 12px;font-size:16px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff}
+  .learn .learn-p{font-size:14px;line-height:1.65;color:rgba(255,255,255,.92)}
+  .learn .learn-p b,.learn .learn-p strong{color:#fff;font-weight:800}
+  .learn .learn-p p{margin:0 0 8px} .learn .learn-p p:last-child{margin:0}
+  body.editing .learn .learn-t:focus,body.editing .learn .learn-p:focus{color:var(--ink) !important;-webkit-text-fill-color:var(--ink)}
+  .learn .learn-arrow{position:absolute;width:0;height:0;display:none}
+  .learn.arrow-top .learn-arrow{display:block;top:-13px;left:50%;transform:translateX(-50%);border-left:15px solid transparent;border-right:15px solid transparent;border-bottom:13px solid var(--learn-bg)}
+  .learn.arrow-bottom .learn-arrow{display:block;bottom:-13px;left:50%;transform:translateX(-50%);border-left:15px solid transparent;border-right:15px solid transparent;border-top:13px solid var(--learn-bg)}
+  .learn.arrow-left .learn-arrow{display:block;left:-13px;top:50%;transform:translateY(-50%);border-top:15px solid transparent;border-bottom:15px solid transparent;border-right:13px solid var(--learn-bg)}
+  .learn.arrow-right .learn-arrow{display:block;right:-13px;top:50%;transform:translateY(-50%);border-top:15px solid transparent;border-bottom:15px solid transparent;border-left:13px solid var(--learn-bg)}
+  .learn-ctrls{display:none}
+  body.grid-edit .learn-ctrls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.28)}
+  .learn-arrows,.learn-cols{display:inline-flex;gap:4px;align-items:center}
+  .learn-arrows button{width:24px;height:24px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;border-radius:6px;cursor:pointer;font-size:12px;padding:0;line-height:1}
+  .learn-arrows button:hover,.learn-arrows button.on{background:rgba(255,255,255,.32);border-color:#fff}
+  .learn-sw{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.55);cursor:pointer;padding:0}
+  .learn-sw:hover{transform:scale(1.12)}
+  .learn-pick{width:26px;height:24px;border:1px solid rgba(255,255,255,.45);border-radius:6px;background:none;cursor:pointer;padding:1px}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -2931,7 +2952,8 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
-  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu' };
+  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
+  learn:'O que aprendemos' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3616,6 +3638,23 @@ function renderBlock(b, sec, bi){
       }
       return x+`</div>`;
     }
+    case "learn":{
+      const color=b.color||'#123a8a'; const arrow=b.arrow||'top';
+      const PAL=[['Azul','#123a8a'],['Tinta','var(--ink)'],['Verde','var(--green)'],['Laranja','var(--orange)'],['Magenta','var(--magenta)'],['Petróleo','#0e7490'],['Grafite','#2b2b3a'],['Vinho','#7a1239']];
+      const hex=/^#/.test(color)?color:'#123a8a';
+      const sw=PAL.map(([n,c])=>`<button class="learn-sw" data-learncolor="${b._id}|${c}" title="${n}" style="background:${c}"></button>`).join("");
+      const dirs=[['top','↑'],['right','→'],['bottom','↓'],['left','←'],['none','∅']];
+      const arr=dirs.map(([d,ic])=>`<button class="${arrow===d?'on':''}" data-learnarrow="${b._id}|${d}" title="Seta: ${d}">${ic}</button>`).join("");
+      return `<div class="block learn arrow-${arrow}" style="--learn-bg:${color}">
+        <div class="learn-arrow"></div>
+        <div class="learn-ctrls" contenteditable="false">
+          <span class="learn-arrows">${arr}</span>
+          <span class="learn-cols">${sw}<input type="color" class="learn-pick" data-learnpick="${b._id}" value="${hex}" title="Cor personalizada"></span>
+        </div>
+        <h3 class="ed learn-t" data-ed="${b._id}/t">${esc(txt(b._id+'/t',b.titulo))}</h3>
+        <div class="learn-p ed" data-ed="${b.key}">${richHtml(txt(b.key,b.texto))}</div>
+      </div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3863,6 +3902,10 @@ function wireBlockEvents(){
   $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
   // FAQ: clicar nos controles (alça/▲▼/×) dentro do <summary> não pode abrir/fechar o accordion
   $$(".faq-item summary").forEach(s=> s.addEventListener("click",e=>{ if(e.target.closest('.faq-acts')) e.preventDefault(); }));
+  // widget "O que aprendemos": trocar cor e direção da seta
+  $$("[data-learncolor]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,c]=b.dataset.learncolor.split('|'); setLearnProp(id,'color',c); }));
+  $$("[data-learnpick]").forEach(inp=> inp.addEventListener("input",e=>{ e.stopPropagation(); setLearnProp(inp.dataset.learnpick,'color',inp.value); }));
+  $$("[data-learnarrow]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,d]=b.dataset.learnarrow.split('|'); setLearnProp(id,'arrow',d); }));
   // tabela: lápis e clique direito por linha
   $$("[data-rowedit]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const tr=b.closest('tr'); const tile=b.closest('.gtile'); if(tile&&tr) openFieldEditor(tile,null,tr); }));
   $$("[data-rowaddbefore]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,ri]=b.dataset.rowaddbefore.split('|'); addRowAt(id,+ri-1); }));
@@ -4611,6 +4654,7 @@ const WIDGET_CATALOG=[
   {ic:"🩺", label:"Diagnóstico (8 Ps)", desc:"Análise por dimensão", make:id=>({type:"diagnostic", _id:id, key:id+"/p", items:[{num:1, nome:"Dimensão", diagnostico:"Situação atual da dimensão.", desafios:["Desafio identificado"], acoes:["Ação estratégica"]}]})},
   {ic:"📺", label:"Playlist YouTube", desc:"Vídeos + mini-player flutuante", make:id=>({type:"ytplaylist", _id:id, title:"Playlist", showTitle:true, active:0, items:[]})},
   {ic:"☰", label:"Menu", desc:"Navegação clicável", make:id=>({type:"navmenu", _id:id, title:"Navegação", showTitle:true, style:"grid", custom:false, items:[]})},
+  {ic:"💡", label:"O que aprendemos", desc:"Caixa colorida com seta, título e texto", make:id=>({type:"learn", _id:id, key:id+"/t", arrow:"top", color:"#123a8a", titulo:"O que aprendemos aqui?", texto:"Escreva aqui o aprendizado principal deste trecho do plano."})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
@@ -4944,6 +4988,7 @@ function statFieldAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consoli
 function statFieldDel(id,i,k){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s||!Array.isArray(s.extra)) return;
   s.extra.splice(k,1); if(!s.extra.length) delete s.extra; pushHistory('Campo extra','widget'); saveState(); render(); }
 function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return; const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
+function setLearnProp(wid,prop,val){ const b=findWidgetBlock(wid); if(!b) return; b[prop]=val; pushHistory(prop==='color'?'Cor do widget':'Direção da seta','widget'); saveState(); render(); }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
