@@ -194,6 +194,47 @@
   .gal-del{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:7px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;cursor:pointer;display:none}
   body.grid-edit .gal-del{display:block}
   .gal-add{margin-top:10px}
+  /* agenda */
+  .agenda{display:flex;flex-direction:column;gap:9px}
+  .agenda .wtitle{font-weight:800;color:var(--ink);font-size:16px;margin-bottom:2px}
+  .ag-item{display:flex;align-items:stretch;gap:11px}
+  .ag-date{flex:0 0 auto;width:66px;border-radius:10px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 4px;text-align:center}
+  .ag-date .ag-d{font-weight:800;font-size:13.5px;line-height:1.1}
+  .ag-date .ag-h{font-size:11.5px;opacity:.9}
+  .ag-body{flex:1;display:flex;flex-direction:column;justify-content:center}
+  .ag-body .ag-t{font-weight:700;color:var(--ink);font-size:14.5px}
+  .ag-body .ag-l{font-size:12.5px;color:var(--muted)}
+  /* atalhos */
+  .shortcuts .wtitle{font-weight:800;color:var(--ink);font-size:16px;margin-bottom:8px}
+  .sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+  .sc-link{display:flex;align-items:center;gap:9px;border:1.5px solid var(--line);border-radius:11px;padding:10px 12px;text-decoration:none;color:var(--ink);font-weight:700;font-size:13.5px;background:#fff}
+  .sc-link:hover{box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .sc-ic{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:15px}
+  .sc-edit{display:none;gap:4px;margin-top:5px;align-items:center}
+  body.grid-edit .sc-edit{display:flex}
+  .sc-edit .sc-url{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:4px 7px;font-size:11.5px}
+  .sc-edit button{width:26px;height:26px;border:1px solid var(--line);border-radius:7px;flex:0 0 auto}
+  .sc-edit button.danger{color:var(--magenta)}
+  /* relógio */
+  .clocks .wtitle{font-weight:800;color:var(--ink);font-size:16px;margin-bottom:8px}
+  .cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+  .cl-cell{text-align:center;border:1.5px solid var(--line);border-radius:12px;padding:12px 8px}
+  .cl-time{font-size:25px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.5px}
+  .cl-label{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .cl-edit{display:none;margin-top:6px;gap:4px;align-items:center}
+  body.grid-edit .cl-edit{display:flex}
+  .cl-edit .cl-tz{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:4px 6px;font-size:11px}
+  .cl-edit button.danger{width:26px;height:26px;border:1px solid var(--line);border-radius:7px;color:var(--magenta)}
+  /* notas em abas */
+  .tabsw .wtitle{font-weight:800;color:var(--ink);font-size:16px;margin-bottom:6px}
+  .tb-head{display:flex;flex-wrap:wrap;gap:4px;border-bottom:2px solid var(--line);margin-bottom:10px}
+  .tb-tab{border:none;background:none;padding:8px 13px;font-size:13.5px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer}
+  .tb-tab.active{color:var(--ink);border-bottom-color:var(--orange)}
+  .tb-add{display:none;border:1px dashed var(--line);background:#fff;border-radius:7px;padding:4px 9px;color:var(--ink2);cursor:pointer}
+  body.grid-edit .tb-add{display:inline-block}
+  .tb-text{font-size:14.5px;color:var(--ink2);line-height:1.55;min-height:24px}
+  .tb-del{display:none;margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;font-size:12px;color:var(--magenta);cursor:pointer}
+  body.grid-edit .tb-del{display:inline-block}
   /* citação */
   .quote{position:relative;padding:6px 6px 6px 46px;border-left:4px solid var(--orange)}
   .quote .q-mark{position:absolute;left:8px;top:0;font-size:34px;color:var(--orange);line-height:1}
@@ -2493,7 +2534,8 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   gallery:'Galeria', audio:'Áudio', benchmark:'Benchmark', personas:'Personas', persona:'Persona',
   channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
-  checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página' };
+  checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
+  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -2990,6 +3032,69 @@ function renderBlock(b, sec, bi){
       const chKey=String(CUR.chapter), k='sec/'+chKey+'/'+CUR.section+'/titulo', so=curSecObj();
       return `<h3 class="ed" data-ed="${k}" style="margin:0">${esc(txt(k, so.titulo||''))}</h3>`;
     }
+    case "agenda":{
+      const wid=b._id;
+      let x=`<div class="block agenda" data-wid="${wid}">`;
+      if(b.showTitle!==false) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title||'Agenda')}</div>`;
+      (b.items||[]).forEach((it,i)=>{
+        const cor=it.color||b.color||'var(--orange)';
+        x+=`<div class="ag-item">
+          <div class="ag-date" style="background:${cor}"><span class="ag-d wed" data-wedit="${wid}|o/${i}/data">${esc(it.data||'')}</span><span class="ag-h wed" data-wedit="${wid}|o/${i}/hora">${esc(it.hora||'')}</span></div>
+          <div class="ag-body"><div class="ag-t wed" data-wedit="${wid}|o/${i}/titulo">${esc(it.titulo||'')}</div>
+            <div class="ag-l wed" data-wedit="${wid}|o/${i}/local">${esc(it.local||'')}</div></div>
+          <span class="ck-acts"><button data-agmove="${wid}|${i}|-1" title="Subir">▲</button><button data-agmove="${wid}|${i}|1" title="Descer">▼</button><button class="danger" data-agdel="${wid}|${i}" title="Apagar">×</button></span>
+        </div>`;
+      });
+      x+=`<button class="ck-add" data-agadd="${wid}">＋ Adicionar evento</button>`;
+      return x+`</div>`;
+    }
+    case "shortcuts":{
+      const wid=b._id;
+      let x=`<div class="block shortcuts" data-wid="${wid}">`;
+      if(b.showTitle!==false && b.title) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title)}</div>`;
+      x+=`<div class="sc-grid">`;
+      (b.items||[]).forEach((it,i)=>{
+        const cor=it.color||'var(--ink)';
+        const href=safeUrl(it.url);
+        x+=`<div class="sc-cell">
+          <a class="sc-link" href="${href}" target="_blank" rel="noopener noreferrer" style="border-color:${cor}">
+            <span class="sc-ic" style="background:${cor}">${esc(it.icon||'🔗')}</span>
+            <span class="sc-label wed" data-wedit="${wid}|o/${i}/label">${esc(it.label||'Atalho')}</span></a>
+          <span class="sc-edit"><input class="sc-url" data-scurl="${wid}|${i}" value="${esc(it.url||'')}" placeholder="https://…"><button data-scbul="${wid}|${i}" title="Cor" style="background:${cor}"></button><button class="danger" data-scdel="${wid}|${i}" title="Apagar">×</button></span>
+        </div>`;
+      });
+      x+=`</div><button class="ck-add" data-scadd="${wid}">＋ Adicionar atalho</button>`;
+      return x+`</div>`;
+    }
+    case "clock":{
+      const wid=b._id;
+      let x=`<div class="block clocks" data-wid="${wid}">`;
+      if(b.showTitle!==false && b.title) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title)}</div>`;
+      x+=`<div class="cl-grid">`;
+      (b.zones||[]).forEach((z,i)=>{
+        x+=`<div class="cl-cell">
+          <div class="cl-time" data-clocktz="${esc(z.tz||'')}">--:--</div>
+          <div class="cl-label wed" data-wedit="${wid}|z/${i}/label">${esc(z.label||'')}</div>
+          <div class="cl-edit"><input class="cl-tz" data-cltz="${wid}|${i}" value="${esc(z.tz||'')}" placeholder="America/Belem"><button class="danger" data-cldel="${wid}|${i}" title="Apagar">×</button></div>
+        </div>`;
+      });
+      x+=`</div><button class="ck-add" data-cladd="${wid}">＋ Adicionar fuso</button>`;
+      setTimeout(tickClocks,0);
+      return x+`</div>`;
+    }
+    case "tabs":{
+      const wid=b._id;
+      const act=Math.min(b.active||0,(b.items||[]).length-1);
+      let x=`<div class="block tabsw" data-wid="${wid}">`;
+      if(b.showTitle!==false && b.title) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title)}</div>`;
+      x+=`<div class="tb-head">`;
+      (b.items||[]).forEach((it,i)=>{ x+=`<button class="tb-tab ${i===act?'active':''}" data-tabsel="${wid}|${i}"><span class="wed" data-wedit="${wid}|o/${i}/label">${esc(it.label||('Aba '+(i+1)))}</span></button>`; });
+      x+=`<button class="tb-add" data-tabadd="${wid}" title="Nova aba">＋</button></div>`;
+      const cur=(b.items||[])[act];
+      if(cur) x+=`<div class="tb-panel"><div class="tb-text wed" data-wedit="${wid}|o/${act}/text">${esc(cur.text||'')}</div>
+        <button class="danger tb-del" data-tabdel="${wid}|${act}" title="Apagar esta aba">Apagar aba</button></div>`;
+      return x+`</div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3055,6 +3160,24 @@ function wireBlockEvents(){
     const id=btn.dataset.galadd; const inp=$(`[data-galurl="${id}"]`); galAdd(id, inp?inp.value:''); }));
   $$("[data-galdel]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.galdel.split('|'); galDel(id,+i); }));
   $$("[data-galurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
+  // agenda
+  $$("[data-agmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.agmove.split('|'); agMove(id,+i,+d); }));
+  $$("[data-agdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.agdel.split('|'); agDel(id,+i); }));
+  $$("[data-agadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); agAdd(b.dataset.agadd); }));
+  // atalhos
+  $$("[data-scadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); scAdd(b.dataset.scadd); }));
+  $$("[data-scdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.scdel.split('|'); scDel(id,+i); }));
+  $$("[data-scbul]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.scbul.split('|'); scBul(id,+i); }));
+  $$("[data-scurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); inp.addEventListener("change",e=>{ const [id,i]=inp.dataset.scurl.split('|'); scUrl(id,+i,inp.value); }); });
+  $$(".sc-link").forEach(a=> a.addEventListener("click",e=>{ if(EDIT && can('editContent')){ e.preventDefault(); } }));   // no modo edição não navega
+  // relógio
+  $$("[data-cladd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); clAdd(b.dataset.cladd); }));
+  $$("[data-cldel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.cldel.split('|'); clDel(id,+i); }));
+  $$("[data-cltz]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); inp.addEventListener("change",e=>{ const [id,i]=inp.dataset.cltz.split('|'); clTz(id,+i,inp.value); }); });
+  // abas
+  $$("[data-tabsel]").forEach(b=> b.addEventListener("click",e=>{ if(e.target.closest('.wed')&&EDIT) return; e.stopPropagation(); const [id,i]=b.dataset.tabsel.split('|'); tabsSel(id,+i); }));
+  $$("[data-tabadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); tabAdd(b.dataset.tabadd); }));
+  $$("[data-tabdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.tabdel.split('|'); tabDel(id,+i); }));
   // checklist
   $$("[data-ckbox]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.ckbox.split('|'); ckToggle(id,+i); }));
   $$("[data-ckmove]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=btn.dataset.ckmove.split('|'); ckMove(id,+i,+d); }));
@@ -3079,6 +3202,8 @@ function updateWidgetField(id, path, val){
   else if(p[0]==='f') b[p[1]]=val;
   else if(p[0]==='i'){ b.items=b.items||[]; const it=b.items[+p[1]]; if(it!=null){ if(typeof it==='object') it.t=val; else b.items[+p[1]]=val; } }
   else if(p[0]==='cap'){ b.items=b.items||[]; if(b.items[+p[1]]) b.items[+p[1]].caption=val; }
+  else if(p[0]==='o'){ b.items=b.items||[]; const it=b.items[+p[1]]; if(it) it[p[2]]=val; }
+  else if(p[0]==='z'){ b.zones=b.zones||[]; const z=b.zones[+p[1]]; if(z) z[p[2]]=val; }
   saveState();
 }
 function ckToggle(id,i){ const b=findWidgetBlock(id); if(!b||!b.items[i]) return;
@@ -3098,6 +3223,27 @@ function liAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items|
 function liBul(id,i){ const b=findWidgetBlock(id); if(!b) return; const it=liItemObj(b,i); const k=LI_COLORS.indexOf(it.color); it.color=LI_COLORS[(k+1)%LI_COLORS.length]; pushHistory("Lista","list"); saveState(); render(); }
 function galAdd(id,url){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({src:url,caption:''}); pushHistory("Galeria","gallery"); saveState(); render(); }
 function galDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Galeria","gallery"); saveState(); render(); }
+function safeUrl(u){ u=(u||'').trim(); if(!u) return '#'; if(/^https?:\/\//i.test(u)) return esc(u); if(/^[\w.-]+\.[a-z]{2,}/i.test(u)) return esc('https://'+u); return '#'; }
+// AGENDA
+function agMove(id,i,d){ const b=findWidgetBlock(id); if(!b) return; const j=i+d; if(j<0||j>=b.items.length) return; const t=b.items[i]; b.items[i]=b.items[j]; b.items[j]=t; pushHistory("Agenda","agenda"); saveState(); render(); }
+function agDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Agenda","agenda"); saveState(); render(); }
+function agAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({data:"00 mês",hora:"00h",titulo:"Novo evento",local:"Local"}); pushHistory("Agenda","agenda"); saveState(); render(); }
+// ATALHOS
+const SC_COLORS=['var(--ink)','var(--orange)','var(--cyan)','var(--green)','var(--magenta)'];
+function scAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({label:"Atalho",url:"",icon:"🔗",color:SC_COLORS[b.items.length%SC_COLORS.length]}); pushHistory("Atalhos","shortcuts"); saveState(); render(); }
+function scDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Atalhos","shortcuts"); saveState(); render(); }
+function scBul(id,i){ const b=findWidgetBlock(id); if(!b) return; const it=b.items[i]; const k=SC_COLORS.indexOf(it.color); it.color=SC_COLORS[(k+1)%SC_COLORS.length]; pushHistory("Atalhos","shortcuts"); saveState(); render(); }
+function scUrl(id,i,v){ const b=findWidgetBlock(id); if(!b) return; if(b.items[i]) b.items[i].url=(v||'').trim(); saveState(); render(); }
+// RELÓGIO
+function clAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.zones=b.zones||[]; b.zones.push({label:"Cidade",tz:"America/Belem"}); pushHistory("Relógio","clock"); saveState(); render(); }
+function clDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.zones.splice(i,1); pushHistory("Relógio","clock"); saveState(); render(); }
+function clTz(id,i,v){ const b=findWidgetBlock(id); if(!b) return; if(b.zones[i]) b.zones[i].tz=(v||'').trim(); saveState(); render(); }
+function tickClocks(){ $$("[data-clocktz]").forEach(el=>{ const tz=el.getAttribute('data-clocktz'); try{ el.textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:tz||undefined}); }catch(_){ el.textContent='--:--'; } }); }
+if(!window.__clockTimer) window.__clockTimer=setInterval(tickClocks,1000);
+// NOTAS EM ABAS
+function tabsSel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.active=i; saveState(); render(); }
+function tabAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({label:"Aba "+(b.items.length+1),text:"Conteúdo da aba."}); b.active=b.items.length-1; pushHistory("Abas","tabs"); saveState(); render(); }
+function tabDel(id,i){ const b=findWidgetBlock(id); if(!b||!b.items||b.items.length<=1) return; b.items.splice(i,1); b.active=Math.max(0,(b.active||0)-(i<=(b.active||0)?1:0)); pushHistory("Abas","tabs"); saveState(); render(); }
 
 /* edição inline (somente admin) */
 function applyEdit(){
@@ -3549,6 +3695,11 @@ const WIDGET_CATALOG=[
   {ic:"❓", label:"FAQ", desc:"Perguntas e respostas", make:id=>({type:"faq", _id:id, key:id+"/f", items:[{q:"Pergunta de exemplo?", a:"Resposta de exemplo."}]})},
   {ic:"▶", label:"Vídeo", desc:"Player de vídeo", make:id=>({type:"video", _id:id, key:id+"/v", caption:"Vídeo"})},
   {ic:"✓", label:"Ação", desc:"Item do plano de ação", make:id=>({type:"action", _id:id, id:id, num:"•", titulo:"Nova ação", prioridade:"Média", desc:"Descreva a ação aqui."})},
+  {ic:"📅", label:"Agenda", desc:"Eventos com data", make:id=>({type:"agenda", _id:id, title:"Agenda", showTitle:true, color:"var(--orange)", items:[{data:"10 jun",hora:"14h",titulo:"Reunião de kickoff",local:"Online"},{data:"24 jun",hora:"10h",titulo:"Alinhamento de marca",local:"Macapá"}]})},
+  {ic:"🤝", label:"Próximos encontros", desc:"Reuniões marcadas", make:id=>({type:"agenda", _id:id, title:"Próximos encontros", showTitle:true, color:"var(--ink)", items:[{data:"A definir",hora:"",titulo:"Próxima reunião",local:"Online"}]})},
+  {ic:"🔗", label:"Atalhos", desc:"Botões de link", make:id=>({type:"shortcuts", _id:id, title:"Atalhos", items:[{label:"Site",url:"",icon:"🌐",color:"var(--cyan)"},{label:"Drive",url:"",icon:"📁",color:"var(--green)"}]})},
+  {ic:"🕐", label:"Relógio / fuso", desc:"Hora ao vivo", make:id=>({type:"clock", _id:id, title:"Horários", zones:[{label:"Macapá",tz:"America/Belem"},{label:"São Paulo",tz:"America/Sao_Paulo"}]})},
+  {ic:"🗂", label:"Notas em abas", desc:"Conteúdo com abas", make:id=>({type:"tabs", _id:id, active:0, items:[{label:"Resumo",text:"Conteúdo da primeira aba."},{label:"Detalhes",text:"Conteúdo da segunda aba."}]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
