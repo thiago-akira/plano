@@ -402,6 +402,13 @@
   .swot .q ul{margin:0;padding:0;list-style:none}
   .swot .q li{padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px;color:#46415a}
   .swot .q li:last-child{border-bottom:none}
+  body.grid-edit .swot-li{position:relative;padding-right:128px}
+  .swot .li-acts{display:none}
+  body.grid-edit .swot .li-acts{display:inline-flex;align-items:center;gap:3px;position:absolute;top:50%;right:6px;transform:translateY(-50%);z-index:3;opacity:.5;transition:opacity .12s}
+  body.grid-edit .swot-li:hover .li-acts{opacity:1}
+  .swot .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .swot .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .swot .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
   .swot .forcas{border-top:4px solid var(--green)}
   .swot .fraquezas{border-top:4px solid var(--magenta)}
   .swot .oportunidades{border-top:4px solid var(--cyan)}
@@ -3111,7 +3118,7 @@ function renderBlock(b, sec, bi){
     case "swot":{
       const q=(cls,field,title,arr)=>{
         const base=b._id+'/'+field;
-        let li=arr.map((t,i)=>`<li class="ed editli dnd-row" data-ed="${base}/${i}">${esc(txt(base+'/'+i,t))}${grip(b._id,field,i)}${liX(b._id,base,field,i)}</li>`).join("");
+        let li=arr.map((t,i)=>`<li class="ed swot-li dnd-row" data-ed="${base}/${i}">${esc(txt(base+'/'+i,t))}<span class="li-acts swot-acts">${grip(b._id,field,i)}<button data-itemmove="${b._id}|${field}|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|${field}|${i}|1" title="Descer">▼</button><button class="danger" data-strdel="${b._id}|${base}|${field}|${i}" title="Remover">×</button></span></li>`).join("");
         return `<div class="q ${cls}"><h4 class="ed" data-ed="${base}/h">${esc(txt(base+'/h',title))}</h4><ul ${dz(b._id,field)}>${li}</ul>${liPlus(b._id,base,field)}</div>`;
       };
       return `<div class="block swot">
@@ -4099,7 +4106,12 @@ function safeHtml(html){
     if(keep.length) c.setAttribute('style', keep.join(';'));
     walk(c);
   }); };
-  walk(tmp); return tmp.innerHTML;
+  walk(tmp);
+  // remove inline vazios (ex.: <span></span> que o navegador insere no contenteditable) — causa do bug
+  for(let pass=0;pass<3;pass++){ let removed=false;
+    tmp.querySelectorAll('span,b,i,u,em,strong').forEach(e=>{ if(!(e.textContent||'').trim() && !e.querySelector('br')){ e.replaceWith(...e.childNodes); removed=true; } });
+    if(!removed) break; }
+  return tmp.innerHTML;
 }
 function applyRichText(){
   $$("#view [data-ed]").forEach(el=>{ const v=STATE.overrides[el.getAttribute('data-ed')];
@@ -4116,13 +4128,16 @@ function edHtmlVal(el){ const c=el.cloneNode(true); c.querySelectorAll(CTRL_SEL)
 // limpa valores de override já corrompidos com markup de controle (alça/botão baked no texto)
 function sanitizeOverride(v){
   if(typeof v!=='string') return v;
-  if(v.indexOf('⠿')<0 && v.indexOf('it-grip')<0 && v.indexOf('fgrip')<0 && v.indexOf('data-dragitem')<0 && !/<button/i.test(v)) return v;
+  if(v.indexOf('<')<0) return v;   // texto puro: nada a sanear
+  const hasCtrl = v.indexOf('⠿')>=0 || v.indexOf('it-grip')>=0 || v.indexOf('fgrip')>=0 || v.indexOf('data-dragitem')>=0 || /<button/i.test(v);
   const d=document.createElement('div'); d.innerHTML=v;
-  d.querySelectorAll(CTRL_SEL).forEach(n=>n.remove());
-  d.querySelectorAll('span').forEach(s=>{ if(!(s.textContent||'').replace(/[⠿\s]/g,'')) s.remove(); });
-  d.innerHTML=d.innerHTML.replace(/⠿/g,'');
+  if(hasCtrl){
+    d.querySelectorAll(CTRL_SEL).forEach(n=>n.remove());
+    d.querySelectorAll('span').forEach(s=>{ if(!(s.textContent||'').replace(/[⠿\s]/g,'')) s.remove(); });
+    d.innerHTML=d.innerHTML.replace(/⠿/g,'');
+  }
   let html=d.innerHTML;
-  let out=/<(b|i|u|strong|em|span)\b/i.test(html)?safeHtml(html):(d.textContent||'');
+  let out=/<(b|i|u|strong|em|span)\b/i.test(html)?safeHtml(html):(d.textContent||'');  // safeHtml remove inline vazios
   return out.replace(/(\s*×)+\s*$/,'').replace(/\s+/g,' ').trim();
 }
 function sanitizeAllOverrides(){ if(!STATE.overrides) return; let ch=false;
