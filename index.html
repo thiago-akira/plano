@@ -572,6 +572,13 @@
   .rank li::before{content:counter(r);position:absolute;left:0;top:6px;width:22px;height:22px;
     border-radius:6px;background:#f2eeff;color:var(--ink);font-weight:800;font-size:11px;
     display:flex;align-items:center;justify-content:center}
+  .rank .li-acts{display:none}
+  body.grid-edit .rank .li-acts{display:inline-flex;align-items:center;gap:3px;position:absolute;top:50%;right:6px;transform:translateY(-50%);z-index:3;opacity:.5;transition:opacity .12s}
+  body.grid-edit .rank li:hover .li-acts{opacity:1}
+  .rank .li-acts button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .rank .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .rank .li-acts .it-grip{position:static;transform:none}
+  body.grid-edit .rank li{padding-right:152px}
 
   /* two columns compare */
   .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -3236,8 +3243,8 @@ function renderBlock(b, sec, bi){
         <div class="amapa"><b class="ed" data-ed="${b._id}/amapaLabel">${esc(txt(b._id+'/amapaLabel','No Amapá:'))}</b> <span class="ed" data-ed="${b.key}/a">${esc(txt(b.key+'/a',b.amapa||'Como esta tendência se aplica ao Amapá.'))}</span></div></div>`;
     }
     case "rankList":{
-      let li=b.items.map((t,i)=>`<li class="ed" data-ed="${b._id}/${i}">${esc(txt(b._id+'/'+i,t))}</li>`).join("");
-      return `<div class="block rank"><div class="rt ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t',b.titulo))}</div><ol>${li}</ol></div>`;
+      let li=(b.items||[]).map((t,i)=>`<li class="ed dnd-row" data-ed="${b._id}/${i}">${esc(txt(b._id+'/'+i,t))}<span class="li-acts rank-acts">${grip(b._id,'items',i)}<button data-itemmove="${b._id}|items|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|items|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|items|${i}" title="Apagar">×</button></span></li>`).join("");
+      return `<div class="block rank"><div class="rt ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t',b.titulo))}</div><ol ${dz(b._id,'items')}>${li}</ol><button class="li-plus" data-boxadd="${b._id}|items">＋ item</button></div>`;
     }
     case "twoCol":{
       const side=(cls,side,d)=>`<div class="col ${cls}">${d.k!=null?`<div class="ck ed" data-ed="${b._id}/${side}/k">${esc(txt(b._id+'/'+side+'/k',d.k))}</div>`:''}
@@ -3585,6 +3592,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'calloutGrid': reseatObj(b,b._id,'items',[['ttl','ttl']]); break;  // texto é por it.key, viaja com o item
   case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
+  case 'rankList': reseatStr(b,b._id,'items'); break;
   case 'chips': { const id=b._id; const a=(b.items||[]).map((it,i)=>{ const n=(it&&typeof it==='object')?Object.assign({},it):{t:it}; n.t=_ovf(id+'/'+i, n.t); return n; });
     (b.items||[]).forEach((it,i)=>delete STATE.overrides[id+'/'+i]); b.items=a; break; }
   case 'table': { const id=b._id;
@@ -3703,6 +3711,7 @@ function addBox(wid, cont){
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
   else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
   else if(b.type==='table') item=(b.cols||['']).map(()=>'');   // nova linha vazia
+  else if(b.type==='rankList') item='Novo item';
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
 }
