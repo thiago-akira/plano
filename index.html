@@ -3225,11 +3225,11 @@ function renderBlock(b, sec, bi){
     case "trendCard":{
       const cor=b.color||'var(--green)';
       return `<div class="trend" style="border-left-color:${cor}">
-        <div class="th"><div class="tn" style="background:${cor}">${b.num}</div>
-          <div><h4 class="ed" data-ed="${b.key}/t">${esc(txt(b.key+'/t',b.titulo))}</h4>
-          <div class="src ed" data-ed="${b._id}/fonte">${esc(txt(b._id+'/fonte',b.fonte||''))}</div></div></div>
+        <div class="th"><div class="tn ed" data-ed="${b._id}/num" style="background:${cor}">${esc(txt(b._id+'/num',String(b.num!=null?b.num:'1')))}</div>
+          <div style="flex:1;min-width:0"><h4 class="ed" data-ed="${b.key}/t">${esc(txt(b.key+'/t',b.titulo))}</h4>
+          <div class="src ed" data-ed="${b._id}/fonte">${esc(txt(b._id+'/fonte',b.fonte||'Fonte'))}</div></div></div>
         <div class="p ed" data-ed="${b.key}/r" style="margin:0">${esc(txt(b.key+'/r',b.resumo))}</div>
-        ${b.amapa?`<div class="amapa"><b>No Amapá:</b> <span class="ed" data-ed="${b.key}/a">${esc(txt(b.key+'/a',b.amapa))}</span></div>`:''}</div>`;
+        <div class="amapa"><b class="ed" data-ed="${b._id}/amapaLabel">${esc(txt(b._id+'/amapaLabel','No Amapá:'))}</b> <span class="ed" data-ed="${b.key}/a">${esc(txt(b.key+'/a',b.amapa||'Como esta tendência se aplica ao Amapá.'))}</span></div></div>`;
     }
     case "rankList":{
       let li=b.items.map((t,i)=>`<li class="ed" data-ed="${b._id}/${i}">${esc(txt(b._id+'/'+i,t))}</li>`).join("");
