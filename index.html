@@ -2518,7 +2518,7 @@ function openNavManager(){
   const chRow=cm=>`<div class="nm-ch ${cm.hidden?'nm-hidden':''}">
     <div class="nm-ch-head">
       <input class="nm-icon" data-chk="${cm.chKey}" value="${esc(cm.icone)}" maxlength="3" title="Ícone">
-      <input class="nm-name" data-chk="${cm.chKey}" value="${esc(cm.nome)}">
+      <input class="nm-name" data-chk="${cm.chKey}" value="${esc(plainTxt(cm.nome))}">
       <span class="nm-acts">
         <button class="nm-mini" data-up="${cm.chKey}" title="Subir">▲</button>
         <button class="nm-mini" data-down="${cm.chKey}" title="Descer">▼</button>
@@ -2530,7 +2530,7 @@ function openNavManager(){
     <div class="nm-colors">${swatches(cm.chKey)}</div>
     <div class="nm-secs" id="nmsec-${cm.chKey}" style="display:none">
       ${cm.sections.map(s=>`<div class="nm-sec ${s.hidden?'nm-hidden':''}">
-        <input class="nm-sname" data-chk="${cm.chKey}" data-sk="${s.secKey}" value="${esc(s.titulo)}">
+        <input class="nm-sname" data-chk="${cm.chKey}" data-sk="${s.secKey}" value="${esc(plainTxt(s.titulo))}">
         <button class="nm-mini" data-sup="${cm.chKey}|${s.secKey}">▲</button>
         <button class="nm-mini" data-sdown="${cm.chKey}|${s.secKey}">▼</button>
         <button class="nm-mini" data-shide="${cm.chKey}|${s.secKey}">${s.hidden?'🙈':'👁'}</button>
@@ -2569,7 +2569,7 @@ function buildNav(){
     if(!c.isOnb && !grouped){ h+=`<div class="nav-group-label">O Plano</div>`; grouped=true; }
     const numHtml = c.isOnb ? "" : `<span class="num">${c.added?'＋':String(c.num).padStart(2,'0')}</span>`;
     h += `<button class="nav-item ${c.isOnb?'special ':''}${String(CUR.chapter)===c.chKey?'active':''} ${c.hidden?'nav-hidden':''}" data-ch="${c.chKey}">
-            ${numHtml}<span class="dot" style="background:${c.isOnb?'var(--ink)':c.cor}"></span>${c.isOnb?(esc(c.icone)+' '):''}${esc(c.nome)}
+            ${numHtml}<span class="dot" style="background:${c.isOnb?'var(--ink)':c.cor}"></span>${c.isOnb?(esc(c.icone)+' '):''}${esc(plainTxt(c.nome))}
           </button>`;
   });
   if(canEditNav) h += `<button class="nav-manage" id="navManageBtn">⚙ Gerenciar menus</button>`;
@@ -2639,7 +2639,7 @@ function render(){
   const chKey = cm.chKey;
   CUR.chapter = chKey==='onb'?'onb':(/^\d+$/.test(chKey)?parseInt(chKey,10):chKey);  // normaliza
   const ch = cm.obj, isOnb = cm.isOnb;
-  $("#tbTitle").textContent=cm.nome;
+  $("#tbTitle").textContent=plainTxt(cm.nome);
   $$(".nav-item").forEach(b=> b.classList.toggle("active", b.dataset.ch===chKey));
 
   // seção atual por chave estável
@@ -2674,7 +2674,7 @@ function render(){
   const visSecs = cm.sections.filter(s=> !s.hidden || (EDIT&&can('editLayout')));
   if(visSecs.length>1){
     h += `<div class="sec-tabs">`;
-    visSecs.forEach(s=> h += `<button class="sec-tab ${s.secKey===String(CUR.section)?'active':''} ${s.hidden?'nav-hidden':''}" data-sec="${s.secKey}">${esc(s.titulo)}</button>`);
+    visSecs.forEach(s=> h += `<button class="sec-tab ${s.secKey===String(CUR.section)?'active':''} ${s.hidden?'nav-hidden':''}" data-sec="${s.secKey}">${esc(plainTxt(s.titulo))}</button>`);
     h += `</div>`;
   }
 
@@ -3221,7 +3221,7 @@ function renderBlock(b, sec, bi){
       x+=`<div class="nm-items">`;
       entries.forEach(e=>{
         const lbl = e.custom ? `<span class="nm-label wed wedrich" data-wedit="${wid}|o/${e.i}/label">${richHtml(e.label)}</span>`
-                             : `<span class="nm-label">${esc(e.label)}</span>`;
+                             : `<span class="nm-label">${esc(plainTxt(e.label))}</span>`;
         const ctrls = (isAdmin && b.custom) ? `<span class="nm-ctrls"><button data-nmmove="${wid}|${e.i}|-1" title="Subir">▲</button><button data-nmmove="${wid}|${e.i}|1" title="Descer">▼</button><button class="danger" data-nmdel="${wid}|${e.i}" title="Remover">×</button></span>` : '';
         x+=`<div class="nm-link ${e.hidden?'nav-hidden':''}" data-nmgo="${wid}" data-nmch="${e.chKey}" data-nmsec="${e.secKey}" role="button" tabindex="0" style="--nm:${e.cor}">
           <span class="nm-num" style="background:${e.cor}">${esc(String(e.num))}</span>${lbl}${ctrls}</div>`;
@@ -3572,7 +3572,7 @@ $("#view").addEventListener("blur", e=>{
     const tile=el.closest&&el.closest(".gtile");
     pushHistory("Editou texto", tile?widgetNameOfItem({id:tile.dataset.id}):"texto");
     saveState();
-    if(key.indexOf('nav/')===0){ buildNav(); $("#tbTitle").textContent=chapterName(curChapterObj(),String(CUR.chapter)); } // título do menu/topo
+    if(key.indexOf('nav/')===0){ buildNav(); $("#tbTitle").textContent=plainTxt(chapterName(curChapterObj(),String(CUR.chapter))); } // título do menu/topo
   }
 }, true);
 
@@ -3598,6 +3598,8 @@ function applyRichText(){
 }
 // renderiza um valor de campo de widget: HTML formatado seguro se houver tags, senão texto escapado
 function richHtml(v){ v=(v==null)?'':String(v); return /<(b|i|u|strong|em|span|br)\b/i.test(v)?safeHtml(v):esc(v); }
+// texto puro (remove tags) — para menus/abas/topo, onde o título não deve mostrar HTML cru
+function plainTxt(v){ v=(v==null)?'':String(v); if(v.indexOf('<')<0) return v; const t=document.createElement('div'); t.innerHTML=v; return (t.textContent||t.innerText||'').trim(); }
 function wrapSelection(prop,val){
   const sel=window.getSelection(); if(!sel||!sel.rangeCount) return; const range=sel.getRangeAt(0); if(range.collapsed) return;
   const span=document.createElement('span'); span.style[prop]=val;
