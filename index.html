@@ -3931,7 +3931,11 @@ function safeHtml(html){
 }
 function applyRichText(){
   $$("#view [data-ed]").forEach(el=>{ const v=STATE.overrides[el.getAttribute('data-ed')];
-    if(v!=null && /<(b|i|u|strong|em|span|br)\b/i.test(v)) el.innerHTML=safeHtml(v); });
+    if(v!=null && /<(b|i|u|strong|em|span|br)\b/i.test(v)){
+      const ctrls=[...el.querySelectorAll(CTRL_SEL)];   // preserva alças/botões que ficam dentro do editável
+      el.innerHTML=safeHtml(v);
+      ctrls.forEach(c=> el.appendChild(c));
+    } });
 }
 // valor de um campo editável SEM os controles (alça ⠿, botões ×) que ficam dentro do contenteditable
 const CTRL_SEL='.it-grip,.fgrip,.li-x,.li-acts,.ck-acts,.ck-box,.li-bullet,.obj-x,.nm-ctrls,.sec-grip,button,[data-dragitem],[data-strdel],[data-fdrag]';
