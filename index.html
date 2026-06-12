@@ -1384,6 +1384,35 @@
   body.grid-edit .roadmap .rm-acts .it-grip{position:static;transform:none;width:19px;height:19px;background:rgba(36,26,110,.08)}
   body.grid-edit .roadmap .rm-ntxt{white-space:normal}
 
+  /* widget Arquétipos — título + texto + caixa colorida (lado escolhível) */
+  .arq{display:flex;gap:28px;align-items:stretch;flex-wrap:wrap;position:relative}
+  .arq.side-left{flex-direction:row-reverse}
+  .arq .arq-text{flex:1 1 320px;min-width:0;align-self:center}
+  .arq .arq-title{margin:0 0 12px;font-size:23px;font-weight:800;text-transform:uppercase;letter-spacing:.005em;line-height:1.12;color:var(--cor,var(--ink))}
+  .arq .arq-num{color:var(--cor,var(--ink))}
+  .arq .arq-p{font-size:13.5px;line-height:1.7;color:#46415a;text-align:justify}
+  .arq .arq-p b,.arq .arq-p strong{color:var(--ink)}
+  .arq .arq-box{flex:0 0 42%;max-width:42%;background:var(--cor,var(--ink));color:#fff;border-radius:12px;padding:22px 24px;position:relative}
+  .arq .arq-notch{position:absolute;top:32px;width:0;height:0;border-top:11px solid transparent;border-bottom:11px solid transparent}
+  .arq.side-right .arq-box .arq-notch{left:-12px;border-right:13px solid var(--cor,var(--ink))}
+  .arq.side-left .arq-box .arq-notch{right:-12px;border-left:13px solid var(--cor,var(--ink))}
+  .arq .arq-sec{margin-bottom:16px;position:relative}
+  .arq .arq-sec:last-child{margin-bottom:0}
+  .arq .arq-sl{margin:0 0 5px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff}
+  .arq .arq-stx{font-size:12.5px;line-height:1.55;color:rgba(255,255,255,.92)}
+  .arq .arq-tools{display:none}
+  body.grid-edit .arq .arq-tools{display:flex;gap:6px;align-items:center;flex:1 0 100%;margin-bottom:2px;flex-wrap:wrap}
+  .arq .arq-side{border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;color:var(--ink2)}
+  .arq .arq-side:hover{border-color:var(--ink);color:var(--ink)}
+  .arq .arq-sws{display:inline-flex;gap:4px}
+  .arq .arq-sw{width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+  .arq .li-acts{display:none}
+  body.grid-edit .arq .li-acts{display:inline-flex;align-items:center;gap:3px;margin-top:5px}
+  .arq .li-acts button{width:20px;height:20px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.16);color:#fff;border-radius:5px;font-size:10px;cursor:pointer;padding:0}
+  body.grid-edit .arq .li-acts .it-grip{position:static;transform:none;color:#fff;background:rgba(255,255,255,.16)}
+  body.grid-edit .arq .arq-add{margin-top:10px;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.14);color:#fff}
+  @media(max-width:680px){ .arq,.arq.side-left{flex-direction:column} .arq .arq-box{flex-basis:auto;max-width:none;width:100%} .arq .arq-notch{display:none} }
+
   /* widget Matriz — cartões livres num plano 2D (eixos + quadrantes) */
   .matriz{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px 12px;box-shadow:var(--shadow)}
   .matriz .mz-grid{display:flex;gap:6px}
@@ -3276,7 +3305,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz', arquetipo:'Arquétipos' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -4152,6 +4181,20 @@ function renderBlock(b, sec, bi){
         ${editing?`<button class="li-plus" data-boxadd="${id}|items">＋ ação</button>`:''}
       </div>`;
     }
+    case "arquetipo":{
+      const id=b._id; const cor=b.cor||'var(--ink)'; const side=(b.side==='left')?'left':'right';
+      const editing = EDIT && can('editContent');
+      const tools=editing?`<div class="arq-tools"><button class="arq-side" data-arqside="${id}" title="Trocar o lado da caixa colorida">⇄ trocar lado</button><span class="arq-sws">${['var(--ink)','#1b3a8c','var(--green)','var(--orange)','var(--magenta)','var(--cyan)','#c79a1e'].map(c=>`<button class="arq-sw" data-pubcolor="${id}|${c}" style="background:${c}" title="Cor"></button>`).join('')}</span></div>`:'';
+      const secs=(b.secoes||[]).map((s,i)=>`<div class="arq-sec dnd-row"><h6 class="ed arq-sl" data-ed="${id}/${i}/st">${esc(txt(id+'/'+i+'/st',s.titulo))}</h6><div class="ed arq-stx" data-ed="${id}/${i}/sx">${richHtml(txt(id+'/'+i+'/sx',s.texto))}</div><span class="li-acts arq-sacts">${grip(id,'secoes',i)}<button data-itemmove="${id}|secoes|${i}|-1" title="Subir">▲</button><button data-itemmove="${id}|secoes|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${id}|secoes|${i}" title="Apagar">×</button></span></div>`).join('');
+      return `<div class="block arq side-${side}" data-wid="${id}" style="--cor:${cor}">
+        ${tools}
+        <div class="arq-text">
+          <h3 class="arq-title"><span class="ed" data-ed="${id}/t">${esc(txt(id+'/t',b.titulo||'Arquétipo'))}</span> <span class="ed arq-num" data-ed="${id}/n">${esc(txt(id+'/n',b.num||''))}</span></h3>
+          <div class="ed arq-p" data-ed="${id}/p">${richHtml(txt(id+'/p',b.texto||'Descrição do arquétipo.'))}</div>
+        </div>
+        <div class="arq-box"><div class="arq-notch"></div><div class="arq-secs" ${dz(id,'secoes')}>${secs}</div>${editing?`<button class="li-plus arq-add" data-boxadd="${id}|secoes">＋ seção</button>`:''}</div>
+      </div>`;
+    }
     case "matriz":{
       const id=b._id; const cor=b.cor||'var(--ink)';
       const editing = EDIT && can('editContent');
@@ -4231,6 +4274,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'b2b': reseatStr(b,b._id+'/p','paras'); break;
   case 'roadmap': reseatObj(b,b._id,'items',[['t','t']]); break;
   case 'matriz': reseatObj(b,b._id,'items',[['t','t']]); break;
+  case 'arquetipo': reseatObj(b,b._id,'secoes',[['titulo','st'],['texto','sx']]); break;
   case 'action': { const kk='c11a/'+b.id;
     reseatStr(b, kk+'/cm', 'comomedir');
     const base=kk+'/sa';
@@ -4369,6 +4413,7 @@ function addBox(wid, cont){
   else if(b.type==='b2b') item='Novo parágrafo de texto.';
   else if(b.type==='roadmap') item={t:'Nova ação', start:0, len:2, color:'var(--cyan)'};
   else if(b.type==='matriz') item={t:'Novo cartão', x:50, y:50};
+  else if(b.type==='arquetipo') item={titulo:'Nova seção', texto:'Descrição da seção.'};
   else if(b.type==='aprendizado') item={titulo:'Nova seção', items:[{lab:'Rótulo:', txt:'descrição'}]};
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
@@ -4433,7 +4478,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item') || box.classList.contains('cm-li') || box.classList.contains('suba') || box.classList.contains('rm-row') || box.classList.contains('mz-card')) return;   // têm controles próprios
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item') || box.classList.contains('cm-li') || box.classList.contains('suba') || box.classList.contains('rm-row') || box.classList.contains('mz-card') || box.classList.contains('arq-sec')) return;   // têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -4504,6 +4549,7 @@ function wireBlockEvents(){
   $$("[data-upload]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [key,kind]=btn.dataset.upload.split('|'); pickAndUpload(btn, key, kind); }));
   // widget Públicos
   $$("[data-pubcolor]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,c]=b.dataset.pubcolor.split('|'); setLearnProp(id,'cor',c); }));
+  $$("[data-arqside]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); arqSide(b.dataset.arqside); }));
   $$("[data-secmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.secmove.split('|'); pubSecMove(id,+i,+d); }));
   $$("[data-seccol]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.seccol.split('|'); pubSecCol(id,+i); }));
   $$("[data-sectype]").forEach(sel=>{ sel.addEventListener("click",e=>e.stopPropagation()); sel.addEventListener("change",e=>{ e.stopPropagation(); const [id,i]=sel.dataset.sectype.split('|'); pubSecType(id,+i,sel.value); }); });
@@ -5280,6 +5326,11 @@ const WIDGET_CATALOG=[
     "Segundo parágrafo: o que ele busca, valoriza e como se conecta ao destino.",
     "Terceiro parágrafo: por que é um parceiro estratégico e que oportunidade representa."
   ]})},
+  {ic:"🧙", label:"Arquétipos", desc:"Título + texto + caixa colorida (lado escolhível)", w:24, h:13, make:id=>({type:"arquetipo", _id:id, cor:"#1b3a8c", side:"right", titulo:"Arquétipo do Mago", num:"45%", texto:"O arquétipo do Mago representa a transformação autêntica através dos saberes ancestrais dos povos originários da Amazônia. Ele é o guardião dos conhecimentos milenares sobre plantas sagradas, rituais e práticas transformadoras dos povos tradicionais. No Amapá, o Mago oferece acesso genuíno à sabedoria ancestral, dialogando sobre as experiências profundas de autoconhecimento, do Equinócio, do Solstício, da Astronomia e dos megalíticos, da cura através de práticas autênticas da medicina tradicional amazônica.", secoes:[
+    {titulo:"Maior desejo", texto:"Facilitar transformações autênticas através da medicina ancestral amazônica."},
+    {titulo:"Palavras-chave", texto:"Transformação, Medicina Ancestral, Rituais Sagrados, Autoconhecimento, Cura da floresta e Despertar Espiritual."},
+    {titulo:"Características", texto:"Guardião de conhecimentos ancestrais, facilitador de transformações, ponte entre mundos, curador através de plantas medicinais e rituais tradicionais."}
+  ]})},
   {ic:"⊹", label:"Matriz", desc:"Matriz 2D com cartões livres (eixos + quadrantes)", w:16, h:16, make:id=>({type:"matriz", _id:id, cor:"var(--ink)", axisX:["Reconhecimento","Compra"], axisY:["Razão","Emoção"], quads:["Entreter","Inspirar","Educar","Convencer"], items:[
     {t:"Vídeos curtos", x:40, y:88},
     {t:"Reels", x:69, y:91},
@@ -5663,6 +5714,7 @@ function statFieldDel(id,i,k){ const b=findWidgetBlock(id); if(!b) return; conso
   s.extra.splice(k,1); if(!s.extra.length) delete s.extra; pushHistory('Campo extra','widget'); saveState(); render(); }
 function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return; const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
 function setLearnProp(wid,prop,val){ const b=findWidgetBlock(wid); if(!b) return; b[prop]=val; pushHistory(prop==='color'?'Cor do widget':'Direção da seta','widget'); saveState(); render(); }
+function arqSide(id){ const b=findWidgetBlock(id); if(!b) return; b.side=(b.side==='left')?'right':'left'; pushHistory('Lado da caixa','arquétipo'); saveState(); render(); }
 // ===== widget Públicos (ficha de perfil) =====
 function pubSecMove(id,i,dir){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b);
   const arr=b.items||[]; const s=arr[i]; if(!s) return; const col=s.col;
