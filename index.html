@@ -1263,6 +1263,28 @@
   .caracs .li-acts button.danger{color:var(--magenta)}
   body.grid-edit .caracs .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
 
+  /* widget Públicos B2B — foto + título + parágrafos */
+  .b2b{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:var(--shadow)}
+  .b2b .b2b-head{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+  .b2b .b2b-photo{flex:0 0 72px;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 0 0 2px var(--cor,var(--ink)),var(--shadow);background:#e8e6f0}
+  .b2b .b2b-photo img{width:100%;height:100%;object-fit:cover;display:block}
+  .b2b .b2b-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#cfcae0,#9aa0b5);color:#fff;font-size:30px}
+  .b2b .b2b-htext{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .b2b .b2b-title{margin:0;font-size:21px;font-weight:800;text-transform:uppercase;letter-spacing:.01em;color:var(--cor,var(--ink))}
+  .b2b .b2b-cols{display:none;gap:4px}
+  body.grid-edit .b2b .b2b-cols{display:inline-flex}
+  .b2b .b2b-cols button{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+  .b2b .b2b-body{display:flex;flex-direction:column;gap:13px}
+  .b2b .b2b-para{display:flex;align-items:flex-start;gap:10px;position:relative}
+  .b2b .b2b-ptext{flex:1;min-width:0;margin:0;font-size:13.5px;line-height:1.7;color:#46415a;text-align:justify}
+  .b2b .vinput{display:none;margin:0 0 12px}
+  body.grid-edit .b2b .vinput{display:flex;flex-wrap:wrap;gap:6px}
+  .b2b .li-acts{display:none}
+  body.grid-edit .b2b .li-acts{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto}
+  .b2b .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .b2b .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .b2b .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -3044,7 +3066,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3834,6 +3856,25 @@ function renderBlock(b, sec, bi){
       x+=`</div><button class="li-plus cc-addgrp" data-boxadd="${b._id}|items">＋ grupo</button>`;
       return x+`</div>`;
     }
+    case "b2b":{
+      const ik=b._id+'/img';
+      const src = MEDIA[b.src] || STATE.media[ik] || b.src || '';
+      const isAdmin = AUTH && AUTH.role==="admin";
+      const cor=b.cor||'var(--ink)';
+      const upImg=(isAdmin&&CLOUD&&fbStorage)?`<button class="icon-btn up" data-upload="${ik}|image" title="Enviar foto">⬆ Enviar</button>`:'';
+      const photoInput=isAdmin?`<div class="vinput"><input data-iurl="${ik}" placeholder="Link da foto ou envie →" value="${esc(STATE.media[ik]||'')}"><button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>`:'';
+      const photo = src?`<img src="${esc(src)}" alt="" loading="lazy">`:`<div class="b2b-ph"><span>🏢</span></div>`;
+      const swatches=['var(--ink)','var(--green)','var(--orange)','var(--magenta)','var(--cyan)','#7a1239'].map(c=>`<button data-pubcolor="${b._id}|${c}" style="background:${c}" title="Cor"></button>`).join('');
+      const paras=(b.paras||[]).map((p,i)=>`<div class="b2b-para dnd-row"><p class="ed b2b-ptext" data-ed="${b._id}/p/${i}">${richHtml(txt(b._id+'/p/'+i, p))}</p><span class="li-acts">${grip(b._id,'paras',i)}<button data-itemmove="${b._id}|paras|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|paras|${i}|1" title="Descer">▼</button><button data-itemdup="${b._id}|paras|${i}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${b._id}|paras|${i}" title="Apagar">×</button></span></div>`).join('');
+      return `<div class="block b2b" data-wid="${b._id}" style="--cor:${cor}">
+        <div class="b2b-head">
+          <div class="b2b-photo">${photo}</div>
+          <div class="b2b-htext"><span class="b2b-cols">${swatches}</span><h3 class="b2b-title ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t', b.titulo||'Título do público B2B'))}</h3></div>
+        </div>${photoInput}
+        <div class="b2b-body" ${dz(b._id,'paras')}>${paras}</div>
+        <button class="li-plus" data-boxadd="${b._id}|paras">＋ parágrafo</button>
+      </div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3890,6 +3931,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'labelTable': reseatObj(b,b._id,'rows',[['lab','lab']]); break;     // texto é por r.key, viaja com a linha
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'rankList': reseatStr(b,b._id,'items'); break;
+  case 'b2b': reseatStr(b,b._id+'/p','paras'); break;
   case 'faq': { const id=b._id, ky=b.key;
     const a=(b.items||[]).map((it,i)=>({ q:_ovf(id+'/'+i+'/q', it.q), a:_ovf(ky+'/'+i+'/a', it.a) }));
     (b.items||[]).forEach((it,i)=>{ delete STATE.overrides[id+'/'+i+'/q']; delete STATE.overrides[ky+'/'+i+'/a']; });
@@ -4012,6 +4054,7 @@ function addBox(wid, cont){
   else if(b.type==='calloutGrid') item={ttl:'Novo ponto', color:'var(--cyan)', key:newAddId()+'/c', text:'Conteúdo.'};
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
   else if(b.type==='caracteristicas') item={titulo:'Novo grupo', items:['Nova característica']};
+  else if(b.type==='b2b') item='Novo parágrafo de texto.';
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
   else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
@@ -4074,7 +4117,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group')) return;   // têm controles próprios
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para')) return;   // têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -4907,6 +4950,11 @@ const WIDGET_CATALOG=[
     {titulo:"Comportamento de Viagem", items:["Investe tempo para entender o destino","Busca experiências personalizadas","Prefere grupos pequenos"]},
     {titulo:"Motivações Específicas", items:["Busca reconexão com a natureza","Interesse em cultura local"]},
     {titulo:"Características Relacionais", items:["Alto potencial de recomendação","Relacionamento respeitoso com comunidades"]}
+  ]})},
+  {ic:"🏢", label:"Públicos B2B", desc:"Foto + título + parágrafos (perfil simples)", w:18, h:12, make:id=>({type:"b2b", _id:id, src:"", cor:"var(--ink)", titulo:"Nome do público B2B", paras:[
+    "Primeiro parágrafo: descreva quem é este público (agências, operadoras, parceiros) e o que faz.",
+    "Segundo parágrafo: o que ele busca, valoriza e como se conecta ao destino.",
+    "Terceiro parágrafo: por que é um parceiro estratégico e que oportunidade representa."
   ]})},
 ];
 function openPalette(key, layout){
