@@ -3440,7 +3440,7 @@ function renderBlock(b, sec, bi){
         ? `<iframe src="${embed}" allowfullscreen></iframe>`
         : `<div class="play">▶</div><div class="vhint">${esc(b.caption||'Vídeo')}</div>`;
       let extra="";
-      if(AUTH && AUTH.role==="admin"){
+      if(EDIT && can('editContent')){
         extra = `<div class="vinput"><input data-vid="${b.key}" placeholder="Cole o link do vídeo (YouTube, Vimeo, Drive)…" value="${esc(url)}">
                  <button class="icon-btn" data-vsave="${b.key}">Salvar</button></div>`;
       }
@@ -3551,7 +3551,7 @@ function renderBlock(b, sec, bi){
     case "image":{
       const ik=b._id+'/img';
       const src = MEDIA[b.src] || STATE.media[ik] || b.src;
-      const isAdmin = AUTH && AUTH.role==="admin";
+      const isAdmin = EDIT && can('editContent');   // controles de mídia/cores só no modo edição
       const upImg = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${ik}|image" title="Enviar uma imagem do seu computador">⬆ Enviar</button>` : '';
       const input = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Cole o link de uma imagem (https://…) ou envie um arquivo →" value="${esc(STATE.media[ik]||(MEDIA[b.src]?'':b.src)||'')}">
                  <button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>` : '';
@@ -3568,7 +3568,7 @@ function renderBlock(b, sec, bi){
     }
     case "gallery":{
       const wid=b._id;
-      const isAdmin = AUTH && AUTH.role==="admin";
+      const isAdmin = EDIT && can('editContent');   // controles de mídia/cores só no modo edição
       const upGal = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${wid}|gallery" title="Enviar uma imagem do seu computador">⬆ Enviar</button>` : '';
       const adder = isAdmin ? `<div class="vinput gal-add"><input data-galurl="${wid}" placeholder="Cole o link de uma imagem ou envie um arquivo →">
                  <button class="icon-btn" data-galadd="${wid}">Adicionar</button>${upGal}</div>` : '';
@@ -3583,7 +3583,7 @@ function renderBlock(b, sec, bi){
     case "audio":{
       const ak=b._id+'/aud';
       const src = MEDIA[b.src] || STATE.media[ak] || b.src;
-      const isAdmin = AUTH && AUTH.role==="admin";
+      const isAdmin = EDIT && can('editContent');   // controles de mídia/cores só no modo edição
       const upAud = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${ak}|audio" title="Enviar um áudio do seu computador">⬆ Enviar</button>` : '';
       const input = isAdmin ? `<div class="vinput"><input data-iurl="${ak}" placeholder="Cole o link de um áudio (.mp3, .m4a…) ou envie um arquivo →" value="${esc(STATE.media[ak]||(MEDIA[b.src]?'':b.src)||'')}">
                  <button class="icon-btn" data-isave="${ak}">Salvar</button>${upAud}</div>` : '';
@@ -3753,7 +3753,7 @@ function renderBlock(b, sec, bi){
       const act=Math.min(b.active||0, Math.max(0,items.length-1));
       const cur=items[act];
       const embed=cur?ytEmbed(cur.url):'';
-      const isAdmin=AUTH&&AUTH.role==="admin";
+      const isAdmin=EDIT && can('editContent');   // controles de adicionar/editar vídeos só no modo edição
       let x=`<div class="block ytpl" data-wid="${wid}">`;
       if(b.showTitle!==false && b.title) x+=`<div class="wtitle wed" data-wedit="${wid}|title">${esc(b.title)}</div>`;
       x+=`<div class="ytpl-stage" data-ytstage="${wid}">`;
@@ -3830,7 +3830,7 @@ function renderBlock(b, sec, bi){
     case "thumb":{
       const ik=b._id+'/img';
       const src = MEDIA[b.src] || STATE.media[ik] || b.src || '';
-      const isAdmin = AUTH && AUTH.role==="admin";
+      const isAdmin = EDIT && can('editContent');   // controles de mídia/cores só no modo edição
       const upImg = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${ik}|image" title="Enviar uma imagem do seu computador">⬆ Enviar</button>` : '';
       const input = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Cole o link de uma imagem ou envie um arquivo →" value="${esc(STATE.media[ik]||'')}">
                  <button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>` : '';
@@ -3852,7 +3852,7 @@ function renderBlock(b, sec, bi){
     case "publico":{
       const ik=b._id+'/img';
       const src = MEDIA[b.src] || STATE.media[ik] || b.src || '';
-      const isAdmin = AUTH && AUTH.role==="admin";
+      const isAdmin = EDIT && can('editContent');   // controles de mídia/cores só no modo edição
       const cor = b.cor || 'var(--green)';
       const upImg=(isAdmin&&CLOUD&&fbStorage)?`<button class="icon-btn up" data-upload="${ik}|image" title="Enviar foto">⬆ Enviar</button>`:'';
       const photoInput = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Link da foto ou envie →" value="${esc(STATE.media[ik]||'')}"><button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>`:'';
@@ -3915,7 +3915,7 @@ function renderBlock(b, sec, bi){
     case "b2b":{
       const ik=b._id+'/img';
       const src = MEDIA[b.src] || STATE.media[ik] || b.src || '';
-      const isAdmin = AUTH && AUTH.role==="admin";
+      const isAdmin = EDIT && can('editContent');   // controles de mídia/cores só no modo edição
       const cor=b.cor||'var(--ink)';
       const upImg=(isAdmin&&CLOUD&&fbStorage)?`<button class="icon-btn up" data-upload="${ik}|image" title="Enviar foto">⬆ Enviar</button>`:'';
       const photoInput=isAdmin?`<div class="vinput"><input data-iurl="${ik}" placeholder="Link da foto ou envie →" value="${esc(STATE.media[ik]||'')}"><button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>`:'';
@@ -3935,7 +3935,7 @@ function renderBlock(b, sec, bi){
     }
     case "aprendizado":{
       const cor=b.cor||'var(--ink)';
-      const isAdmin = AUTH && AUTH.role==="admin";
+      const isAdmin = EDIT && can('editContent');   // controles de mídia/cores só no modo edição
       const swatches=isAdmin?`<span class="apr-cols">${['var(--ink)','var(--green)','var(--orange)','var(--magenta)','var(--cyan)','#7a1239'].map(c=>`<button data-pubcolor="${b._id}|${c}" style="background:${c}" title="Cor"></button>`).join('')}</span>`:'';
       const itemActs=(cont,j)=>`<span class="li-acts">${grip(b._id,cont,j)}<button data-itemmove="${b._id}|${cont}|${j}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|${cont}|${j}|1" title="Descer">▼</button><button data-itemdup="${b._id}|${cont}|${j}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${b._id}|${cont}|${j}" title="Apagar">×</button></span>`;
       const secs=(b.items||[]).map((s,i)=>{
