@@ -526,8 +526,8 @@
   .cm-li .cm-txt::before{content:"✓";color:var(--green);font-weight:800;margin-right:7px}
   /* sub-ações (checklist com data + status) */
   .acard-sub .suba-list{display:flex;flex-direction:column;gap:6px}
-  .suba{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--muted);border-radius:9px;padding:7px 10px;position:relative}
-  .suba[data-sst="fazer"]{border-left-color:var(--cyan)}
+  .suba{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--cyan);border-radius:9px;padding:7px 10px;position:relative}
+  .suba[data-sst="prev"]{border-left-color:var(--cyan)}
   .suba[data-sst="exec"]{border-left-color:var(--yellow)}
   .suba[data-sst="feito"]{border-left-color:var(--green)}
   .suba .suba-st{border:1px solid var(--line);border-radius:7px;padding:3px 5px;font-size:11px;font-weight:700;color:var(--ink2);background:#fff;flex:0 0 auto}
@@ -2441,7 +2441,7 @@ const LS_AUTH="pmt_auth_v1", LS_STATE="pmt_state_v1";
 const DEMO={ "cliente":{pass:"amapa",role:"cliente",name:"Cliente"},
             "admin":{pass:"amapa2025",role:"admin",name:"Thiago Akira"} };
 const ACTION_STATUS={ todo:"A fazer", doing:"Em andamento", done:"Concluída" };
-const SUBA_ST={ pend:"⏳ Pendente", fazer:"🔜 A executar", exec:"⚙ Em execução", feito:"✅ Realizada" };
+const SUBA_ST={ prev:"📅 Previsto", exec:"⚙ Em execução", feito:"✅ Concluído" };
 
 let STATE = loadState();
 let AUTH = loadAuth();
@@ -3493,13 +3493,15 @@ function renderBlock(b, sec, bi){
       const pillsWrap=pills?`<div class="ameta">${pills}</div>`:'';
       const resp2=(has('quem',b.quem||b.responsavel)||editing)?`<div class="aresp"><div class="ic">👥</div><div class="t ed" data-ed="${k}/quem">${esc(sval('quem',b.quem||b.responsavel))}</div></div>`:'';
       const objrDef=(b.objReal!=null)?b.objReal:(b.objetivos||''); const objmDef=b.objMacro||'';
-      const objBlock=(has('objr',objrDef)||has('objm',objmDef)||editing)?`<div class="acard-sec obj"><h6>Objetivos</h6><div class="obj-line"><b>Real:</b> <span class="ed" data-ed="${k}/objr">${esc(sval('objr',objrDef))}</span></div><div class="obj-line"><b>Macro:</b> <span class="ed" data-ed="${k}/objm">${esc(sval('objm',objmDef))}</span></div></div>`:'';
+      const oline=(lab,key,def)=> (has(key,def)||editing)?`<div class="obj-line"><b>${lab}:</b> <span class="ed" data-ed="${k}/${key}">${esc(sval(key,def))}</span></div>`:'';
+      const objInner=[oline('Real','objr',objrDef),oline('Macro','objm',objmDef),oline('Por quê','porque',b.porque)].join('');
+      const objBlock=(objInner.trim()||editing)?`<div class="acard-sec obj"><h6>Objetivos e por quê</h6>${objInner}</div>`:'';
       const cmItems=(b.comomedir||[]);
       const cmLis=cmItems.map((x,i)=>`<li class="cm-li dnd-row"><span class="ed cm-txt" data-ed="${k}/cm/${i}">${esc(txt(k+'/cm/'+i,x))}</span><span class="li-acts">${grip(b._id,'comomedir',i)}<button data-itemmove="${b._id}|comomedir|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|comomedir|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|comomedir|${i}" title="Apagar">×</button></span></li>`).join('');
       const cmWrap=(cmItems.length||editing)?`<div class="akpi"><h6>📊 Como medir</h6><ul ${dz(b._id,'comomedir')}>${cmLis}</ul>${editing?`<button class="li-plus" data-boxitemadd="${b._id}|comomedir">＋ indicador</button>`:''}</div>`:'';
       const suba=(b.subacoes||[]);
-      const subaRows=suba.map((s,i)=>{ const sst=s.st||'pend';
-        return `<div class="suba dnd-row" data-sst="${sst}"><select class="suba-st" data-sast="${b._id}|${i}">${Object.entries(SUBA_ST).map(([v,l])=>`<option value="${v}" ${sst===v?'selected':''}>${l}</option>`).join('')}</select><span class="suba-t ed" data-ed="${k}/sa/${i}/t">${esc(txt(k+'/sa/'+i+'/t', s.t||''))}</span><span class="suba-d ed" data-ed="${k}/sa/${i}/d">${esc(txt(k+'/sa/'+i+'/d', s.data||''))}</span><span class="li-acts">${grip(b._id,'subacoes',i)}<button data-itemmove="${b._id}|subacoes|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|subacoes|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|subacoes|${i}" title="Apagar">×</button></span></div>`;}).join('');
+      const subaRows=suba.map((s,i)=>{ const sst=s.st||'prev';
+        return `<div class="suba dnd-row" data-sst="${sst}"><select class="suba-st" data-sast="${b._id}|${i}">${Object.entries(SUBA_ST).map(([v,l])=>`<option value="${v}" ${sst===v?'selected':''}>${l}</option>`).join('')}</select><span class="suba-t ed" data-ed="${k}/sa/${i}/t">${esc(txt(k+'/sa/'+i+'/t', s.t||''))}</span><span class="suba-d ed" data-ed="${k}/sa/${i}/d">${esc(txt(k+'/sa/'+i+'/d', s.data||''))}</span><span class="li-acts">${grip(b._id,'subacoes',i)}<button data-itemmove="${b._id}|subacoes|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|subacoes|${i}|1" title="Descer">▼</button><button data-itemdup="${b._id}|subacoes|${i}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${b._id}|subacoes|${i}" title="Apagar">×</button></span></div>`;}).join('');
       const subaWrap=(suba.length||editing)?`<div class="acard-sub"><h6>📋 Sub-ações</h6><div class="suba-list" ${dz(b._id,'subacoes')}>${subaRows}</div>${editing?`<button class="li-plus" data-subaadd="${b._id}">＋ sub-ação</button>`:''}</div>`:'';
       return `<div class="action acard" data-st="${st}" data-aid="${b.id}">
         <div class="ahead">
@@ -3507,7 +3509,7 @@ function renderBlock(b, sec, bi){
           <div class="atitle"><h4 class="ed" data-ed="${k}/t">${esc(txt(k+'/t',b.titulo))}</h4></div>
           <div class="aright">${prioEd}${sel}</div>
         </div>
-        <div class="acard-body">${descSec}${pillsWrap}${resp2}${objBlock}${fsec('Por quê','porque',b.porque,'porque')}${fsec('Como','como',b.como,'como')}${fsec('Resultados esperados','res',b.resultados,'res')}${fsec('Para quem','para',b.paraquem,'para')}${cmWrap}${fsec('Quanto','quanto',b.quanto,'quanto')}${difSec}${subaWrap}</div>
+        <div class="acard-body">${descSec}${pillsWrap}${resp2}${objBlock}${fsec('Como','como',b.como,'como')}${fsec('Para quem','para',b.paraquem,'para')}${fsec('Resultados esperados','res',b.resultados,'res')}${cmWrap}${fsec('Quanto','quanto',b.quanto,'quanto')}${difSec}${subaWrap}</div>
       </div>`;
     }
     case "video":{
@@ -5482,7 +5484,7 @@ function pubSecType(id,i,tipo){ const b=findWidgetBlock(id); if(!b) return; cons
 function pubSecAdd(id,col){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.items=b.items||[]; b.items.push({titulo:'Nova seção', col:col, tipo:'list', items:['Novo item']}); pushHistory('Seção','publico'); saveState(); render(); }
 function pubKvAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({k:'Rótulo',v:'Valor'}); pushHistory('Linha','publico'); saveState(); render(); }
 function aprItemAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({lab:'Rótulo:', txt:'descrição'}); pushHistory('Item','aprendizado'); saveState(); render(); }
-function addSubacao(id){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.subacoes=b.subacoes||[]; b.subacoes.push({t:'Nova sub-ação', data:'', st:'pend'}); pushHistory('Sub-ação','ação'); saveState(); render(); }
+function addSubacao(id){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.subacoes=b.subacoes||[]; b.subacoes.push({t:'Nova sub-ação', data:'', st:'prev'}); pushHistory('Sub-ação','ação'); saveState(); render(); }
 function setSubaSt(id,i,st){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.subacoes||[])[i]; if(!s) return; s.st=st; pushHistory('Status da sub-ação','ação'); saveState(); render(); }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
