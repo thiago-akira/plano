@@ -154,8 +154,12 @@
   .chap-hero .ch-sub{margin:10px 0 0;font-size:14.5px;max-width:640px;opacity:.95;line-height:1.5}
 
   /* section tabs */
-  .sec-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 6px;position:sticky;top:0;
+  .sec-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 6px;position:relative;
     background:var(--paper);padding:10px 0;z-index:5}
+  .sec-tabs.tabs-fixed{position:fixed;margin:0;z-index:40;border-radius:0 0 12px 12px;
+    box-shadow:0 6px 16px rgba(36,26,110,.08);transition:transform .26s ease, box-shadow .2s}
+  .sec-tabs.tabs-fixed.tabs-up{transform:translateY(calc(-100% - 14px));box-shadow:none}
+  .sec-tabs-ph{flex:0 0 auto}
   .sec-tab{border:1.5px solid var(--line);background:#fff;border-radius:30px;padding:7px 15px;
     font-size:13px;font-weight:700;color:var(--ink2);transition:all .12s;cursor:pointer;user-select:none;white-space:nowrap}
   body.editing .sec-tab.active{user-select:text}
@@ -3334,6 +3338,28 @@ function curSecObj(){
   return s?s.obj:{titulo:'',blocks:[]};
 }
 
+/* ===== sub-menus (abas de seção) fixos no topo só ao rolar para cima (headroom) ===== */
+let _hrY=0, _hrPh=null, _hrFixed=false;
+function hrTopbarH(){ const tb=$(".topbar"); return tb?Math.round(tb.getBoundingClientRect().height):60; }
+function hrPosition(tabs,tbh){ const v=$("#view"); if(!v) return; const vr=v.getBoundingClientRect(); const cs=getComputedStyle(v);
+  const pl=parseFloat(cs.paddingLeft)||0, pr=parseFloat(cs.paddingRight)||0;
+  tabs.style.top=tbh+"px"; tabs.style.left=(vr.left+pl)+"px"; tabs.style.width=(vr.width-pl-pr)+"px"; }
+function hrUnfix(){ const t=$(".sec-tabs.tabs-fixed"); if(t){ t.classList.remove("tabs-fixed","tabs-up"); t.style.top=t.style.left=t.style.width=""; }
+  if(_hrPh&&_hrPh.parentNode) _hrPh.remove(); _hrPh=null; _hrFixed=false; }
+function headroom(){
+  const tabs=$(".sec-tabs"); if(!tabs){ if(_hrFixed) hrUnfix(); return; }
+  const sc=document.scrollingElement||document.documentElement; const st=sc.scrollTop||0; const dir=st-_hrY; _hrY=st;
+  const tbh=hrTopbarH();
+  const ref=(_hrFixed&&_hrPh)?_hrPh:tabs;
+  const natTop=ref.getBoundingClientRect().top+st;          // topo natural das abas (coord. do documento)
+  if(st <= natTop - tbh - 2){ if(_hrFixed) hrUnfix(); return; }   // acima da zona: fluxo normal (visíveis)
+  if(!_hrFixed){ const r=tabs.getBoundingClientRect(); _hrPh=document.createElement("div"); _hrPh.className="sec-tabs-ph"; _hrPh.style.height=r.height+"px"; tabs.parentNode.insertBefore(_hrPh,tabs); tabs.classList.add("tabs-fixed","tabs-up"); _hrFixed=true; }
+  hrPosition(tabs,tbh);
+  if(Math.abs(dir)>2) tabs.classList.toggle("tabs-up", dir>0);   // descendo → esconde; subindo → mostra fixo
+}
+function hrReset(){ _hrFixed=false; _hrPh=null; }   // após render (DOM trocado): zera estado
+window.addEventListener("scroll", headroom, {passive:true});
+window.addEventListener("resize", ()=>{ if(_hrFixed){ const t=$(".sec-tabs"); if(t) hrPosition(t,hrTopbarH()); } });
 function render(){
   if(typeof hideSelBar==="function") hideSelBar();
   const cm = chapterModel(CUR.chapter) || navModel()[0];
@@ -3432,6 +3458,7 @@ function render(){
   const navKey=String(CUR.chapter)+'/'+CUR.section;
   const navChanged = navKey!==_lastNav;
   const keepScroll = navChanged ? 0 : (scroller?scroller.scrollTop:0);   // preserva scroll se não mudou de aba
+  hrReset();   // estado do headroom (abas fixas) zera porque o DOM foi trocado
   $("#view").innerHTML=h;
   _lastNav=navKey;
   if(scroller) scroller.scrollTop = keepScroll;   // restaura já (e de novo após layoutTiles, c/ alturas finais)
