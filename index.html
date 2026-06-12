@@ -1177,6 +1177,26 @@
   .learn-sw:hover{transform:scale(1.12)}
   .learn-pick{width:26px;height:24px;border:1px solid rgba(255,255,255,.45);border-radius:6px;background:none;cursor:pointer;padding:1px}
 
+  /* widget Miniatura — foto + tags com ícone/emoji */
+  .thumb{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);max-width:340px;margin:6px 0}
+  .thumb .thumb-photo{aspect-ratio:4/3;background:#f2eeff;position:relative}
+  .thumb .thumb-photo img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .thumb-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:linear-gradient(135deg,#ffd66b 0%,#fb923c 45%,#e5167b 100%);color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.04em}
+  .thumb .thumb-ph span{font-size:36px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+  .thumb .thumb-tags{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .thumb .thumb-tag{display:flex;align-items:center;gap:10px;background:#f6f4fb;border-radius:9px;padding:8px 12px;position:relative;
+    font-weight:700;color:var(--tg,var(--ink));font-size:13px}
+  .thumb .tg-ic{font-size:16px;flex:0 0 auto;line-height:1;color:var(--tg,var(--ink))}
+  .thumb .tg-t{flex:1;min-width:0;letter-spacing:.02em}
+  .thumb .vinput{margin:10px 12px 0}
+  .thumb .li-acts{display:none}
+  body.grid-edit .thumb .li-acts{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto}
+  .thumb .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .thumb .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .thumb .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
+  body.grid-edit .thumb .li-plus{margin:0 12px 12px}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -2958,7 +2978,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos' };
+  learn:'O que aprendemos', thumb:'Miniatura' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3663,6 +3683,28 @@ function renderBlock(b, sec, bi){
         <div class="learn-p ed" data-ed="${b.key}">${richHtml(txt(b.key,b.texto))}</div>
       </div>`;
     }
+    case "thumb":{
+      const ik=b._id+'/img';
+      const src = MEDIA[b.src] || STATE.media[ik] || b.src || '';
+      const isAdmin = AUTH && AUTH.role==="admin";
+      const upImg = (isAdmin && CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${ik}|image" title="Enviar uma imagem do seu computador">⬆ Enviar</button>` : '';
+      const input = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Cole o link de uma imagem ou envie um arquivo →" value="${esc(STATE.media[ik]||'')}">
+                 <button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>` : '';
+      const photo = src ? `<img src="${esc(src)}" alt="${esc(b.caption||'')}" loading="lazy">` : `<div class="thumb-ph"><span>🏞️</span>Sem foto</div>`;
+      let tags='';
+      (b.items||[]).forEach((it,i)=>{
+        tags+=`<div class="thumb-tag dnd-row"${it.color?` style="--tg:${it.color}"`:''}>
+          <span class="tg-ic ed" data-ed="${b._id}/${i}/ic" title="Clique para trocar o ícone/emoji">${esc(txt(b._id+'/'+i+'/ic', it.icon||'•'))}</span>
+          <span class="tg-t ed" data-ed="${b._id}/${i}/t">${esc(txt(b._id+'/'+i+'/t', it.t||''))}</span>
+          <span class="li-acts thumb-acts">${grip(b._id,'items',i)}<button data-itemmove="${b._id}|items|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|items|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|items|${i}" title="Apagar">×</button></span>
+        </div>`;
+      });
+      return `<div class="block thumb" data-wid="${b._id}">
+        <div class="thumb-photo">${photo}</div>${input}
+        <div class="thumb-tags" ${dz(b._id,'items')}>${tags}</div>
+        <button class="li-plus" data-boxadd="${b._id}|items">＋ tag</button>
+      </div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3695,6 +3737,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'phases': reseatObj(b,b.key,'items',[['titulo','t'],['texto','d']]); break;
   case 'ladder': reseatObj(b,b._id,'items',[['k','k'],['v','v']]); break;
   case 'personas': reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); break;
+  case 'thumb': reseatObj(b,b._id,'items',[['icon','ic'],['t','t']]); break;
   case 'statRow': { const id=b._id;
     const a=(b.items||[]).map((s,i)=>{ const n=Object.assign({},s);
       n.v=_ovf(id+'/'+i+'/v', s.v); n.l=_ovf(id+'/'+i+'/l', s.l);
@@ -3834,6 +3877,7 @@ function addBox(wid, cont){
   else if(b.type==='table') item=(b.cols||['']).map(()=>'');   // nova linha vazia
   else if(b.type==='rankList') item='Novo item';
   else if(b.type==='faq') item={q:'Nova pergunta?', a:'Resposta da nova pergunta.'};
+  else if(b.type==='thumb') item={icon:'⭐', t:'Nova tag', color:'var(--cyan)'};
   else if(b.type==='twoCol') item={_sk:newAddId(), k:'RÓTULO', titulo:'Novo card', texto:'Descreva o conteúdo deste card.'};
   else item={};
   list.push(item); pushHistory('Adicionou card','widget'); saveState(); render();
@@ -4696,6 +4740,7 @@ const WIDGET_CATALOG=[
   {ic:"📺", label:"Playlist YouTube", desc:"Vídeos + mini-player flutuante", make:id=>({type:"ytplaylist", _id:id, title:"Playlist", showTitle:true, active:0, items:[]})},
   {ic:"☰", label:"Menu", desc:"Navegação clicável", make:id=>({type:"navmenu", _id:id, title:"Navegação", showTitle:true, style:"grid", custom:false, items:[]})},
   {ic:"💡", label:"O que aprendemos", desc:"Caixa colorida com seta, título e texto", make:id=>({type:"learn", _id:id, key:id+"/t", arrow:"top", color:"#123a8a", titulo:"O que aprendemos aqui?", texto:"Escreva aqui o aprendizado principal deste trecho do plano."})},
+  {ic:"🖼", label:"Miniatura", desc:"Foto + tags com ícone/emoji", make:id=>({type:"thumb", _id:id, src:"", caption:"", items:[{icon:"⚠️", t:"CONCORRENTE DIRETO", color:"var(--magenta)"},{icon:"🟢", t:"NACIONAL", color:"var(--green)"}]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
@@ -4946,7 +4991,7 @@ function bxeReopen(){ const tid=_bxeTileId, skey=_bxeScopeKey; if(!tid) return;
   setTimeout(()=>{ const t=document.querySelector(`.gtile[data-id="${tid}"]`); if(!t) return;
     if(skey){ const g=t.querySelector(`[data-dragitem="${skey}"]`); const box=g&&g.closest('.dnd-box, .dnd-row'); if(box){ openFieldEditor(t, null, box); return; } }
     openFieldEditor(t, t.querySelector('.gtile-fields')); }, 230); }
-const COLOR_BOX={calloutGrid:1,list:1,statRow:1,groupList:1};
+const COLOR_BOX={calloutGrid:1,list:1,statRow:1,groupList:1,thumb:1};
 function fieldInput(f, i){
   const key=f.hasAttribute('data-ed')?('ed::'+f.getAttribute('data-ed')):('wed::'+f.getAttribute('data-wedit'));
   const label=fieldLabel(f,i), val=fieldText(f);
