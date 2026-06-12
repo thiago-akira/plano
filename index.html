@@ -140,6 +140,9 @@
 
   .content{flex:1;overflow-y:auto;padding:0}
   .wrap{max-width:900px;margin:0 auto;padding:34px 30px 96px}
+  /* tamanho de texto do leitor (--fs): aplica zoom só na leitura; no editor fica 1 p/ não afetar o arrasto */
+  #view{zoom:var(--fs,1);max-width:calc(900px / var(--fs,1))}
+  body.grid-edit #view,body.editing #view{zoom:1;max-width:900px}
 
   /* chapter header block (Memphis bold) */
   .chap-hero{border-radius:16px;color:#fff;padding:26px 26px 24px;position:relative;overflow:hidden;
@@ -1027,6 +1030,13 @@
   .tb-icon{border:1px solid var(--line);background:#fff;border-radius:9px;width:34px;height:34px;
     font-size:16px;color:var(--ink2);font-weight:700;display:flex;align-items:center;justify-content:center}
   .tb-icon[disabled]{opacity:.38;pointer-events:none}
+  /* controle de tamanho do texto (visível para todos, exceto enquanto edita) */
+  .font-ctrl{display:inline-flex;gap:4px;align-items:center;flex:0 0 auto}
+  .font-ctrl button{border:1px solid var(--line);background:#fff;border-radius:9px;width:34px;height:34px;font-weight:800;color:var(--ink2);cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center}
+  .font-ctrl #fontDown{font-size:11px} .font-ctrl #fontUp{font-size:15px}
+  .font-ctrl button:hover{border-color:var(--ink);color:var(--ink)}
+  .font-ctrl button[disabled]{opacity:.4;pointer-events:none}
+  body.grid-edit .font-ctrl{display:none}
   .save-pill{font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;padding:0 4px;min-width:54px}
   .save-pill.saving{color:var(--orange)} .save-pill.saved{color:var(--green)} .save-pill.err{color:var(--magenta)}
   /* progresso na nav lateral */
@@ -1361,9 +1371,13 @@
     .topbar{padding:9px 16px;gap:6px}
     .tb-btn{padding:7px 10px;font-size:15px;flex:0 0 auto}
     .progress-pill{display:none}   /* anel de progresso some no celular (libera espaço) */
-    #devSwitch{display:none}        /* atalhos de visualização por dispositivo não fazem sentido no celular */
-    .tb-title{font-size:15px}
+    #devSwitch,#savePill{display:none}   /* device e pílula de salvo somem no celular (libera p/ desfazer/refazer) */
+    .tb-title{font-size:15px;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tb-icon{width:30px;height:30px;font-size:14px}
+    .font-ctrl button{width:30px;height:30px}
+    .edit-cluster{gap:4px}
   }
+  @media(max-width:560px){ #histBtn{display:none} }   /* telas bem estreitas: mantém só desfazer/refazer */
 </style>
 </head>
 <body>
@@ -1445,6 +1459,10 @@
         <span class="ring" id="ring"><b id="ringTxt">0%</b></span>
         <span class="ptxt">execução</span>
       </div>
+      <span class="font-ctrl" id="fontCtrl" title="Tamanho do texto">
+        <button id="fontDown" title="Diminuir texto">A−</button>
+        <button id="fontUp" title="Aumentar texto">A+</button>
+      </span>
       <button class="tb-btn" id="previewClientBtn" style="display:none" title="Ver como cliente"><span class="pc-ico">👁</span><span class="lbl">&nbsp;Ver como cliente</span></button>
       <button class="tb-btn" id="editBtn" style="display:none"><span class="lbl">Editar</span> ✏️</button>
       <button class="tb-btn ai" id="aiBtn">✦ <span class="lbl">Assistente</span></button>
@@ -5570,7 +5588,7 @@ $("#sideToggle").addEventListener("click",()=>{ STATE.sideCollapsed=!STATE.sideC
 function updateEditChrome(){
   const hasEdit = can('editContent')||can('editLayout');
   // cluster (desfazer/refazer/histórico) sempre visível p/ quem edita; alternador de device só em EDIT
-  const c=$("#editCluster"); if(c) c.style.display = (hasEdit && window.innerWidth>820) ? "flex" : "none";  // desfazer/refazer/histórico só em telas largas (libera o topo no celular/tablet)
+  const c=$("#editCluster"); if(c) c.style.display = hasEdit ? "flex" : "none";  // desfazer/refazer/histórico sempre p/ quem edita (inclusive no celular)
   const dv=$("#devSwitch"); if(dv) dv.style.display = (hasEdit && window.innerWidth>980) ? "inline-flex" : "none";  // some no celular (não faz sentido + estoura o topo)
   const u=$("#undoBtn"), r=$("#redoBtn");
   if(u) u.disabled = !(HI>0);
@@ -5581,6 +5599,16 @@ function updateEditChrome(){
 $("#undoBtn").addEventListener("click", ()=>undo());
 $("#redoBtn").addEventListener("click", ()=>redo());
 $("#histBtn").addEventListener("click", ()=>openHistory());
+// ===== controle de tamanho do texto (leitor) — por dispositivo, no localStorage =====
+const FONT_LEVELS=[0.85,0.92,1,1.1,1.22,1.35];
+let fontIdx=2;
+try{ const s=localStorage.getItem('pmt_fontscale'); if(s!=null) fontIdx=Math.max(0,Math.min(FONT_LEVELS.length-1,+s||2)); }catch(_){}
+function applyFontScale(){ document.documentElement.style.setProperty('--fs', FONT_LEVELS[fontIdx]);
+  const d=$("#fontDown"), u=$("#fontUp"); if(d) d.disabled=fontIdx<=0; if(u) u.disabled=fontIdx>=FONT_LEVELS.length-1; }
+function setFont(delta){ fontIdx=Math.max(0,Math.min(FONT_LEVELS.length-1, fontIdx+delta)); try{localStorage.setItem('pmt_fontscale',String(fontIdx))}catch(_){} applyFontScale(); }
+$("#fontDown").addEventListener("click", ()=>setFont(-1));
+$("#fontUp").addEventListener("click", ()=>setFont(1));
+applyFontScale();
 $$("#devSwitch .dev-btn").forEach(b=> b.addEventListener("click",()=>{ EDIT_DEVICE=b.dataset.dev; render(); }));
 $("#userMenuBtn").addEventListener("click", ()=>openUserMenu());
 
