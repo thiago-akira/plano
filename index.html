@@ -835,12 +835,22 @@
     display:grid;place-items:center;box-shadow:var(--shadow)}
   .gtile-del:hover{background:var(--magenta);color:#fff;border-color:var(--magenta)}
   /* alças de redimensionar */
-  body.grid-edit .resize,body.grid-edit .resize-r,body.grid-edit .resize-b{position:absolute;display:block;z-index:4}
+  body.grid-edit .resize,body.grid-edit .resize-r,body.grid-edit .resize-b{position:absolute;display:block;z-index:4;touch-action:none}
   .resize,.resize-r,.resize-b{display:none}
   .resize{right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;
     background:linear-gradient(135deg,transparent 50%,var(--orange) 50%);border-bottom-right-radius:13px}
   .resize-r{top:30%;bottom:30%;right:0;width:10px;cursor:ew-resize}
   .resize-b{left:30%;right:30%;bottom:0;height:10px;cursor:ns-resize}
+  /* telas de toque: alças maiores e mais fáceis de pegar com o dedo */
+  @media (pointer:coarse){
+    .resize{width:30px;height:30px;border-bottom-right-radius:18px}
+    .resize-r{top:18%;bottom:18%;width:24px}
+    .resize-b{left:18%;right:18%;height:24px}
+    .t-move{width:34px;height:34px}
+    .resize-r::after,.resize-b::after{content:"";position:absolute;background:var(--orange);border-radius:4px;opacity:.55}
+    .resize-r::after{top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:30px}
+    .resize-b::after{top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:4px}
+  }
   /* ghost de pré-visualização */
   .tile-ghost{position:absolute;z-index:2;box-sizing:border-box;border:2.5px dashed var(--orange);
     border-radius:14px;background:rgba(243,106,33,.12);pointer-events:none;
@@ -4804,8 +4814,9 @@ function bindGridGlobal(){
   window.addEventListener("pointerup", onGridUp);
 }
 function onGridMove(e){
-  if(MARQUEE){ updateMarquee(e); return; }
+  if(MARQUEE){ if(e.cancelable) e.preventDefault(); updateMarquee(e); return; }
   if(!GDRAG) return; const d=GDRAG, m=d.m;
+  if(e.cancelable) e.preventDefault();   // impede que o toque vire rolagem e cancele o resize/arraste
   if(d.pending){ if(Math.hypot(e.clientX-d.startX,e.clientY-d.startY)<6) return; activateDrag(e); }
   const dx=e.clientX-d.startX, dy=e.clientY-d.startY, items=layoutItemsOf(d.key);
   if(d.mode==="resize"){
