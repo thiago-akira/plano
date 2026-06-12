@@ -4891,7 +4891,7 @@ const WIDGET_CATALOG=[
   {ic:"☰", label:"Menu", desc:"Navegação clicável", make:id=>({type:"navmenu", _id:id, title:"Navegação", showTitle:true, style:"grid", custom:false, items:[]})},
   {ic:"💡", label:"O que aprendemos", desc:"Caixa colorida com seta, título e texto", make:id=>({type:"learn", _id:id, key:id+"/t", arrow:"top", color:"#123a8a", titulo:"O que aprendemos aqui?", texto:"Escreva aqui o aprendizado principal deste trecho do plano."})},
   {ic:"🖼", label:"Miniatura", desc:"Foto + tags com ícone/emoji", make:id=>({type:"thumb", _id:id, src:"", caption:"", items:[{icon:"⚠️", t:"CONCORRENTE DIRETO", color:"var(--magenta)"},{icon:"🟢", t:"NACIONAL", color:"var(--green)"}]})},
-  {ic:"🪪", label:"Públicos (ficha)", desc:"Ficha de perfil: foto + colunas + apresentação", make:id=>({type:"publico", _id:id, src:"", cor:"var(--green)", badge:"Público 01", nome:"Nome do Público", sub:"Subtítulo",
+  {ic:"🪪", label:"Públicos (ficha)", desc:"Ficha de perfil: foto + colunas + apresentação", w:24, h:18, make:id=>({type:"publico", _id:id, src:"", cor:"var(--green)", badge:"Público 01", nome:"Nome do Público", sub:"Subtítulo",
     resumo:"Resumo da apresentação deste público — fica sempre visível.",
     completo:"Texto completo da apresentação, revelado quando o leitor clica em \"Ler completo\".",
     items:[
@@ -4902,7 +4902,7 @@ const WIDGET_CATALOG=[
       {titulo:"Desejos e Objetivos", col:"R", tipo:"list", items:["O que busca","O que valoriza"]},
       {titulo:"Como Ajudamos?", col:"R", tipo:"list", items:["Nossa proposta de valor","Diferencial"]}
     ]})},
-  {ic:"🔎", label:"Características", desc:"Grupos de características em grade (bullets →)", make:id=>({type:"caracteristicas", _id:id, icon:"🔍", titulo:"Características que procuramos", items:[
+  {ic:"🔎", label:"Características", desc:"Grupos de características em grade (bullets →)", w:24, h:12, make:id=>({type:"caracteristicas", _id:id, icon:"🔍", titulo:"Características que procuramos", items:[
     {titulo:"Valores e Mentalidade", items:["Consciência ambiental genuína","Valoriza autenticidade","Busca experiências transformadoras"]},
     {titulo:"Comportamento de Viagem", items:["Investe tempo para entender o destino","Busca experiências personalizadas","Prefere grupos pequenos"]},
     {titulo:"Motivações Específicas", items:["Busca reconexão com a natureza","Interesse em cultura local"]},
@@ -4922,7 +4922,7 @@ function addBlock(key, layout, w){
   const id=newAddId();
   const blk=w.make(id); blk._id=id;
   const cols=cur.cols||GRID_COLS;
-  const wide=Math.min(cols,12), tall=5;
+  const wide=Math.min(cols, w.w||12), tall=w.h||5;   // tamanho preferido do widget (catálogo)
   const spot=findFreeSpot({x:0,y:0,w:wide,h:tall}, null, cur.items, cols);
   cur.items.push({ id, x:spot.x, y:spot.y, w:wide, h:tall, add:blk });
   // propaga o widget para as outras variantes já materializadas (conteúdo é compartilhado)
