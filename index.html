@@ -1265,11 +1265,12 @@
 
   /* widget Públicos B2B — foto + título + parágrafos */
   .b2b{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:var(--shadow)}
-  .b2b .b2b-head{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+  .b2b .b2b-row{display:flex;align-items:flex-start;gap:16px}
+  .b2b .b2b-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:13px}
   .b2b .b2b-photo{flex:0 0 72px;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 0 0 2px var(--cor,var(--ink)),var(--shadow);background:#e8e6f0}
   .b2b .b2b-photo img{width:100%;height:100%;object-fit:cover;display:block}
   .b2b .b2b-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#cfcae0,#9aa0b5);color:#fff;font-size:30px}
-  .b2b .b2b-htext{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .b2b .b2b-htext{display:flex;flex-direction:column;gap:6px}
   .b2b .b2b-title{margin:0;font-size:21px;font-weight:800;text-transform:uppercase;letter-spacing:.01em;color:var(--cor,var(--ink))}
   .b2b .b2b-cols{display:none;gap:4px}
   body.grid-edit .b2b .b2b-cols{display:inline-flex}
@@ -3867,12 +3868,14 @@ function renderBlock(b, sec, bi){
       const swatches=['var(--ink)','var(--green)','var(--orange)','var(--magenta)','var(--cyan)','#7a1239'].map(c=>`<button data-pubcolor="${b._id}|${c}" style="background:${c}" title="Cor"></button>`).join('');
       const paras=(b.paras||[]).map((p,i)=>`<div class="b2b-para dnd-row"><p class="ed b2b-ptext" data-ed="${b._id}/p/${i}">${richHtml(txt(b._id+'/p/'+i, p))}</p><span class="li-acts">${grip(b._id,'paras',i)}<button data-itemmove="${b._id}|paras|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|paras|${i}|1" title="Descer">▼</button><button data-itemdup="${b._id}|paras|${i}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${b._id}|paras|${i}" title="Apagar">×</button></span></div>`).join('');
       return `<div class="block b2b" data-wid="${b._id}" style="--cor:${cor}">
-        <div class="b2b-head">
+        <div class="b2b-row">
           <div class="b2b-photo">${photo}</div>
-          <div class="b2b-htext"><span class="b2b-cols">${swatches}</span><h3 class="b2b-title ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t', b.titulo||'Título do público B2B'))}</h3></div>
-        </div>${photoInput}
-        <div class="b2b-body" ${dz(b._id,'paras')}>${paras}</div>
-        <button class="li-plus" data-boxadd="${b._id}|paras">＋ parágrafo</button>
+          <div class="b2b-col">
+            <div class="b2b-htext"><span class="b2b-cols">${swatches}</span><h3 class="b2b-title ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t', b.titulo||'Título do público B2B'))}</h3></div>${photoInput}
+            <div class="b2b-body" ${dz(b._id,'paras')}>${paras}</div>
+            <button class="li-plus" data-boxadd="${b._id}|paras">＋ parágrafo</button>
+          </div>
+        </div>
       </div>`;
     }
     case "placeholder":{
