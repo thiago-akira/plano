@@ -5601,7 +5601,7 @@ $("#redoBtn").addEventListener("click", ()=>redo());
 $("#histBtn").addEventListener("click", ()=>openHistory());
 // ===== controle de tamanho do texto (leitor) — por dispositivo, no localStorage =====
 const FONT_LEVELS=[0.85,0.92,1,1.1,1.22,1.35];
-let fontIdx=2;
+let fontIdx = (window.matchMedia && window.matchMedia('(max-width:820px)').matches) ? 4 : 2;   // celular já abre com texto maior (1.22) por padrão
 try{ const s=localStorage.getItem('pmt_fontscale'); if(s!=null) fontIdx=Math.max(0,Math.min(FONT_LEVELS.length-1,+s||2)); }catch(_){}
 function applyFontScale(){ document.documentElement.style.setProperty('--fs', FONT_LEVELS[fontIdx]);
   const d=$("#fontDown"), u=$("#fontUp"); if(d) d.disabled=fontIdx<=0; if(u) u.disabled=fontIdx>=FONT_LEVELS.length-1; }
