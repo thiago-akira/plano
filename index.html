@@ -1374,6 +1374,7 @@
   .roadmap .rm-row::after{content:"";position:absolute;top:0;bottom:0;left:var(--rm-namew,230px);right:0;z-index:0;pointer-events:none;
     background-image:repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px calc(100%/var(--rmcols)));opacity:.45}
   .roadmap .rm-name{grid-column:1;display:flex;align-items:center;gap:6px;padding-right:10px;min-width:0;position:relative;z-index:1}
+  .roadmap .rm-num{flex:0 0 auto;min-width:18px;height:18px;padding:0 4px;border-radius:5px;background:var(--cor,var(--ink));color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
   .roadmap .rm-ntxt{font-size:12px;color:#46415a;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .roadmap .rm-bar{height:17px;border-radius:9px;background:var(--cor,var(--green));box-shadow:0 1px 3px rgba(0,0,0,.18);position:relative;z-index:1;margin:0 2px}
   .roadmap .rm-acts{display:none}
@@ -4118,7 +4119,7 @@ function renderBlock(b, sec, bi){
         const s=Math.max(0,Math.min(N-1, it.start||0)); const l=Math.max(1,Math.min(N-s, it.len||1)); const c=it.color||PAL[i%PAL.length];
         const acts=`<span class="li-acts rm-acts">${grip(id,'items',i)}<button data-rmstart="${id}|${i}|-1" title="Antecipar">◀</button><button data-rmstart="${id}|${i}|1" title="Adiar">▶</button><button data-rmlen="${id}|${i}|-1" title="Encurtar">–</button><button data-rmlen="${id}|${i}|1" title="Alongar">+</button><button data-itemdup="${id}|items|${i}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${id}|items|${i}" title="Apagar">×</button></span>`;
         const lbl=esc((months[s]||'')+(l>1?' → '+(months[Math.min(N-1,s+l-1)]||''):''));
-        return `<div class="rm-row dnd-row"><div class="rm-name"><span class="ed rm-ntxt" data-ed="${id}/${i}/t">${esc(txt(id+'/'+i+'/t',it.t))}</span>${acts}</div><div class="rm-bar" style="grid-column:${2+s} / span ${l};background:${c}" title="${lbl}"></div></div>`;
+        return `<div class="rm-row dnd-row"><div class="rm-name"><span class="rm-num" style="background:${c}">${i+1}</span><span class="ed rm-ntxt" data-ed="${id}/${i}/t">${esc(txt(id+'/'+i+'/t',it.t))}</span>${acts}</div><div class="rm-bar" style="grid-column:${2+s} / span ${l};background:${c}" title="${lbl}"></div></div>`;
       }).join('');
       return `<div class="block roadmap" data-wid="${id}" style="--cor:${cor};--rmcols:${N}" ${dz(id,'items')}>
         <div class="rm-title ed" data-ed="${id}/t">${esc(txt(id+'/t', b.titulo||'Roadmap de execução'))}</div>
