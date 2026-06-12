@@ -1197,6 +1197,52 @@
   body.grid-edit .thumb .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
   body.grid-edit .thumb .li-plus{margin:0 12px 12px}
 
+  /* widget Públicos — ficha de perfil em duas colunas */
+  .publico{display:flex;gap:22px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+  .publico .pub-side{flex:0 0 210px;max-width:210px;background:#f4f3f7;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .publico .pub-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px}
+  .publico .pub-photo{width:140px;height:140px;border-radius:50%;overflow:hidden;align-self:center;border:5px solid #fff;box-shadow:0 0 0 3px var(--cor,var(--green)),var(--shadow);background:#e8e6f0}
+  .publico .pub-photo img{width:100%;height:100%;object-fit:cover;display:block}
+  .publico .pub-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#cfcae0,#9aa0b5);color:#fff}
+  .publico .pub-ph span{font-size:54px;opacity:.85}
+  .publico .pub-badge{display:inline-block;color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:7px}
+  .publico .pub-badgerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .publico .pub-cols{display:none;gap:4px}
+  body.grid-edit .publico .pub-cols{display:inline-flex}
+  .publico .pub-sw{width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+  .publico .pub-nome{margin:8px 0 0;font-size:30px;font-weight:800;line-height:1;color:var(--cor,var(--ink));letter-spacing:-.01em;text-transform:uppercase}
+  .publico .pub-sub{font-size:20px;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.01em}
+  .publico .pub-sec{display:flex;flex-direction:column;gap:7px}
+  .publico .pub-sechead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .publico .pub-sectitle{margin:0;font-size:14.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--ink)}
+  .publico .pub-main .pub-sectitle{color:var(--cor,var(--ink))}
+  .publico .pub-text{margin:0;font-size:13px;line-height:1.6;color:#46415a}
+  .publico .pub-list{display:flex;flex-direction:column;gap:5px}
+  .publico .pub-kv,.publico .pub-li{display:flex;align-items:flex-start;gap:8px;position:relative;font-size:13px;line-height:1.55;color:#46415a}
+  .publico .pub-li .li-txt{flex:1;min-width:0}
+  .publico .pub-li .li-txt::before{content:"→";color:var(--cor,var(--green));font-weight:800;margin-right:7px}
+  .publico .pub-kv .kv-txt{flex:1;min-width:0}
+  .publico .pub-kv b{color:var(--ink);font-weight:800}
+  /* controles (só edição) */
+  .publico .vinput{display:none;margin:0}
+  body.grid-edit .publico .vinput{display:flex;flex-wrap:wrap;gap:6px}
+  .publico .vinput input{font-size:12px;padding:6px 9px}
+  .publico .li-acts{display:none}
+  body.grid-edit .publico .li-acts{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto}
+  .publico .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .publico .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .publico .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
+  .publico .pub-sectype{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff;color:var(--ink2)}
+  body.grid-edit .publico .pub-li,body.grid-edit .publico .pub-kv{align-items:center}
+  /* apresentação expansível */
+  .publico .pub-pres{background:#faf9fc;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .publico .pub-resumo,.publico .pub-completo{font-size:13.5px;line-height:1.7;color:#46415a}
+  .publico .pub-completo{display:none;margin-top:10px}
+  .publico .pub-pres.open .pub-completo{display:block}
+  .publico .pub-toggle{margin-top:10px;border:1px solid var(--cor,var(--green));background:#fff;color:var(--cor,var(--green));border-radius:8px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
+  .publico .pub-toggle:hover{background:rgba(26,166,74,.06)}
+  @media(max-width:680px){ .publico{flex-direction:column} .publico .pub-side{flex-basis:auto;max-width:none;width:100%} .publico .pub-nome{font-size:24px} }
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -2978,7 +3024,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3705,6 +3751,56 @@ function renderBlock(b, sec, bi){
         <button class="li-plus" data-boxadd="${b._id}|items">＋ tag</button>
       </div>`;
     }
+    case "publico":{
+      const ik=b._id+'/img';
+      const src = MEDIA[b.src] || STATE.media[ik] || b.src || '';
+      const isAdmin = AUTH && AUTH.role==="admin";
+      const cor = b.cor || 'var(--green)';
+      const upImg=(isAdmin&&CLOUD&&fbStorage)?`<button class="icon-btn up" data-upload="${ik}|image" title="Enviar foto">⬆ Enviar</button>`:'';
+      const photoInput = isAdmin ? `<div class="vinput"><input data-iurl="${ik}" placeholder="Link da foto ou envie →" value="${esc(STATE.media[ik]||'')}"><button class="icon-btn" data-isave="${ik}">Salvar</button>${upImg}</div>`:'';
+      const photo = src ? `<img src="${esc(src)}" alt="" loading="lazy">` : `<div class="pub-ph"><span>👤</span></div>`;
+      const itemActs=(cont,j)=>`<span class="li-acts">${grip(b._id,cont,j)}<button data-itemmove="${b._id}|${cont}|${j}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|${cont}|${j}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|${cont}|${j}" title="Apagar">×</button></span>`;
+      const renderSec=(s,i)=>{
+        const opt=(v,l)=>`<option value="${v}"${(s.tipo||'list')===v?' selected':''}>${l}</option>`;
+        const ctrls=`<span class="li-acts pub-secacts"><button data-secmove="${b._id}|${i}|-1" title="Subir seção">▲</button><button data-secmove="${b._id}|${i}|1" title="Descer seção">▼</button><button data-seccol="${b._id}|${i}" title="Trocar de coluna">⇄</button><select class="pub-sectype" data-sectype="${b._id}|${i}" title="Tipo">${opt('list','• Lista')}${opt('kv','Rótulo: valor')}${opt('text','Parágrafo')}</select><button class="danger" data-itemdel="${b._id}|items|${i}" title="Apagar seção">×</button></span>`;
+        let body='';
+        if(s.tipo==='text'){
+          body=`<p class="pub-text ed" data-ed="${b._id}/${i}/texto">${richHtml(txt(b._id+'/'+i+'/texto', s.texto||''))}</p>`;
+        } else if(s.tipo==='kv'){
+          const rows=(s.items||[]).map((it,j)=>`<div class="pub-kv dnd-row"><span class="kv-txt"><b class="ed" data-ed="${b._id}/${i}/${j}/k">${esc(txt(b._id+'/'+i+'/'+j+'/k', (it&&it.k)||''))}</b> <span class="ed" data-ed="${b._id}/${i}/${j}/v">${esc(txt(b._id+'/'+i+'/'+j+'/v', (it&&it.v)||''))}</span></span>${itemActs('items@'+i,j)}</div>`).join('');
+          body=`<div class="pub-list" ${dz(b._id,'items@'+i)}>${rows}</div><button class="li-plus" data-kvadd="${b._id}|${i}">＋ linha</button>`;
+        } else {
+          const lis=(s.items||[]).map((it,j)=>`<div class="pub-li dnd-row"><span class="ed li-txt" data-ed="${b._id}/${i}/${j}">${esc(txt(b._id+'/'+i+'/'+j, it))}</span>${itemActs('items@'+i,j)}</div>`).join('');
+          body=`<div class="pub-list" ${dz(b._id,'items@'+i)}>${lis}</div><button class="li-plus" data-boxitemadd="${b._id}|items@${i}">＋ item</button>`;
+        }
+        return `<div class="pub-sec tipo-${s.tipo||'list'}"><div class="pub-sechead"><h4 class="ed pub-sectitle" data-ed="${b._id}/${i}/titulo">${esc(txt(b._id+'/'+i+'/titulo', s.titulo||''))}</h4>${ctrls}</div>${body}</div>`;
+      };
+      const enumSec=(b.items||[]).map((s,i)=>({s,i}));
+      const L=enumSec.filter(x=>x.s.col==='L').map(x=>renderSec(x.s,x.i)).join('');
+      const R=enumSec.filter(x=>x.s.col!=='L').map(x=>renderSec(x.s,x.i)).join('');
+      const swatches=['var(--green)','var(--ink)','var(--orange)','var(--magenta)','var(--cyan)','#7a1239'].map(c=>`<button class="pub-sw" data-pubcolor="${b._id}|${c}" style="background:${c}" title="Cor"></button>`).join('');
+      return `<div class="block publico" data-wid="${b._id}" style="--cor:${cor}">
+        <aside class="pub-side">
+          <div class="pub-photo">${photo}</div>${photoInput}
+          ${L}
+          <button class="li-plus pub-secadd" data-secadd="${b._id}|L">＋ seção (esquerda)</button>
+        </aside>
+        <div class="pub-main">
+          <div class="pub-head">
+            <div class="pub-badgerow"><span class="pub-badge ed" data-ed="${b._id}/badge" style="background:${cor}">${esc(txt(b._id+'/badge', b.badge||'Público 01'))}</span><span class="pub-cols">${swatches}</span></div>
+            <h3 class="pub-nome ed" data-ed="${b._id}/nome">${esc(txt(b._id+'/nome', b.nome||'Nome do público'))}</h3>
+            <div class="pub-sub ed" data-ed="${b._id}/sub">${esc(txt(b._id+'/sub', b.sub||'Subtítulo'))}</div>
+          </div>
+          <div class="pub-pres">
+            <div class="pub-resumo ed" data-ed="${b._id}/resumo">${richHtml(txt(b._id+'/resumo', b.resumo||'Resumo da apresentação deste público (sempre visível).'))}</div>
+            <div class="pub-completo ed" data-ed="${b._id}/completo">${richHtml(txt(b._id+'/completo', b.completo||'Texto completo da apresentação, revelado ao expandir.'))}</div>
+            <button class="pub-toggle" data-pubtoggle contenteditable="false">Ler completo ▾</button>
+          </div>
+          ${R}
+          <button class="li-plus pub-secadd" data-secadd="${b._id}|R">＋ seção (direita)</button>
+        </div>
+      </div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3738,6 +3834,16 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'ladder': reseatObj(b,b._id,'items',[['k','k'],['v','v']]); break;
   case 'personas': reseatObj(b,b.key,'items',[['nome','n'],['perfil','p'],['busca','b']]); break;
   case 'thumb': reseatObj(b,b._id,'items',[['icon','ic'],['t','t']]); break;
+  case 'publico': { const id=b._id;
+    const a=(b.items||[]).map((s,i)=>{ const n=Object.assign({},s);
+      n.titulo=_ovf(id+'/'+i+'/titulo', s.titulo);
+      if(s.tipo==='text'){ n.texto=_ovf(id+'/'+i+'/texto', s.texto); }
+      else if(s.tipo==='kv'){ n.items=(s.items||[]).map((it,j)=>({k:_ovf(id+'/'+i+'/'+j+'/k', it&&it.k), v:_ovf(id+'/'+i+'/'+j+'/v', it&&it.v)})); }
+      else { n.items=(s.items||[]).map((it,j)=>_ovf(id+'/'+i+'/'+j, it)); }
+      return n; });
+    (b.items||[]).forEach((s,i)=>{ delete STATE.overrides[id+'/'+i+'/titulo']; delete STATE.overrides[id+'/'+i+'/texto'];
+      (s.items||[]).forEach((it,j)=>{ delete STATE.overrides[id+'/'+i+'/'+j]; delete STATE.overrides[id+'/'+i+'/'+j+'/k']; delete STATE.overrides[id+'/'+i+'/'+j+'/v']; }); });
+    b.items=a; break; }
   case 'statRow': { const id=b._id;
     const a=(b.items||[]).map((s,i)=>{ const n=Object.assign({},s);
       n.v=_ovf(id+'/'+i+'/v', s.v); n.l=_ovf(id+'/'+i+'/l', s.l);
@@ -4001,6 +4107,14 @@ function wireBlockEvents(){
   $$("[data-galurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
   // upload de mídia (Firebase Storage): data-upload="chave|tipo"
   $$("[data-upload]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [key,kind]=btn.dataset.upload.split('|'); pickAndUpload(btn, key, kind); }));
+  // widget Públicos
+  $$("[data-pubcolor]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,c]=b.dataset.pubcolor.split('|'); setLearnProp(id,'cor',c); }));
+  $$("[data-secmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.secmove.split('|'); pubSecMove(id,+i,+d); }));
+  $$("[data-seccol]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.seccol.split('|'); pubSecCol(id,+i); }));
+  $$("[data-sectype]").forEach(sel=>{ sel.addEventListener("click",e=>e.stopPropagation()); sel.addEventListener("change",e=>{ e.stopPropagation(); const [id,i]=sel.dataset.sectype.split('|'); pubSecType(id,+i,sel.value); }); });
+  $$("[data-secadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,col]=b.dataset.secadd.split('|'); pubSecAdd(id,col); }));
+  $$("[data-kvadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.kvadd.split('|'); pubKvAdd(id,+i); }));
+  $$("[data-pubtoggle]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const pres=b.closest('.pub-pres'); if(!pres) return; const open=pres.classList.toggle('open'); b.textContent=open?'Ler menos ▴':'Ler completo ▾'; }));
   // agenda
   $$("[data-agmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.agmove.split('|'); agMove(id,+i,+d); }));
   $$("[data-agdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.agdel.split('|'); agDel(id,+i); }));
@@ -4741,6 +4855,17 @@ const WIDGET_CATALOG=[
   {ic:"☰", label:"Menu", desc:"Navegação clicável", make:id=>({type:"navmenu", _id:id, title:"Navegação", showTitle:true, style:"grid", custom:false, items:[]})},
   {ic:"💡", label:"O que aprendemos", desc:"Caixa colorida com seta, título e texto", make:id=>({type:"learn", _id:id, key:id+"/t", arrow:"top", color:"#123a8a", titulo:"O que aprendemos aqui?", texto:"Escreva aqui o aprendizado principal deste trecho do plano."})},
   {ic:"🖼", label:"Miniatura", desc:"Foto + tags com ícone/emoji", make:id=>({type:"thumb", _id:id, src:"", caption:"", items:[{icon:"⚠️", t:"CONCORRENTE DIRETO", color:"var(--magenta)"},{icon:"🟢", t:"NACIONAL", color:"var(--green)"}]})},
+  {ic:"🪪", label:"Públicos (ficha)", desc:"Ficha de perfil: foto + colunas + apresentação", make:id=>({type:"publico", _id:id, src:"", cor:"var(--green)", badge:"Público 01", nome:"Nome do Público", sub:"Subtítulo",
+    resumo:"Resumo da apresentação deste público — fica sempre visível.",
+    completo:"Texto completo da apresentação, revelado quando o leitor clica em \"Ler completo\".",
+    items:[
+      {titulo:"Demográfico", col:"L", tipo:"kv", items:[{k:"Idade",v:"35 a 55 anos"},{k:"Região",v:"Sudeste e Sul"},{k:"Investimento",v:"Alto"}]},
+      {titulo:"Nível de Consciência", col:"L", tipo:"text", texto:"Descreva o nível de consciência deste público."},
+      {titulo:"Comportamento", col:"L", tipo:"list", items:["Como pesquisa e decide","O que valoriza"]},
+      {titulo:"Medos e Dores", col:"R", tipo:"list", items:["Principal receio","Outra dor"]},
+      {titulo:"Desejos e Objetivos", col:"R", tipo:"list", items:["O que busca","O que valoriza"]},
+      {titulo:"Como Ajudamos?", col:"R", tipo:"list", items:["Nossa proposta de valor","Diferencial"]}
+    ]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
@@ -5075,6 +5200,19 @@ function statFieldDel(id,i,k){ const b=findWidgetBlock(id); if(!b) return; conso
   s.extra.splice(k,1); if(!s.extra.length) delete s.extra; pushHistory('Campo extra','widget'); saveState(); render(); }
 function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return; const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
 function setLearnProp(wid,prop,val){ const b=findWidgetBlock(wid); if(!b) return; b[prop]=val; pushHistory(prop==='color'?'Cor do widget':'Direção da seta','widget'); saveState(); render(); }
+// ===== widget Públicos (ficha de perfil) =====
+function pubSecMove(id,i,dir){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b);
+  const arr=b.items||[]; const s=arr[i]; if(!s) return; const col=s.col;
+  let j=i+dir; while(j>=0 && j<arr.length && arr[j].col!==col) j+=dir;
+  if(j<0||j>=arr.length) return; arr[i]=arr[j]; arr[j]=s; pushHistory('Mover seção','publico'); saveState(); render(); }
+function pubSecCol(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.col = (s.col==='L')?'R':'L'; pushHistory('Coluna da seção','publico'); saveState(); render(); }
+function pubSecType(id,i,tipo){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.tipo=tipo;
+  if(tipo==='text'){ if(s.texto==null) s.texto=''; }
+  else if(tipo==='kv'){ if(!Array.isArray(s.items)||!s.items.length||typeof s.items[0]!=='object') s.items=[{k:'Rótulo',v:'Valor'}]; }
+  else { if(!Array.isArray(s.items)||!s.items.length||typeof s.items[0]==='object') s.items=['Novo item']; }
+  pushHistory('Tipo da seção','publico'); saveState(); render(); }
+function pubSecAdd(id,col){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.items=b.items||[]; b.items.push({titulo:'Nova seção', col:col, tipo:'list', items:['Novo item']}); pushHistory('Seção','publico'); saveState(); render(); }
+function pubKvAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({k:'Rótulo',v:'Valor'}); pushHistory('Linha','publico'); saveState(); render(); }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
