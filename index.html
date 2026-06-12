@@ -1384,6 +1384,28 @@
   body.grid-edit .roadmap .rm-acts .it-grip{position:static;transform:none;width:19px;height:19px;background:rgba(36,26,110,.08)}
   body.grid-edit .roadmap .rm-ntxt{white-space:normal}
 
+  /* widget Matriz — cartões livres num plano 2D (eixos + quadrantes) */
+  .matriz{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px 12px;box-shadow:var(--shadow)}
+  .matriz .mz-grid{display:flex;gap:6px}
+  .matriz .mz-yaxis{flex:0 0 22px;position:relative}
+  .matriz .mz-yaxis span{position:absolute;left:0;writing-mode:vertical-rl;transform:rotate(180deg);font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cor,var(--ink));border:1px solid var(--line);border-radius:4px;padding:6px 2px;background:#fff}
+  .matriz .mz-ytop{top:0} .matriz .mz-ybot{bottom:0}
+  .matriz .mz-plot{flex:1;position:relative;aspect-ratio:1.18;min-height:300px;border-left:2px solid var(--cor,var(--ink));border-bottom:2px solid var(--cor,var(--ink));
+    background-image:repeating-linear-gradient(90deg,rgba(36,26,110,.07) 0 1px,transparent 1px 5%),repeating-linear-gradient(0deg,rgba(36,26,110,.07) 0 1px,transparent 1px 5%)}
+  .matriz .mz-plot::before{content:"";position:absolute;left:-7px;top:-2px;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid var(--cor,var(--ink))}   /* seta eixo Y */
+  .matriz .mz-plot::after{content:"";position:absolute;right:-2px;bottom:-7px;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:8px solid var(--cor,var(--ink))}  /* seta eixo X */
+  .matriz .mz-quad{position:absolute;transform:translate(-50%,-50%);font-size:clamp(13px,1.9vw,18px);font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(36,26,110,.16);white-space:nowrap;pointer-events:none}
+  body.grid-edit .matriz .mz-quad{pointer-events:auto}
+  .matriz .q-tl{left:25%;top:25%} .matriz .q-tr{left:75%;top:25%} .matriz .q-bl{left:25%;top:75%} .matriz .q-br{left:75%;top:75%}
+  .matriz .mz-card{position:absolute;transform:translate(-50%,-50%);background:var(--cor,var(--ink));color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;text-align:center;line-height:1.2;padding:5px 9px;border-radius:5px;max-width:130px;box-shadow:0 2px 5px rgba(0,0,0,.22);z-index:2;cursor:default;touch-action:none}
+  body.grid-edit .matriz .mz-card{cursor:grab}
+  body.grid-edit .matriz .mz-card.mz-dragging{cursor:grabbing;opacity:.92;z-index:9}
+  .matriz .mz-card .mz-del{display:none;position:absolute;top:-7px;right:-7px;width:17px;height:17px;border:none;border-radius:50%;background:var(--magenta);color:#fff;font-size:11px;line-height:1;cursor:pointer;z-index:3}
+  body.grid-edit .matriz .mz-card:hover .mz-del{display:inline-grid;place-items:center}
+  .matriz .mz-xaxis{display:flex;justify-content:space-between;margin:7px 0 0 28px}
+  .matriz .mz-xaxis span{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cor,var(--ink));border:1px solid var(--line);border-radius:4px;padding:4px 10px;background:#fff}
+  body.grid-edit .matriz .mz-add{margin-top:8px}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -3254,7 +3276,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -4130,6 +4152,26 @@ function renderBlock(b, sec, bi){
         ${editing?`<button class="li-plus" data-boxadd="${id}|items">＋ ação</button>`:''}
       </div>`;
     }
+    case "matriz":{
+      const id=b._id; const cor=b.cor||'var(--ink)';
+      const editing = EDIT && can('editContent');
+      const ax=(b.axisX||['Reconhecimento','Compra']), ay=(b.axisY||['Razão','Emoção']), q=(b.quads||['Entreter','Inspirar','Educar','Convencer']);
+      const E=(key,def,cls)=>`<span class="${cls} ed" data-ed="${id}/${key}">${esc(txt(id+'/'+key,def))}</span>`;
+      const cards=(b.items||[]).map((it,i)=>{ const x=Math.max(0,Math.min(100,it.x!=null?it.x:50)), y=Math.max(0,Math.min(100,it.y!=null?it.y:50));
+        return `<div class="mz-card" data-mzdrag="${id}|${i}" style="left:${x}%;top:${100-y}%;background:${cor}"><span class="ed mz-ctxt" data-ed="${id}/${i}/t">${esc(txt(id+'/'+i+'/t',it.t))}</span><button class="mz-del danger" data-itemdel="${id}|items|${i}" title="Apagar">×</button></div>`;
+      }).join('');
+      return `<div class="block matriz" data-wid="${id}" style="--cor:${cor}">
+        <div class="mz-grid">
+          <div class="mz-yaxis">${E('ay1',ay[1],'mz-ytop')}${E('ay0',ay[0],'mz-ybot')}</div>
+          <div class="mz-plot">
+            ${E('q0',q[0],'mz-quad q-tl')}${E('q1',q[1],'mz-quad q-tr')}${E('q2',q[2],'mz-quad q-bl')}${E('q3',q[3],'mz-quad q-br')}
+            ${cards}
+          </div>
+        </div>
+        <div class="mz-xaxis">${E('ax0',ax[0],'mz-xl')}${E('ax1',ax[1],'mz-xr')}</div>
+        ${editing?`<button class="li-plus mz-add" data-boxadd="${id}|items">＋ cartão</button>`:''}
+      </div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -4188,6 +4230,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'rankList': reseatStr(b,b._id,'items'); break;
   case 'b2b': reseatStr(b,b._id+'/p','paras'); break;
   case 'roadmap': reseatObj(b,b._id,'items',[['t','t']]); break;
+  case 'matriz': reseatObj(b,b._id,'items',[['t','t']]); break;
   case 'action': { const kk='c11a/'+b.id;
     reseatStr(b, kk+'/cm', 'comomedir');
     const base=kk+'/sa';
@@ -4325,6 +4368,7 @@ function addBox(wid, cont){
   else if(b.type==='caracteristicas') item={titulo:'Novo grupo', items:['Nova característica']};
   else if(b.type==='b2b') item='Novo parágrafo de texto.';
   else if(b.type==='roadmap') item={t:'Nova ação', start:0, len:2, color:'var(--cyan)'};
+  else if(b.type==='matriz') item={t:'Novo cartão', x:50, y:50};
   else if(b.type==='aprendizado') item={titulo:'Nova seção', items:[{lab:'Rótulo:', txt:'descrição'}]};
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
@@ -4379,6 +4423,7 @@ function toEmbed(url){
    ========================================================================= */
 function wireBlockEvents(){
   bindItemDnD();
+  bindMatrizDrag();
   // clique direito nas caixas/itens dos widgets → duplicar/apagar/mover
   $$(".dnd-row [data-dragitem], .dnd-box [data-dragitem]").forEach(g=>{
     const row=g.closest('.dnd-row,.dnd-box'); if(!row||row._ctxw) return; row._ctxw=true;
@@ -4388,7 +4433,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item') || box.classList.contains('cm-li') || box.classList.contains('suba') || box.classList.contains('rm-row')) return;   // têm controles próprios
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item') || box.classList.contains('cm-li') || box.classList.contains('suba') || box.classList.contains('rm-row') || box.classList.contains('mz-card')) return;   // têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -5235,6 +5280,22 @@ const WIDGET_CATALOG=[
     "Segundo parágrafo: o que ele busca, valoriza e como se conecta ao destino.",
     "Terceiro parágrafo: por que é um parceiro estratégico e que oportunidade representa."
   ]})},
+  {ic:"⊹", label:"Matriz", desc:"Matriz 2D com cartões livres (eixos + quadrantes)", w:16, h:16, make:id=>({type:"matriz", _id:id, cor:"var(--ink)", axisX:["Reconhecimento","Compra"], axisY:["Razão","Emoção"], quads:["Entreter","Inspirar","Educar","Convencer"], items:[
+    {t:"Vídeos curtos", x:40, y:88},
+    {t:"Reels", x:69, y:91},
+    {t:"Influenciadores", x:43, y:76},
+    {t:"Shorts", x:37, y:60},
+    {t:"Stories", x:31, y:50},
+    {t:"Depoimentos", x:58, y:50},
+    {t:"Campanhas", x:81, y:50},
+    {t:"Posts no site/blog", x:46, y:43},
+    {t:"Newsletter", x:32, y:37},
+    {t:"E-books", x:52, y:28},
+    {t:"Vídeos “Como”", x:37, y:20},
+    {t:"Lives", x:64, y:20},
+    {t:"Vídeo longo", x:14, y:12},
+    {t:"Guias e roteiros", x:52, y:12}
+  ]})},
   {ic:"📊", label:"Road Map (Gantt)", desc:"Cronograma de ações por mês (barras editáveis)", w:24, h:18, make:id=>({type:"roadmap", _id:id, cor:"var(--green)", titulo:"Roadmap de execução · 12 meses", months:["Out","Nov","Dez","Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set"], items:[
     {t:"Posicionamento ‘Amazônia Autêntica’", start:0, len:12},
     {t:"Criação do Selo ‘Amazônia Autêntica’", start:0, len:3},
@@ -5620,6 +5681,31 @@ function addSubacao(id){ const b=findWidgetBlock(id); if(!b) return; consolidate
 function setSubaSt(id,i,st){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.subacoes||[])[i]; if(!s) return; s.st=st; pushHistory('Status da sub-ação','ação'); saveState(); render(); }
 function rmStart(id,i,d){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const it=(b.items||[])[i]; if(!it) return; const N=(b.months||[]).length||12; it.start=Math.max(0,Math.min(N-1,(it.start||0)+d)); if((it.start+(it.len||1))>N) it.len=N-it.start; pushHistory('Roadmap','roadmap'); saveState(); render(); }
 function rmLen(id,i,d){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const it=(b.items||[])[i]; if(!it) return; const N=(b.months||[]).length||12; it.len=Math.max(1,Math.min(N-(it.start||0),(it.len||1)+d)); pushHistory('Roadmap','roadmap'); saveState(); render(); }
+// matriz: posição livre dos cartões (x,y em %)
+function mzSetPos(id,i,x,y){ const b=findWidgetBlock(id); if(!b) return; const it=(b.items||[])[i]; if(!it) return; it.x=Math.round(x*10)/10; it.y=Math.round(y*10)/10; pushHistory('Mover cartão','matriz'); saveState(); }
+let MZD=null;
+function bindMatrizDrag(){
+  $$('.mz-card').forEach(card=>{ if(card._mzb) return; card._mzb=true;
+    card.addEventListener('pointerdown', e=>{
+      if(!(EDIT&&can('editContent'))) return;
+      if(e.target.closest('button')) return;                 // apagar não arrasta
+      const plot=card.closest('.mz-plot'); if(!plot) return;
+      const [id,i]=card.dataset.mzdrag.split('|');
+      MZD={id,i:+i,card,plot,sx:e.clientX,sy:e.clientY,pid:e.pointerId,active:false};
+    });
+    card.addEventListener('pointermove', e=>{
+      if(!MZD||MZD.card!==card) return;
+      if(!MZD.active){ if(Math.hypot(e.clientX-MZD.sx,e.clientY-MZD.sy)<4) return; MZD.active=true; try{card.setPointerCapture(MZD.pid);}catch(_){} card.classList.add('mz-dragging'); const ed=card.querySelector('[contenteditable="true"]'); if(ed) ed.blur(); }
+      e.preventDefault();
+      const r=MZD.plot.getBoundingClientRect();
+      let x=((e.clientX-r.left)/r.width)*100, y=(1-(e.clientY-r.top)/r.height)*100;
+      x=Math.max(0,Math.min(100,x)); y=Math.max(0,Math.min(100,y));
+      MZD._x=x; MZD._y=y; card.style.left=x+'%'; card.style.top=(100-y)+'%';
+    });
+    const up=()=>{ if(!MZD||MZD.card!==card) return; card.classList.remove('mz-dragging'); if(MZD.active&&MZD._x!=null) mzSetPos(MZD.id,MZD.i,MZD._x,MZD._y); MZD=null; };
+    card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
+  });
+}
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
