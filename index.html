@@ -1243,6 +1243,26 @@
   .publico .pub-toggle:hover{background:rgba(26,166,74,.06)}
   @media(max-width:680px){ .publico{flex-direction:column} .publico .pub-side{flex-basis:auto;max-width:none;width:100%} .publico .pub-nome{font-size:24px} }
 
+  /* widget Características — grupos em grade com bullets de seta */
+  .caracs{background:#eef0f4;border-radius:16px;padding:22px 24px}
+  .caracs .cc-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .caracs .cc-ic{font-size:21px;line-height:1}
+  .caracs .cc-title{margin:0;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink)}
+  .caracs .cc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px 36px}
+  .caracs .cc-group{position:relative}
+  .caracs .cc-ghead{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .caracs .cc-gtitle{margin:0;font-size:14.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--ink)}
+  .caracs .cc-lis{display:flex;flex-direction:column}
+  .caracs .cc-li{display:flex;align-items:center;gap:8px;position:relative;padding:9px 2px;border-bottom:1px dashed #c3c7d2;font-size:12.5px;color:#46415a;line-height:1.45}
+  .caracs .cc-li:last-child{border-bottom:none}
+  .caracs .cc-txt{flex:1;min-width:0}
+  .caracs .cc-txt::before{content:"→";color:var(--green);font-weight:800;margin-right:7px}
+  .caracs .li-acts{display:none}
+  body.grid-edit .caracs .li-acts{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto}
+  .caracs .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .caracs .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .caracs .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -3024,7 +3044,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3801,6 +3821,19 @@ function renderBlock(b, sec, bi){
         </div>
       </div>`;
     }
+    case "caracteristicas":{
+      let x=`<div class="block caracs" data-wid="${b._id}">`;
+      x+=`<div class="cc-head"><span class="cc-ic ed" data-ed="${b._id}/ic" title="Clique para trocar o ícone/emoji">${esc(txt(b._id+'/ic', b.icon||'🔍'))}</span><h3 class="cc-title ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t', b.titulo||'Características que procuramos'))}</h3></div>`;
+      x+=`<div class="cc-grid" ${dz(b._id,'items')}>`;
+      (b.items||[]).forEach((g,gi)=>{
+        const lis=(g.items||[]).map((it,ii)=>`<div class="cc-li dnd-row"><span class="ed cc-txt" data-ed="${b._id}/${gi}/${ii}">${esc(txt(b._id+'/'+gi+'/'+ii, it))}</span><span class="li-acts">${grip(b._id,'items@'+gi,ii)}<button data-itemmove="${b._id}|items@${gi}|${ii}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|items@${gi}|${ii}|1" title="Descer">▼</button><button data-itemdup="${b._id}|items@${gi}|${ii}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${b._id}|items@${gi}|${ii}" title="Apagar">×</button></span></div>`).join('');
+        x+=`<div class="cc-group dnd-box"><div class="cc-ghead">${grip(b._id,'items',gi)}<h4 class="ed cc-gtitle" data-ed="${b._id}/${gi}/t">${esc(txt(b._id+'/'+gi+'/t', g.titulo||''))}</h4><span class="li-acts cc-gacts"><button data-itemmove="${b._id}|items|${gi}|-1" title="Subir grupo">▲</button><button data-itemmove="${b._id}|items|${gi}|1" title="Descer grupo">▼</button><button data-itemdup="${b._id}|items|${gi}" title="Duplicar grupo">⧉</button><button class="danger" data-itemdel="${b._id}|items|${gi}" title="Apagar grupo">×</button></span></div>
+          <div class="cc-lis" ${dz(b._id,'items@'+gi)}>${lis}</div>
+          <button class="li-plus" data-boxitemadd="${b._id}|items@${gi}">＋ item</button></div>`;
+      });
+      x+=`</div><button class="li-plus cc-addgrp" data-boxadd="${b._id}|items">＋ grupo</button>`;
+      return x+`</div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3870,6 +3903,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
       return (r||[]).map((cell,ci)=>_ovf(id+'/'+ri+'/'+ci, cell)); });
     (b.rows||[]).forEach((r,ri)=>{ if(r&&r.group!=null) delete STATE.overrides[id+'/'+ri+'/g']; else (r||[]).forEach((c,ci)=>delete STATE.overrides[id+'/'+ri+'/'+ci]); });
     b.rows=a; break; }
+  case 'caracteristicas':
   case 'groupList': { const id=b._id;   // grupos + itens internos (tudo por índice → consolida)
     const a=(b.items||[]).map((g,gi)=>{ const n=Object.assign({},g);
       n.titulo=_ovf(id+'/'+gi+'/t', g.titulo);
@@ -3977,6 +4011,7 @@ function addBox(wid, cont){
   else if(b.type==='cards') item={key:newAddId()+'/c', titulo:'Novo card', text:'Conteúdo do card.'};
   else if(b.type==='calloutGrid') item={ttl:'Novo ponto', color:'var(--cyan)', key:newAddId()+'/c', text:'Conteúdo.'};
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
+  else if(b.type==='caracteristicas') item={titulo:'Novo grupo', items:['Nova característica']};
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
   else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
@@ -4039,7 +4074,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item')) return;   // chip/linha de tabela/item de grupo têm controles próprios (grupo tem 1 lápis só)
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group')) return;   // têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -4058,6 +4093,7 @@ function wireBlockEvents(){
   // mover/apagar linha genérico (tabelas etc.): wid|cont|idx|dir e wid|cont|idx
   $$("[data-itemmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i,d]=b.dataset.itemmove.split('|'); moveItem(id,cont,+i,cont,+i+(+d>0?2:-1)); }));
   $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
+  $$("[data-itemdup]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdup.split('|'); duplicateItem(id,cont,+i); }));
   // FAQ: clicar nos controles (alça/▲▼/×) dentro do <summary> não pode abrir/fechar o accordion
   $$(".faq-item summary").forEach(s=> s.addEventListener("click",e=>{ if(e.target.closest('.faq-acts')) e.preventDefault(); }));
   // widget "O que aprendemos": trocar cor e direção da seta
@@ -4866,6 +4902,12 @@ const WIDGET_CATALOG=[
       {titulo:"Desejos e Objetivos", col:"R", tipo:"list", items:["O que busca","O que valoriza"]},
       {titulo:"Como Ajudamos?", col:"R", tipo:"list", items:["Nossa proposta de valor","Diferencial"]}
     ]})},
+  {ic:"🔎", label:"Características", desc:"Grupos de características em grade (bullets →)", make:id=>({type:"caracteristicas", _id:id, icon:"🔍", titulo:"Características que procuramos", items:[
+    {titulo:"Valores e Mentalidade", items:["Consciência ambiental genuína","Valoriza autenticidade","Busca experiências transformadoras"]},
+    {titulo:"Comportamento de Viagem", items:["Investe tempo para entender o destino","Busca experiências personalizadas","Prefere grupos pequenos"]},
+    {titulo:"Motivações Específicas", items:["Busca reconexão com a natureza","Interesse em cultura local"]},
+    {titulo:"Características Relacionais", items:["Alto potencial de recomendação","Relacionamento respeitoso com comunidades"]}
+  ]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
