@@ -511,6 +511,34 @@
     grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:9px 20px}
   .action .akpi li{position:relative;padding:2px 0 2px 23px;font-size:12.5px;color:#46415a;line-height:1.5}
   .action .akpi li::before{content:"✓";position:absolute;left:0;top:1px;color:var(--green);font-weight:800;font-size:13px}
+  /* card completo de Ação (todos os campos) */
+  .action.acard .prio{cursor:text}
+  .action.acard .acard-body{border-top:1px solid var(--line);background:#fdfcfa;padding:18px 20px 20px;display:flex;flex-direction:column;gap:15px}
+  .acard-sec h6,.acard-sub h6,.action.acard .akpi h6{margin:0 0 6px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .acard-sec .acard-txt{font-size:13.5px;line-height:1.62;color:#46415a}
+  .acard-sec .acard-desc{font-size:14.5px;color:#2e2747;font-weight:500;line-height:1.6}
+  .acard-sec.obj .obj-line{font-size:13.5px;line-height:1.6;color:#46415a;margin:3px 0}
+  .acard-sec.obj .obj-line b{color:var(--ink);font-weight:800}
+  .action.acard .akpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0}
+  .action.acard .akpi ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px}
+  .cm-li{display:flex;align-items:center;gap:8px;position:relative;font-size:12.5px;color:#46415a}
+  .cm-li .cm-txt{flex:1;min-width:0}
+  .cm-li .cm-txt::before{content:"✓";color:var(--green);font-weight:800;margin-right:7px}
+  /* sub-ações (checklist com data + status) */
+  .acard-sub .suba-list{display:flex;flex-direction:column;gap:6px}
+  .suba{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--muted);border-radius:9px;padding:7px 10px;position:relative}
+  .suba[data-sst="fazer"]{border-left-color:var(--cyan)}
+  .suba[data-sst="exec"]{border-left-color:var(--yellow)}
+  .suba[data-sst="feito"]{border-left-color:var(--green)}
+  .suba .suba-st{border:1px solid var(--line);border-radius:7px;padding:3px 5px;font-size:11px;font-weight:700;color:var(--ink2);background:#fff;flex:0 0 auto}
+  .suba .suba-t{flex:1;min-width:0;font-size:13px;color:#46415a}
+  .suba .suba-d{flex:0 0 auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .suba[data-sst="feito"] .suba-t{text-decoration:line-through;color:var(--muted)}
+  .action.acard .li-acts{display:none}
+  body.grid-edit .action.acard .li-acts{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto}
+  .action.acard .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .action.acard .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .action.acard .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
   /* expand all bar */
   .expandall-bar{display:flex;justify-content:flex-end;margin:2px 0 -6px}
   .expand-all-btn{border:1.5px solid var(--line);background:#fff;border-radius:30px;padding:8px 17px;
@@ -2413,6 +2441,7 @@ const LS_AUTH="pmt_auth_v1", LS_STATE="pmt_state_v1";
 const DEMO={ "cliente":{pass:"amapa",role:"cliente",name:"Cliente"},
             "admin":{pass:"amapa2025",role:"admin",name:"Thiago Akira"} };
 const ACTION_STATUS={ todo:"A fazer", doing:"Em andamento", done:"Concluída" };
+const SUBA_ST={ pend:"⏳ Pendente", fazer:"🔜 A executar", exec:"⚙ Em execução", feito:"✅ Realizada" };
 
 let STATE = loadState();
 let AUTH = loadAuth();
@@ -3446,22 +3475,36 @@ function renderBlock(b, sec, bi){
             <div class="aright">${prio}${sel}<div class="achev">▾</div></div>
           </div>${detail}</div>`;
       }
-      const cells=[];
-      if(b.quem) cells.push(acell('Quem',k+'/quem',b.quem));
-      if(b.onde) cells.push(acell('Onde',k+'/onde',b.onde));
-      if(b.quando) cells.push(acell('Quando',k+'/quando',b.quando));
-      if(b.dificuldade) cells.push(acell('Complexidade',k+'/dif',b.dificuldade));
-      if(b.oque) cells.push(acell('O quê',k+'/oque',b.oque));
-      if(b.porque) cells.push(acellFull('Por quê',k+'/porque',b.porque));
-      const grid = cells.length ? `<div class="agrid">${cells.join('')}</div>` : '';
-      const desc = b.desc ? `<p class="ed" data-ed="${k}/d">${esc(txt(k+'/d',b.desc))}</p>` : '';
-      const resp = b.responsavel ? `<div class="resp">${esc(b.responsavel)}</div>` : '';
-      return `<div class="action" data-st="${st}" data-aid="${b.id}">
+      // ===== card completo (widget de Ação adicionado / a1–a6): todos os campos =====
+      const editing = EDIT && can('editContent');
+      const sval=(key,def)=> txt(k+'/'+key, def!=null?def:'');
+      const has=(key,def)=>{ const v=sval(key,def); return v!=null && String(v).trim()!==''; };
+      const prval=txt(k+'/prio', b.prioridade||'Média');
+      const pc2 = prval.indexOf('Alta')===0?'var(--magenta)':((prval.indexOf('Méd')===0||prval.indexOf('Med')===0)?'var(--orange)':'var(--cyan)');
+      const prioEd=`<span class="prio ed" data-ed="${k}/prio" style="background:${pc2}">${esc(prval)}</span>`;
+      const fsec=(lab,key,def,cls)=> (has(key,def)||editing)?`<div class="acard-sec ${cls||''}"><h6>${esc(lab)}</h6><div class="ed acard-txt" data-ed="${k}/${key}">${esc(sval(key,def))}</div></div>`:'';
+      const pill=(lab,icon,key,def)=> (has(key,def)||editing)?`<div class="mp"><div class="l">${icon} ${lab}</div><div class="v ed" data-ed="${k}/${key}">${esc(sval(key,def))}</div></div>`:'';
+      const descSec=(has('d',b.desc||b.oque)||editing)?`<div class="acard-sec oque"><h6>O que é</h6><div class="ed acard-txt acard-desc" data-ed="${k}/d">${esc(sval('d',b.desc||b.oque))}</div></div>`:'';
+      const pills=[pill('Quando','🗓️','quando',b.quando),pill('Onde','📍','onde',b.onde)].filter(Boolean).join('');
+      const pillsWrap=pills?`<div class="ameta">${pills}</div>`:'';
+      const resp2=(has('quem',b.quem)||editing)?`<div class="aresp"><div class="ic">👥</div><div class="t ed" data-ed="${k}/quem">${esc(sval('quem',b.quem))}</div></div>`:'';
+      const objrDef=(b.objReal!=null)?b.objReal:(b.objetivos||''); const objmDef=b.objMacro||'';
+      const objBlock=(has('objr',objrDef)||has('objm',objmDef)||editing)?`<div class="acard-sec obj"><h6>Objetivos</h6><div class="obj-line"><b>Real:</b> <span class="ed" data-ed="${k}/objr">${esc(sval('objr',objrDef))}</span></div><div class="obj-line"><b>Macro:</b> <span class="ed" data-ed="${k}/objm">${esc(sval('objm',objmDef))}</span></div></div>`:'';
+      const cmItems=(b.comomedir||[]);
+      const cmLis=cmItems.map((x,i)=>`<li class="cm-li dnd-row"><span class="ed cm-txt" data-ed="${k}/cm/${i}">${esc(txt(k+'/cm/'+i,x))}</span><span class="li-acts">${grip(b._id,'comomedir',i)}<button data-itemmove="${b._id}|comomedir|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|comomedir|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|comomedir|${i}" title="Apagar">×</button></span></li>`).join('');
+      const cmWrap=(cmItems.length||editing)?`<div class="akpi"><h6>📊 Como medir</h6><ul ${dz(b._id,'comomedir')}>${cmLis}</ul>${editing?`<button class="li-plus" data-boxitemadd="${b._id}|comomedir">＋ indicador</button>`:''}</div>`:'';
+      const suba=(b.subacoes||[]);
+      const subaRows=suba.map((s,i)=>{ const sst=s.st||'pend';
+        return `<div class="suba dnd-row" data-sst="${sst}"><select class="suba-st" data-sast="${b._id}|${i}">${Object.entries(SUBA_ST).map(([v,l])=>`<option value="${v}" ${sst===v?'selected':''}>${l}</option>`).join('')}</select><span class="suba-t ed" data-ed="${k}/sa/${i}/t">${esc(txt(k+'/sa/'+i+'/t', s.t||''))}</span><span class="suba-d ed" data-ed="${k}/sa/${i}/d">${esc(txt(k+'/sa/'+i+'/d', s.data||''))}</span><span class="li-acts">${grip(b._id,'subacoes',i)}<button data-itemmove="${b._id}|subacoes|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|subacoes|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|subacoes|${i}" title="Apagar">×</button></span></div>`;}).join('');
+      const subaWrap=(suba.length||editing)?`<div class="acard-sub"><h6>📋 Sub-ações</h6><div class="suba-list" ${dz(b._id,'subacoes')}>${subaRows}</div>${editing?`<button class="li-plus" data-subaadd="${b._id}">＋ sub-ação</button>`:''}</div>`:'';
+      return `<div class="action acard" data-st="${st}" data-aid="${b.id}">
         <div class="ahead">
           <div class="anum">${b.num}</div>
-          <div class="atitle"><h4 class="ed" data-ed="${k}/t">${esc(txt(k+'/t',b.titulo))}</h4>${desc}${resp}</div>
-          <div class="aright">${prio}${sel}</div>
-        </div>${grid}</div>`;
+          <div class="atitle"><h4 class="ed" data-ed="${k}/t">${esc(txt(k+'/t',b.titulo))}</h4></div>
+          <div class="aright">${prioEd}${sel}</div>
+        </div>
+        <div class="acard-body">${descSec}${pillsWrap}${resp2}${objBlock}${fsec('Por quê','porque',b.porque,'porque')}${fsec('Como','como',b.como,'como')}${fsec('Resultados esperados','res',b.resultados,'res')}${fsec('Para quem','para',b.paraquem,'para')}${cmWrap}${fsec('Quanto','quanto',b.quanto,'quanto')}${subaWrap}</div>
+      </div>`;
     }
     case "video":{
       const url = STATE.media[b.key] || "";
@@ -4040,6 +4083,12 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'rankList': reseatStr(b,b._id,'items'); break;
   case 'b2b': reseatStr(b,b._id+'/p','paras'); break;
+  case 'action': { const kk='c11a/'+b.id;
+    reseatStr(b, kk+'/cm', 'comomedir');
+    const base=kk+'/sa';
+    const a=(b.subacoes||[]).map((s,i)=>({t:_ovf(base+'/'+i+'/t', s.t), data:_ovf(base+'/'+i+'/d', s.data), st:s.st}));
+    (b.subacoes||[]).forEach((s,i)=>{ delete STATE.overrides[base+'/'+i+'/t']; delete STATE.overrides[base+'/'+i+'/d']; });
+    b.subacoes=a; break; }
   case 'aprendizado': { const id=b._id;
     const a=(b.items||[]).map((s,i)=>{ const n=Object.assign({},s);
       n.titulo=_ovf(id+'/'+i+'/titulo', s.titulo);
@@ -4233,7 +4282,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item')) return;   // têm controles próprios
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item') || box.classList.contains('cm-li') || box.classList.contains('suba')) return;   // têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -4310,6 +4359,9 @@ function wireBlockEvents(){
   $$("[data-secadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,col]=b.dataset.secadd.split('|'); pubSecAdd(id,col); }));
   $$("[data-kvadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.kvadd.split('|'); pubKvAdd(id,+i); }));
   $$("[data-apritemadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.apritemadd.split('|'); aprItemAdd(id,+i); }));
+  // ação: sub-ações (adicionar + mudar status)
+  $$("[data-subaadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); addSubacao(b.dataset.subaadd); }));
+  $$("[data-sast]").forEach(sel=>{ sel.addEventListener("click",e=>e.stopPropagation()); sel.addEventListener("pointerdown",e=>e.stopPropagation()); sel.addEventListener("change",e=>{ e.stopPropagation(); const [id,i]=sel.dataset.sast.split('|'); setSubaSt(id,+i,sel.value); }); });
   $$("[data-pubtoggle]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const pres=b.closest('.pub-pres'); if(!pres) return; const open=pres.classList.toggle('open'); b.textContent=open?'Ler menos ▴':'Ler completo ▾'; }));
   // agenda
   $$("[data-agmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.agmove.split('|'); agMove(id,+i,+d); }));
@@ -5035,7 +5087,7 @@ const WIDGET_CATALOG=[
   {ic:"🎧", label:"Áudio", desc:"Player de áudio", make:id=>({type:"audio", _id:id, src:"", caption:"Faixa de áudio"})},
   {ic:"❓", label:"FAQ", desc:"Perguntas e respostas", make:id=>({type:"faq", _id:id, key:id+"/f", items:[{q:"Pergunta de exemplo?", a:"Resposta de exemplo."}]})},
   {ic:"▶", label:"Vídeo", desc:"Player de vídeo", make:id=>({type:"video", _id:id, key:id+"/v", caption:"Vídeo"})},
-  {ic:"✓", label:"Ação", desc:"Item do plano de ação", make:id=>({type:"action", _id:id, id:id, num:"•", titulo:"Nova ação", prioridade:"Média", desc:"Descreva a ação aqui."})},
+  {ic:"✓", label:"Ação", desc:"Card completo do plano de ação", w:16, h:16, make:id=>({type:"action", _id:id, id:id, num:"1", titulo:"Nova ação", prioridade:"Média", desc:"Descreva o que é esta ação.", quando:"", onde:"", quem:"", objReal:"", objMacro:"", porque:"", como:"", resultados:"", paraquem:"", quanto:"", comomedir:[], subacoes:[]})},
   {ic:"📅", label:"Agenda", desc:"Eventos com data", make:id=>({type:"agenda", _id:id, title:"Agenda", showTitle:true, color:"var(--orange)", items:[{data:"10 jun",hora:"14h",titulo:"Reunião de kickoff",local:"Online"},{data:"24 jun",hora:"10h",titulo:"Alinhamento de marca",local:"Macapá"}]})},
   {ic:"🤝", label:"Próximos encontros", desc:"Reuniões marcadas", make:id=>({type:"agenda", _id:id, title:"Próximos encontros", showTitle:true, color:"var(--ink)", items:[{data:"A definir",hora:"",titulo:"Próxima reunião",local:"Online"}]})},
   {ic:"🔗", label:"Atalhos", desc:"Botões de link", make:id=>({type:"shortcuts", _id:id, title:"Atalhos", items:[{label:"Site",url:"",icon:"🌐",color:"var(--cyan)"},{label:"Drive",url:"",icon:"📁",color:"var(--green)"}]})},
@@ -5426,6 +5478,8 @@ function pubSecType(id,i,tipo){ const b=findWidgetBlock(id); if(!b) return; cons
 function pubSecAdd(id,col){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.items=b.items||[]; b.items.push({titulo:'Nova seção', col:col, tipo:'list', items:['Novo item']}); pushHistory('Seção','publico'); saveState(); render(); }
 function pubKvAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({k:'Rótulo',v:'Valor'}); pushHistory('Linha','publico'); saveState(); render(); }
 function aprItemAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({lab:'Rótulo:', txt:'descrição'}); pushHistory('Item','aprendizado'); saveState(); render(); }
+function addSubacao(id){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.subacoes=b.subacoes||[]; b.subacoes.push({t:'Nova sub-ação', data:'', st:'pend'}); pushHistory('Sub-ação','ação'); saveState(); render(); }
+function setSubaSt(id,i,st){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.subacoes||[])[i]; if(!s) return; s.st=st; pushHistory('Status da sub-ação','ação'); saveState(); render(); }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
