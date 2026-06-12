@@ -1286,6 +1286,27 @@
   .b2b .li-acts button.danger{color:var(--magenta)}
   body.grid-edit .b2b .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
 
+  /* widget Aprendizado — nº + título + intro + seções (rótulo: texto) */
+  .aprendizado{background:#eef0f4;border-top:6px solid var(--cor,var(--ink));border-radius:6px 6px 14px 14px;padding:20px 22px}
+  .aprendizado .apr-num{font-size:34px;font-weight:800;line-height:1;color:var(--cor,var(--ink));text-align:center;margin-bottom:10px}
+  .aprendizado .apr-cols{display:none;gap:4px;justify-content:center;margin-bottom:8px}
+  body.grid-edit .aprendizado .apr-cols{display:flex}
+  .aprendizado .apr-cols button{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+  .aprendizado .apr-title{margin:0 0 10px;font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.01em;line-height:1.2;color:var(--cor,var(--ink))}
+  .aprendizado .apr-intro{font-size:13px;line-height:1.7;color:#46415a;text-align:justify;margin-bottom:14px}
+  .aprendizado .apr-secs{display:flex;flex-direction:column;gap:16px}
+  .aprendizado .apr-sechead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .aprendizado .apr-sectitle{margin:0;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--cor,var(--ink))}
+  .aprendizado .apr-items{display:flex;flex-direction:column;gap:9px}
+  .aprendizado .apr-item{display:flex;align-items:flex-start;gap:8px;position:relative}
+  .aprendizado .apr-itxt{flex:1;min-width:0;font-size:13px;line-height:1.6;color:#46415a}
+  .aprendizado .apr-lab{color:var(--cor,var(--ink));font-weight:800}
+  .aprendizado .li-acts{display:none}
+  body.grid-edit .aprendizado .li-acts{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto}
+  .aprendizado .li-acts button{width:22px;height:22px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:11px;color:var(--ink2);cursor:pointer;padding:0}
+  .aprendizado .li-acts button.danger{color:var(--magenta)}
+  body.grid-edit .aprendizado .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -3067,7 +3088,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3878,6 +3899,26 @@ function renderBlock(b, sec, bi){
         </div>
       </div>`;
     }
+    case "aprendizado":{
+      const cor=b.cor||'var(--ink)';
+      const isAdmin = AUTH && AUTH.role==="admin";
+      const swatches=isAdmin?`<span class="apr-cols">${['var(--ink)','var(--green)','var(--orange)','var(--magenta)','var(--cyan)','#7a1239'].map(c=>`<button data-pubcolor="${b._id}|${c}" style="background:${c}" title="Cor"></button>`).join('')}</span>`:'';
+      const itemActs=(cont,j)=>`<span class="li-acts">${grip(b._id,cont,j)}<button data-itemmove="${b._id}|${cont}|${j}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|${cont}|${j}|1" title="Descer">▼</button><button data-itemdup="${b._id}|${cont}|${j}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${b._id}|${cont}|${j}" title="Apagar">×</button></span>`;
+      const secs=(b.items||[]).map((s,i)=>{
+        const items=(s.items||[]).map((it,j)=>`<div class="apr-item dnd-row"><span class="apr-itxt"><b class="ed apr-lab" data-ed="${b._id}/${i}/${j}/lab">${esc(txt(b._id+'/'+i+'/'+j+'/lab', (it&&it.lab)||''))}</b> <span class="ed" data-ed="${b._id}/${i}/${j}/txt">${esc(txt(b._id+'/'+i+'/'+j+'/txt', (it&&it.txt)||''))}</span></span>${itemActs('items@'+i,j)}</div>`).join('');
+        return `<div class="apr-sec"><div class="apr-sechead"><h4 class="ed apr-sectitle" data-ed="${b._id}/${i}/titulo">${esc(txt(b._id+'/'+i+'/titulo', s.titulo||''))}</h4><span class="li-acts apr-secacts"><button data-itemmove="${b._id}|items|${i}|-1" title="Subir seção">▲</button><button data-itemmove="${b._id}|items|${i}|1" title="Descer seção">▼</button><button data-itemdup="${b._id}|items|${i}" title="Duplicar seção">⧉</button><button class="danger" data-itemdel="${b._id}|items|${i}" title="Apagar seção">×</button></span></div>
+          <div class="apr-items" ${dz(b._id,'items@'+i)}>${items}</div>
+          <button class="li-plus" data-apritemadd="${b._id}|${i}">＋ item</button></div>`;
+      }).join('');
+      return `<div class="block aprendizado" data-wid="${b._id}" style="--cor:${cor}">
+        <div class="apr-num ed" data-ed="${b._id}/num">${esc(txt(b._id+'/num', b.num||'1'))}</div>
+        ${swatches}
+        <h3 class="apr-title ed" data-ed="${b._id}/t">${esc(txt(b._id+'/t', b.titulo||'Título do aprendizado'))}</h3>
+        <div class="apr-intro ed" data-ed="${b._id}/intro">${richHtml(txt(b._id+'/intro', b.intro||'Parágrafo de introdução do aprendizado.'))}</div>
+        <div class="apr-secs" ${dz(b._id,'items')}>${secs}</div>
+        <button class="li-plus apr-secadd" data-boxadd="${b._id}|items">＋ seção</button>
+      </div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -3935,6 +3976,13 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'rankList': reseatStr(b,b._id,'items'); break;
   case 'b2b': reseatStr(b,b._id+'/p','paras'); break;
+  case 'aprendizado': { const id=b._id;
+    const a=(b.items||[]).map((s,i)=>{ const n=Object.assign({},s);
+      n.titulo=_ovf(id+'/'+i+'/titulo', s.titulo);
+      n.items=(s.items||[]).map((it,j)=>({lab:_ovf(id+'/'+i+'/'+j+'/lab', it&&it.lab), txt:_ovf(id+'/'+i+'/'+j+'/txt', it&&it.txt)}));
+      return n; });
+    (b.items||[]).forEach((s,i)=>{ delete STATE.overrides[id+'/'+i+'/titulo']; (s.items||[]).forEach((it,j)=>{ delete STATE.overrides[id+'/'+i+'/'+j+'/lab']; delete STATE.overrides[id+'/'+i+'/'+j+'/txt']; }); });
+    b.items=a; break; }
   case 'faq': { const id=b._id, ky=b.key;
     const a=(b.items||[]).map((it,i)=>({ q:_ovf(id+'/'+i+'/q', it.q), a:_ovf(ky+'/'+i+'/a', it.a) }));
     (b.items||[]).forEach((it,i)=>{ delete STATE.overrides[id+'/'+i+'/q']; delete STATE.overrides[ky+'/'+i+'/a']; });
@@ -4058,6 +4106,7 @@ function addBox(wid, cont){
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
   else if(b.type==='caracteristicas') item={titulo:'Novo grupo', items:['Nova característica']};
   else if(b.type==='b2b') item='Novo parágrafo de texto.';
+  else if(b.type==='aprendizado') item={titulo:'Nova seção', items:[{lab:'Rótulo:', txt:'descrição'}]};
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
   else if(b.type==='chips') item={t:'Nova tag', color:'var(--cyan)'};
@@ -4120,7 +4169,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para')) return;   // têm controles próprios
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item')) return;   // têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -4196,6 +4245,7 @@ function wireBlockEvents(){
   $$("[data-sectype]").forEach(sel=>{ sel.addEventListener("click",e=>e.stopPropagation()); sel.addEventListener("change",e=>{ e.stopPropagation(); const [id,i]=sel.dataset.sectype.split('|'); pubSecType(id,+i,sel.value); }); });
   $$("[data-secadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,col]=b.dataset.secadd.split('|'); pubSecAdd(id,col); }));
   $$("[data-kvadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.kvadd.split('|'); pubKvAdd(id,+i); }));
+  $$("[data-apritemadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.apritemadd.split('|'); aprItemAdd(id,+i); }));
   $$("[data-pubtoggle]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const pres=b.closest('.pub-pres'); if(!pres) return; const open=pres.classList.toggle('open'); b.textContent=open?'Ler menos ▴':'Ler completo ▾'; }));
   // agenda
   $$("[data-agmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.agmove.split('|'); agMove(id,+i,+d); }));
@@ -4959,6 +5009,10 @@ const WIDGET_CATALOG=[
     "Segundo parágrafo: o que ele busca, valoriza e como se conecta ao destino.",
     "Terceiro parágrafo: por que é um parceiro estratégico e que oportunidade representa."
   ]})},
+  {ic:"🎓", label:"Aprendizado", desc:"Nº + título + intro + seções (rótulo: texto)", w:10, h:16, make:id=>({type:"aprendizado", _id:id, cor:"var(--ink)", num:"1", titulo:"Título do aprendizado", intro:"Parágrafo de introdução que resume a ideia central deste aprendizado.", items:[
+    {titulo:"Exemplos Inspiradores", items:[{lab:"Exemplo 1:",txt:"descrição curta do caso"},{lab:"Exemplo 2:",txt:"descrição curta do caso"}]},
+    {titulo:"Aplicação no Amapá", items:[{lab:"Ponto central:",txt:"como aplicar aqui"},{lab:"Prova tangível:",txt:"evidência concreta"}]}
+  ]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
@@ -5306,6 +5360,7 @@ function pubSecType(id,i,tipo){ const b=findWidgetBlock(id); if(!b) return; cons
   pushHistory('Tipo da seção','publico'); saveState(); render(); }
 function pubSecAdd(id,col){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.items=b.items||[]; b.items.push({titulo:'Nova seção', col:col, tipo:'list', items:['Novo item']}); pushHistory('Seção','publico'); saveState(); render(); }
 function pubKvAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({k:'Rótulo',v:'Valor'}); pushHistory('Linha','publico'); saveState(); render(); }
+function aprItemAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({lab:'Rótulo:', txt:'descrição'}); pushHistory('Item','aprendizado'); saveState(); render(); }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
