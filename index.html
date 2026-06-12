@@ -514,11 +514,13 @@
   /* card completo de Ação (todos os campos) */
   .action.acard .prio{cursor:text}
   .action.acard .acard-body{border-top:1px solid var(--line);background:#fdfcfa;padding:18px 20px 20px;display:flex;flex-direction:column;gap:15px}
-  .acard-sec h6,.acard-sub h6,.action.acard .akpi h6{margin:0 0 6px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .acard-sec h6,.acard-sub h6,.action.acard .akpi h6{margin:0 0 7px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px}
+  .action.acard .akpi li::before{content:none}   /* evita ✓ duplicado (mantém só o do .cm-txt) */
   .acard-sec .acard-txt{font-size:13.5px;line-height:1.62;color:#46415a}
   .acard-sec .acard-desc{font-size:14.5px;color:#2e2747;font-weight:500;line-height:1.6}
   .acard-sec.obj .obj-line{font-size:13.5px;line-height:1.6;color:#46415a;margin:3px 0}
   .acard-sec.obj .obj-line b{color:var(--ink);font-weight:800}
+  .acard-sec.obj .obj-pq{margin-top:9px}
   .action.acard .akpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0}
   .action.acard .akpi ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px}
   .cm-li{display:flex;align-items:center;gap:8px;position:relative;font-size:12.5px;color:#46415a}
@@ -3566,7 +3568,8 @@ function renderBlock(b, sec, bi){
       if(objrDef==null && objmDef==null && b.objetivos){ const mo=String(b.objetivos).match(/Real:\s*([\s\S]*?)\s*Macro:\s*([\s\S]*)/i); if(mo){ objrDef=mo[1].trim(); objmDef=mo[2].trim(); } else { objrDef=b.objetivos; } }
       objrDef=objrDef||''; objmDef=objmDef||'';
       const oline=(lab,key,def)=> (has(key,def)||editing)?`<div class="obj-line"><b>${lab}:</b> <span class="ed" data-ed="${k}/${key}">${esc(sval(key,def))}</span></div>`:'';
-      const objInner=[oline('Real','objr',objrDef),oline('Macro','objm',objmDef),oline('Por quê','porque',b.porque)].join('');
+      const porqueLine=(has('porque',b.porque)||editing)?`<div class="obj-pq ed acard-txt" data-ed="${k}/porque">${esc(sval('porque',b.porque))}</div>`:'';
+      const objInner=oline('Real','objr',objrDef)+oline('Macro','objm',objmDef)+porqueLine;
       const objBlock=(objInner.trim()||editing)?`<div class="acard-sec obj"><h6>Objetivos e por quê</h6>${objInner}</div>`:'';
       const cmItems=(b.comomedir||[]);
       const cmLis=cmItems.map((x,i)=>`<li class="cm-li dnd-row"><span class="ed cm-txt" data-ed="${k}/cm/${i}">${esc(txt(k+'/cm/'+i,x))}</span><span class="li-acts">${grip(b._id,'comomedir',i)}<button data-itemmove="${b._id}|comomedir|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|comomedir|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|comomedir|${i}" title="Apagar">×</button></span></li>`).join('');
