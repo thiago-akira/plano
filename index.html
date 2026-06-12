@@ -1419,7 +1419,7 @@
   .matriz .mz-yaxis{flex:0 0 22px;position:relative}
   .matriz .mz-yaxis span{position:absolute;left:0;writing-mode:vertical-rl;transform:rotate(180deg);font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cor,var(--ink));border:1px solid var(--line);border-radius:4px;padding:6px 2px;background:#fff}
   .matriz .mz-ytop{top:0} .matriz .mz-ybot{bottom:0}
-  .matriz .mz-plot{flex:1;position:relative;aspect-ratio:1.18;min-height:300px;border-left:2px solid var(--cor,var(--ink));border-bottom:2px solid var(--cor,var(--ink));
+  .matriz .mz-plot{flex:1;position:relative;aspect-ratio:1.7;min-height:320px;max-height:560px;border-left:2px solid var(--cor,var(--ink));border-bottom:2px solid var(--cor,var(--ink));
     background-image:repeating-linear-gradient(90deg,rgba(36,26,110,.07) 0 1px,transparent 1px 5%),repeating-linear-gradient(0deg,rgba(36,26,110,.07) 0 1px,transparent 1px 5%)}
   .matriz .mz-plot::before{content:"";position:absolute;left:-7px;top:-2px;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid var(--cor,var(--ink))}   /* seta eixo Y */
   .matriz .mz-plot::after{content:"";position:absolute;right:-2px;bottom:-7px;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:8px solid var(--cor,var(--ink))}  /* seta eixo X */
@@ -5059,6 +5059,8 @@ function bindGridDrag(canvas, key, layout){
     // texto editável (contenteditable ativo) NÃO inicia arraste — deixa selecionar palavra/trecho livremente
     if(!rEl && e.target.closest('[contenteditable="true"]')) return;
     if(!rEl && e.target.closest(".gtile-fields, .gtile-config, .gtile-dup, .gtile-del, .status-sel, button, select, input, textarea, a, .vinput")) return;
+    // matriz: o widget só move pela alça ⠿ (não pela área dos cartões), p/ não competir com o arraste dos cartões
+    if(!rEl && e.target.closest(".matriz")) return;
     const items=liveItems(key, layout);
     const item=items.find(it=>it.id===tileEl.dataset.id); if(!item) return;
     if(rEl){
@@ -5331,7 +5333,7 @@ const WIDGET_CATALOG=[
     {titulo:"Palavras-chave", texto:"Transformação, Medicina Ancestral, Rituais Sagrados, Autoconhecimento, Cura da floresta e Despertar Espiritual."},
     {titulo:"Características", texto:"Guardião de conhecimentos ancestrais, facilitador de transformações, ponte entre mundos, curador através de plantas medicinais e rituais tradicionais."}
   ]})},
-  {ic:"⊹", label:"Matriz", desc:"Matriz 2D com cartões livres (eixos + quadrantes)", w:16, h:16, make:id=>({type:"matriz", _id:id, cor:"var(--ink)", axisX:["Reconhecimento","Compra"], axisY:["Razão","Emoção"], quads:["Entreter","Inspirar","Educar","Convencer"], items:[
+  {ic:"⊹", label:"Matriz", desc:"Matriz 2D com cartões livres (eixos + quadrantes)", w:24, h:18, make:id=>({type:"matriz", _id:id, cor:"var(--ink)", axisX:["Reconhecimento","Compra"], axisY:["Razão","Emoção"], quads:["Entreter","Inspirar","Educar","Convencer"], items:[
     {t:"Vídeos curtos", x:40, y:88},
     {t:"Reels", x:69, y:91},
     {t:"Influenciadores", x:43, y:76},
