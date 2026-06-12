@@ -1361,6 +1361,26 @@
   .aprendizado .li-acts button.danger{color:var(--magenta)}
   body.grid-edit .aprendizado .li-acts .it-grip{position:static;transform:none;background:rgba(36,26,110,.08)}
 
+  /* widget Road Map (Gantt) — barras por mês */
+  .roadmap{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+  .roadmap .rm-title{font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--cor,var(--ink));margin-bottom:14px}
+  .roadmap .rm-scroll{overflow-x:auto}
+  .roadmap .rm-grid{min-width:660px}
+  .roadmap .rm-head{display:grid;grid-template-columns:var(--rm-namew,230px) repeat(var(--rmcols),minmax(34px,1fr));align-items:end;margin-bottom:6px}
+  .roadmap .rm-mh{font-size:10px;font-weight:800;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.02em;padding:0 1px;border-left:1px solid var(--line)}
+  .roadmap .rm-row{display:grid;grid-template-columns:var(--rm-namew,230px) repeat(var(--rmcols),minmax(34px,1fr));align-items:center;padding:5px 0;border-top:1px dashed var(--line);position:relative}
+  .roadmap .rm-row::after{content:"";position:absolute;top:0;bottom:0;left:var(--rm-namew,230px);right:0;z-index:0;pointer-events:none;
+    background-image:repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px calc(100%/var(--rmcols)));opacity:.45}
+  .roadmap .rm-name{grid-column:1;display:flex;align-items:center;gap:6px;padding-right:10px;min-width:0;position:relative;z-index:1}
+  .roadmap .rm-ntxt{font-size:12px;color:#46415a;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .roadmap .rm-bar{height:17px;border-radius:9px;background:var(--cor,var(--green));box-shadow:0 1px 3px rgba(0,0,0,.18);position:relative;z-index:1;margin:0 2px}
+  .roadmap .rm-acts{display:none}
+  body.grid-edit .roadmap .rm-acts{display:inline-flex;align-items:center;gap:2px;flex:0 0 auto}
+  .roadmap .rm-acts button{width:19px;height:19px;border:1px solid var(--line);background:#fff;border-radius:5px;font-size:9px;color:var(--ink2);cursor:pointer;padding:0;line-height:1}
+  .roadmap .rm-acts button.danger{color:var(--magenta)}
+  body.grid-edit .roadmap .rm-acts .it-grip{position:static;transform:none;width:19px;height:19px;background:rgba(36,26,110,.08)}
+  body.grid-edit .roadmap .rm-ntxt{white-space:normal}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -3223,7 +3243,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -4074,6 +4094,28 @@ function renderBlock(b, sec, bi){
         <button class="li-plus apr-secadd" data-boxadd="${b._id}|items">＋ seção</button>
       </div>`;
     }
+    case "roadmap":{
+      const id=b._id; const cor=b.cor||'var(--green)';
+      const editing = EDIT && can('editContent');
+      const months=b.months||['Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set'];
+      const N=months.length;
+      const PAL=['var(--magenta)','var(--green)','var(--orange)','var(--cyan)','var(--ink)','#7a1239','var(--yellow)'];
+      const head=months.map((m,j)=>`<div class="rm-mh ed" data-ed="${id}/m/${j}">${esc(txt(id+'/m/'+j,m))}</div>`).join('');
+      const rows=(b.items||[]).map((it,i)=>{
+        const s=Math.max(0,Math.min(N-1, it.start||0)); const l=Math.max(1,Math.min(N-s, it.len||1)); const c=it.color||PAL[i%PAL.length];
+        const acts=`<span class="li-acts rm-acts">${grip(id,'items',i)}<button data-rmstart="${id}|${i}|-1" title="Antecipar">◀</button><button data-rmstart="${id}|${i}|1" title="Adiar">▶</button><button data-rmlen="${id}|${i}|-1" title="Encurtar">–</button><button data-rmlen="${id}|${i}|1" title="Alongar">+</button><button data-itemdup="${id}|items|${i}" title="Duplicar">⧉</button><button class="danger" data-itemdel="${id}|items|${i}" title="Apagar">×</button></span>`;
+        const lbl=esc((months[s]||'')+(l>1?' → '+(months[Math.min(N-1,s+l-1)]||''):''));
+        return `<div class="rm-row dnd-row"><div class="rm-name"><span class="ed rm-ntxt" data-ed="${id}/${i}/t">${esc(txt(id+'/'+i+'/t',it.t))}</span>${acts}</div><div class="rm-bar" style="grid-column:${2+s} / span ${l};background:${c}" title="${lbl}"></div></div>`;
+      }).join('');
+      return `<div class="block roadmap" data-wid="${id}" style="--cor:${cor};--rmcols:${N}" ${dz(id,'items')}>
+        <div class="rm-title ed" data-ed="${id}/t">${esc(txt(id+'/t', b.titulo||'Roadmap de execução'))}</div>
+        <div class="rm-scroll"><div class="rm-grid">
+          <div class="rm-head"><div class="rm-corner"></div>${head}</div>
+          ${rows}
+        </div></div>
+        ${editing?`<button class="li-plus" data-boxadd="${id}|items">＋ ação</button>`:''}
+      </div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -4131,6 +4173,7 @@ function consolidateWidget(b){ if(!b) return; switch(b.type){
   case 'manifesto': reseatStr(b,b.key,'paras'); break;
   case 'rankList': reseatStr(b,b._id,'items'); break;
   case 'b2b': reseatStr(b,b._id+'/p','paras'); break;
+  case 'roadmap': reseatObj(b,b._id,'items',[['t','t']]); break;
   case 'action': { const kk='c11a/'+b.id;
     reseatStr(b, kk+'/cm', 'comomedir');
     const base=kk+'/sa';
@@ -4267,6 +4310,7 @@ function addBox(wid, cont){
   else if(b.type==='groupList') item={titulo:'Novo grupo', color:'var(--cyan)', items:['Item']};
   else if(b.type==='caracteristicas') item={titulo:'Novo grupo', items:['Nova característica']};
   else if(b.type==='b2b') item='Novo parágrafo de texto.';
+  else if(b.type==='roadmap') item={t:'Nova ação', start:0, len:2, color:'var(--cyan)'};
   else if(b.type==='aprendizado') item={titulo:'Nova seção', items:[{lab:'Rótulo:', txt:'descrição'}]};
   else if(b.type==='labelTable') item={lab:'Novo rótulo', key:newAddId()+'/r', text:'Conteúdo da linha.'};
   else if(b.type==='manifesto') item='Novo parágrafo do manifesto.';
@@ -4330,7 +4374,7 @@ function wireBlockEvents(){
   // lápis POR elemento (qualquer caixa/item com 2+ campos: cards, indicadores, callouts, agenda…)
   if(EDIT && can('editContent')){
     $$(".dnd-box, .dnd-row").forEach(box=>{
-      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item') || box.classList.contains('cm-li') || box.classList.contains('suba')) return;   // têm controles próprios
+      if(box.classList.contains('chip') || box.tagName==='TR' || box.classList.contains('gl-item') || box.classList.contains('cc-li') || box.classList.contains('cc-group') || box.classList.contains('b2b-para') || box.classList.contains('apr-item') || box.classList.contains('cm-li') || box.classList.contains('suba') || box.classList.contains('rm-row')) return;   // têm controles próprios
       if(box.querySelector(':scope > .box-edit') || box.querySelector(':scope > .ck-acts > .box-edit-in, :scope > .li-acts > .box-edit-in')) return;
       const tile=box.closest('.gtile'); if(!tile) return;
       const ff=boxFields(box);
@@ -4410,6 +4454,9 @@ function wireBlockEvents(){
   // ação: sub-ações (adicionar + mudar status)
   $$("[data-subaadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); addSubacao(b.dataset.subaadd); }));
   $$("[data-sast]").forEach(sel=>{ sel.addEventListener("click",e=>e.stopPropagation()); sel.addEventListener("pointerdown",e=>e.stopPropagation()); sel.addEventListener("change",e=>{ e.stopPropagation(); const [id,i]=sel.dataset.sast.split('|'); setSubaSt(id,+i,sel.value); }); });
+  // roadmap (gantt): mover início / mudar duração das barras
+  $$("[data-rmstart]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.rmstart.split('|'); rmStart(id,+i,+d); }));
+  $$("[data-rmlen]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.rmlen.split('|'); rmLen(id,+i,+d); }));
   $$("[data-pubtoggle]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const pres=b.closest('.pub-pres'); if(!pres) return; const open=pres.classList.toggle('open'); b.textContent=open?'Ler menos ▴':'Ler completo ▾'; }));
   // agenda
   $$("[data-agmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.agmove.split('|'); agMove(id,+i,+d); }));
@@ -5174,6 +5221,35 @@ const WIDGET_CATALOG=[
     "Segundo parágrafo: o que ele busca, valoriza e como se conecta ao destino.",
     "Terceiro parágrafo: por que é um parceiro estratégico e que oportunidade representa."
   ]})},
+  {ic:"📊", label:"Road Map (Gantt)", desc:"Cronograma de ações por mês (barras editáveis)", w:24, h:18, make:id=>({type:"roadmap", _id:id, cor:"var(--green)", titulo:"Roadmap de execução · 12 meses", months:["Out","Nov","Dez","Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set"], items:[
+    {t:"Posicionamento ‘Amazônia Autêntica’", start:0, len:12},
+    {t:"Criação do Selo ‘Amazônia Autêntica’", start:0, len:3},
+    {t:"Mapeamento de Histórias Autênticas", start:0, len:3},
+    {t:"Estruturação de Produtos Internacionais", start:0, len:3},
+    {t:"Criação de Experiências Gastronômicas", start:1, len:3},
+    {t:"Acervo Audiovisual Profissional", start:1, len:3},
+    {t:"Blog Oficial de Turismo", start:1, len:4},
+    {t:"Sensibilização ‘Minha Amazônia Autêntica’", start:1, len:6},
+    {t:"Roteiros Certificados com Selo", start:2, len:4},
+    {t:"Plataforma Digital ‘Amapá 360’", start:2, len:5},
+    {t:"O Carnaval da Amazônia Autêntica", start:3, len:2},
+    {t:"Marketing Digital de Performance", start:3, len:9},
+    {t:"Precificação Estratégica", start:2, len:3},
+    {t:"Birdwatching + Termos Indígenas", start:4, len:3},
+    {t:"Fórum Panrotas", start:5, len:1},
+    {t:"Medicina da Natureza", start:4, len:4},
+    {t:"Reativação do Observatório do Turismo", start:3, len:4},
+    {t:"Programa de Incentivo ao Cadastur", start:4, len:6},
+    {t:"Pesca Esportiva Formalizada", start:5, len:4},
+    {t:"Roadshows e Treinamentos", start:5, len:4},
+    {t:"Famtours e Presstrips Estratégicos", start:6, len:5},
+    {t:"Feiras Nacionais e Internacionais", start:5, len:7},
+    {t:"Estruturação de IGRs Prioritárias", start:6, len:5},
+    {t:"Parcerias Cooperadas", start:7, len:5},
+    {t:"Famtours de Nicho", start:8, len:4},
+    {t:"Portal de Treinamento B2B", start:7, len:4},
+    {t:"Prêmio Braztoa de Sustentabilidade", start:9, len:3}
+  ]})},
   {ic:"🎓", label:"Aprendizado", desc:"Nº + título + intro + seções (rótulo: texto)", w:10, h:16, make:id=>({type:"aprendizado", _id:id, cor:"var(--ink)", num:"1", titulo:"Título do aprendizado", intro:"Parágrafo de introdução que resume a ideia central deste aprendizado.", items:[
     {titulo:"Exemplos Inspiradores", items:[{lab:"Exemplo 1:",txt:"descrição curta do caso"},{lab:"Exemplo 2:",txt:"descrição curta do caso"}]},
     {titulo:"Aplicação no Amapá", items:[{lab:"Ponto central:",txt:"como aplicar aqui"},{lab:"Prova tangível:",txt:"evidência concreta"}]}
@@ -5428,7 +5504,7 @@ function bxeReopen(){ const tid=_bxeTileId, skey=_bxeScopeKey; if(!tid) return;
   setTimeout(()=>{ const t=document.querySelector(`.gtile[data-id="${tid}"]`); if(!t) return;
     if(skey){ const g=t.querySelector(`[data-dragitem="${skey}"]`); const box=g&&g.closest('.dnd-box, .dnd-row'); if(box){ openFieldEditor(t, null, box); return; } }
     openFieldEditor(t, t.querySelector('.gtile-fields')); }, 230); }
-const COLOR_BOX={calloutGrid:1,list:1,statRow:1,groupList:1,thumb:1};
+const COLOR_BOX={calloutGrid:1,list:1,statRow:1,groupList:1,thumb:1,roadmap:1};
 function fieldInput(f, i){
   const key=f.hasAttribute('data-ed')?('ed::'+f.getAttribute('data-ed')):('wed::'+f.getAttribute('data-wedit'));
   const label=fieldLabel(f,i), val=fieldText(f);
@@ -5528,6 +5604,8 @@ function pubKvAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidate
 function aprItemAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return; s.items=s.items||[]; s.items.push({lab:'Rótulo:', txt:'descrição'}); pushHistory('Item','aprendizado'); saveState(); render(); }
 function addSubacao(id){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); b.subacoes=b.subacoes||[]; b.subacoes.push({t:'Nova sub-ação', data:'', st:'prev'}); pushHistory('Sub-ação','ação'); saveState(); render(); }
 function setSubaSt(id,i,st){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.subacoes||[])[i]; if(!s) return; s.st=st; pushHistory('Status da sub-ação','ação'); saveState(); render(); }
+function rmStart(id,i,d){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const it=(b.items||[])[i]; if(!it) return; const N=(b.months||[]).length||12; it.start=Math.max(0,Math.min(N-1,(it.start||0)+d)); if((it.start+(it.len||1))>N) it.len=N-it.start; pushHistory('Roadmap','roadmap'); saveState(); render(); }
+function rmLen(id,i,d){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const it=(b.items||[])[i]; if(!it) return; const N=(b.months||[]).length||12; it.len=Math.max(1,Math.min(N-(it.start||0),(it.len||1)+d)); pushHistory('Roadmap','roadmap'); saveState(); render(); }
 /* ajusta tamanho (largura/altura em células) do widget na variante do device atual */
 function setTileSize(key, id, w, h){
   const v=liveVariant(key, curSecObj());
