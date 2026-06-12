@@ -3484,10 +3484,14 @@ function renderBlock(b, sec, bi){
       const prioEd=`<span class="prio ed" data-ed="${k}/prio" style="background:${pc2}">${esc(prval)}</span>`;
       const fsec=(lab,key,def,cls)=> (has(key,def)||editing)?`<div class="acard-sec ${cls||''}"><h6>${esc(lab)}</h6><div class="ed acard-txt" data-ed="${k}/${key}">${esc(sval(key,def))}</div></div>`:'';
       const pill=(lab,icon,key,def)=> (has(key,def)||editing)?`<div class="mp"><div class="l">${icon} ${lab}</div><div class="v ed" data-ed="${k}/${key}">${esc(sval(key,def))}</div></div>`:'';
-      const descSec=(has('d',b.desc||b.oque)||editing)?`<div class="acard-sec oque"><h6>O que é</h6><div class="ed acard-txt acard-desc" data-ed="${k}/d">${esc(sval('d',b.desc||b.oque))}</div></div>`:'';
+      // "O que é" lê também a chave antiga /oque (e o quadro Complexidade /dif vira fallback, p/ não perder texto antigo)
+      const descDef=txt(k+'/oque', (b.desc||b.oque||'')); const descVal=txt(k+'/d', descDef);
+      const descSec=(String(descVal).trim()!==''||editing)?`<div class="acard-sec oque"><h6>O que é</h6><div class="ed acard-txt acard-desc" data-ed="${k}/d">${esc(descVal)}</div></div>`:'';
+      const difOld=txt(k+'/dif', b.dificuldade||'');   // resgata Complexidade antiga (se houver) como campo opcional
+      const difSec=(String(difOld).trim()!=='')?`<div class="acard-sec"><h6>Complexidade</h6><div class="ed acard-txt" data-ed="${k}/dif">${esc(difOld)}</div></div>`:'';
       const pills=[pill('Quando','🗓️','quando',b.quando),pill('Onde','📍','onde',b.onde)].filter(Boolean).join('');
       const pillsWrap=pills?`<div class="ameta">${pills}</div>`:'';
-      const resp2=(has('quem',b.quem)||editing)?`<div class="aresp"><div class="ic">👥</div><div class="t ed" data-ed="${k}/quem">${esc(sval('quem',b.quem))}</div></div>`:'';
+      const resp2=(has('quem',b.quem||b.responsavel)||editing)?`<div class="aresp"><div class="ic">👥</div><div class="t ed" data-ed="${k}/quem">${esc(sval('quem',b.quem||b.responsavel))}</div></div>`:'';
       const objrDef=(b.objReal!=null)?b.objReal:(b.objetivos||''); const objmDef=b.objMacro||'';
       const objBlock=(has('objr',objrDef)||has('objm',objmDef)||editing)?`<div class="acard-sec obj"><h6>Objetivos</h6><div class="obj-line"><b>Real:</b> <span class="ed" data-ed="${k}/objr">${esc(sval('objr',objrDef))}</span></div><div class="obj-line"><b>Macro:</b> <span class="ed" data-ed="${k}/objm">${esc(sval('objm',objmDef))}</span></div></div>`:'';
       const cmItems=(b.comomedir||[]);
@@ -3503,7 +3507,7 @@ function renderBlock(b, sec, bi){
           <div class="atitle"><h4 class="ed" data-ed="${k}/t">${esc(txt(k+'/t',b.titulo))}</h4></div>
           <div class="aright">${prioEd}${sel}</div>
         </div>
-        <div class="acard-body">${descSec}${pillsWrap}${resp2}${objBlock}${fsec('Por quê','porque',b.porque,'porque')}${fsec('Como','como',b.como,'como')}${fsec('Resultados esperados','res',b.resultados,'res')}${fsec('Para quem','para',b.paraquem,'para')}${cmWrap}${fsec('Quanto','quanto',b.quanto,'quanto')}${subaWrap}</div>
+        <div class="acard-body">${descSec}${pillsWrap}${resp2}${objBlock}${fsec('Por quê','porque',b.porque,'porque')}${fsec('Como','como',b.como,'como')}${fsec('Resultados esperados','res',b.resultados,'res')}${fsec('Para quem','para',b.paraquem,'para')}${cmWrap}${fsec('Quanto','quanto',b.quanto,'quanto')}${difSec}${subaWrap}</div>
       </div>`;
     }
     case "video":{
