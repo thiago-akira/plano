@@ -405,6 +405,17 @@
   .mtur-add-reg-btn:hover{border-color:var(--orange);color:var(--orange)}
   .mtur-legend{display:flex;gap:7px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);background:#fafaf9}
 
+  /* pirâmide de consciência */
+  .pyr-block{border-radius:14px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);padding:18px 22px}
+  .pyr-svg{width:100%;display:block;overflow:visible}
+  .pyr-svg polygon{transition:fill .18s}
+  .pyr-svg polygon[data-pyrlvl]{cursor:pointer}
+  .pyr-svg polygon[data-pyrlvl]:hover{opacity:.82}
+  .pyr-swatches{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px dashed #e5dfd5}
+  .pyr-sw{width:26px;height:26px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .12s,border-color .12s;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .pyr-sw:hover{transform:scale(1.12)}
+  .pyr-sw.active{border-color:var(--ink);transform:scale(1.2);box-shadow:0 0 0 3px rgba(36,26,110,.15)}
+
   /* label table */
   .ltable{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;
     box-shadow:var(--shadow)}
@@ -729,9 +740,12 @@
   .media{margin:14px 0}
   .media figure{margin:0}
   .media img{width:100%;height:auto;max-width:100%;display:block;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow)}
-  /* imagem no grid: sem corte, altura livre */
-  .gtile[data-type="image"],.gtile[data-type="infographic"]{overflow:visible}
-  .gtile[data-type="image"] .gtile-body,.gtile[data-type="infographic"] .gtile-body{height:auto;justify-content:flex-start}
+  /* imagem no grid: object-fit:contain — mostra completa sem corte */
+  .gtile[data-type="image"],.gtile[data-type="infographic"]{overflow:hidden}
+  .gtile[data-type="image"] .gtile-body,.gtile[data-type="infographic"] .gtile-body{height:100%;padding:6px;justify-content:center}
+  .gtile[data-type="image"] .block.media,.gtile[data-type="infographic"] .block.media{margin:0;flex:1;min-height:0;display:flex;flex-direction:column}
+  .gtile[data-type="image"] .media figure,.gtile[data-type="infographic"] .media figure{flex:1;min-height:0;overflow:hidden;border-radius:8px;margin:0}
+  .gtile[data-type="image"] .media img,.gtile[data-type="infographic"] .media img{width:100%;height:100%;object-fit:contain;border-radius:0;border:none;box-shadow:none}
   .media figcaption{font-size:12.5px;color:var(--muted);margin-top:7px;text-align:center}
   .media.infografico img{background:#fff;padding:8px;border-top:4px solid var(--cyan)}
   .media .badge{display:inline-block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
@@ -2194,6 +2208,7 @@ const PLAN = {
         ]},
         { titulo:"Consciência de Marca", blocks:[
           { type:"paragraph", key:"c4/cm0", text:"A consciência de marca evolui em quatro níveis. O objetivo é mover os públicos do desconhecimento ao topo da mente:" },
+          { type:"piramide", _id:"c4pyr1", nivel:3 },
           { type:"ladder", items:[
             { k:"Desconhecimento", v:"O público não conhece o Amapá como destino nem identifica seus atrativos." },
             { k:"Reconhecimento", v:"Reconhece o Amapá quando estimulado, mas não o menciona espontaneamente." },
@@ -3604,7 +3619,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
   learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz', arquetipo:'Arquétipos', documentos:'Documentos',
-  mapatutor:'Mapa do Turismo' };
+  mapatutor:'Mapa do Turismo', piramide:'Pirâmide de Consciência' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3810,6 +3825,37 @@ function renderBlock(b, sec, bi){
         <span class="li-acts row-acts">${grip(b._id,'paras',i)}<button data-itemmove="${b._id}|paras|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|paras|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|paras|${i}" title="Apagar">×</button></span></div>`);
       x+=`<button class="li-plus" data-boxadd="${b._id}|paras" style="margin-top:8px">＋ parágrafo</button>`;
       return x+`</div>`;
+    }
+    case "piramide":{
+      const _isAdm=EDIT&&can('editContent');
+      const _lvl=parseInt(txt(b._id+'/nivel',String(b.nivel||3)));
+      const _col=txt(b._id+'/color',b.color||'var(--ink)');
+      const _gray='#d4d4d4';
+      const _fills=[1,2,3,4].map(i=>i===_lvl?_col:_gray);
+      const _LBLS=['TOP OF MIND','LEMBRANÇA','RECONHECIMENTO','DESCONHECIMENTO'];
+      const _fw=i=>i===_lvl?'700':'400';
+      const _fc=i=>i===_lvl?'var(--ink)':'#999';
+      // Pyramid: center x=315, base 155-475 (hw=160), viewBox 480x206
+      // y=0→hw=0; y=52→hw=41.6; y=104→hw=83.2; y=156→hw=124.8; y=206→hw=166 ≈ 160
+      const _pts=[
+        '315,0 355,52 275,52',
+        '275,54 355,54 396,104 234,104',
+        '234,106 396,106 436,156 194,156',
+        '194,158 436,158 476,206 154,206'
+      ];
+      const _swatchList=[['var(--ink)','Índigo'],['var(--orange)','Laranja'],['var(--green)','Verde'],['var(--yellow)','Amarelo'],['var(--magenta)','Magenta'],['var(--cyan)','Ciano'],['#1e40af','Azul'],['#0f172a','Preto']];
+      const _swHtml=_isAdm?`<div class="pyr-swatches">${_swatchList.map(([c,n])=>`<button class="pyr-sw${_col===c?' active':''}" data-pyrcolor="${b._id}|${c}" title="${n}" style="background:${c}"></button>`).join('')}</div>`:'';
+      const _pAtt=(i)=>_isAdm?` data-pyrlvl="${b._id}|${i+1}" title="Selecionar ${_LBLS[i]}"`:'';
+      return `<div class="block pyr-block" data-wid="${b._id}"><svg class="pyr-svg" viewBox="0 0 480 210" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="${_pts[0]}" fill="${_fills[0]}"${_pAtt(0)}/>
+        <polygon points="${_pts[1]}" fill="${_fills[1]}"${_pAtt(1)}/>
+        <polygon points="${_pts[2]}" fill="${_fills[2]}"${_pAtt(2)}/>
+        <polygon points="${_pts[3]}" fill="${_fills[3]}"${_pAtt(3)}/>
+        <text x="8" y="26" dominant-baseline="middle" font-size="10.5" font-weight="${_fw(1)}" fill="${_fc(1)}" letter-spacing="0.09" font-family="inherit">${_LBLS[0]}</text>
+        <text x="8" y="79" dominant-baseline="middle" font-size="10.5" font-weight="${_fw(2)}" fill="${_fc(2)}" letter-spacing="0.09" font-family="inherit">${_LBLS[1]}</text>
+        <text x="8" y="131" dominant-baseline="middle" font-size="10.5" font-weight="${_fw(3)}" fill="${_fc(3)}" letter-spacing="0.09" font-family="inherit">${_LBLS[2]}</text>
+        <text x="8" y="183" dominant-baseline="middle" font-size="10.5" font-weight="${_fw(4)}" fill="${_fc(4)}" letter-spacing="0.09" font-family="inherit">${_LBLS[3]}</text>
+      </svg>${_swHtml}</div>`;
     }
     case "mapatutor":{
       const _isAdm=EDIT&&can('editContent');
@@ -4856,6 +4902,12 @@ function toEmbed(url){
 }
 
 /* =========================================================================
+   PIRÂMIDE DE CONSCIÊNCIA — helpers de edição
+   ========================================================================= */
+function pyrSetLevel(wid,lvl){ STATE.overrides[wid+'/nivel']=String(lvl); saveState(); render(); }
+function pyrSetColor(wid,col){ STATE.overrides[wid+'/color']=col; saveState(); render(); }
+
+/* =========================================================================
    MAPA DO TURISMO — helpers de edição
    ========================================================================= */
 const MTUR_CYCLE=['turistico','complementar','apoio','nao_inserido'];
@@ -4901,6 +4953,9 @@ function wireBlockEvents(){
   $$("[data-itemmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i,d]=b.dataset.itemmove.split('|'); moveItem(id,cont,+i,cont,+i+(+d>0?2:-1)); }));
   $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
   $$("[data-itemdup]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdup.split('|'); duplicateItem(id,cont,+i); }));
+  // Pirâmide de Consciência
+  $$("[data-pyrlvl]").forEach(el=> el.addEventListener("click",e=>{ e.stopPropagation(); const [id,l]=el.dataset.pyrlvl.split('|'); pyrSetLevel(id,+l); }));
+  $$("[data-pyrcolor]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const[id,c]=btn.dataset.pyrcolor.split('|'); pyrSetColor(id,c); }));
   // Mapa do Turismo
   $$("[data-mturcat]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,ri,mi]=btn.dataset.mturcat.split('|'); mturCatNext(id,+ri,+mi); }));
   $$("[data-mturaddreg]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); mturAddReg(btn.dataset.mturaddreg); }));
