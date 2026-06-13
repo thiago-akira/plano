@@ -1460,7 +1460,7 @@
   .meetings .mt-month:first-child{margin-top:0}
   .meetings .mt-empty{text-align:center;color:#8a849a;font-size:13.5px;padding:26px 10px;border:1.5px dashed var(--line);border-radius:14px}
   .meetings .mt-card{border:1.5px solid var(--line);border-radius:14px;margin-bottom:9px;overflow:hidden;background:#fff;transition:border-color .15s,box-shadow .15s}
-  .meetings .mt-card.past{opacity:.82}
+  .meetings .mt-card.past{background:#f7f7f7;opacity:.9}
   .meetings .mt-card:hover{border-color:#d8d2c2;box-shadow:0 2px 9px rgba(36,26,110,.07)}
   .meetings .mt-row{display:flex;align-items:center;gap:13px;padding:12px 14px;cursor:pointer}
   .meetings .mt-date{flex:0 0 auto;width:54px;text-align:center;border-radius:10px;background:#f6f3ec;padding:7px 0;line-height:1}
@@ -1484,6 +1484,9 @@
   .meetings .mt-links a:hover,.meetings .mt-links button:hover{background:#f6f3ec}
   .meetings .mt-docline{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0}
   .meetings .mt-docline a{color:var(--cyan);text-decoration:none;font-weight:600}
+  .meetings .mt-dl{margin-left:auto;color:#9a93ad;font-size:11px;text-decoration:none;padding:2px 7px;border:1px solid #e8e4d8;border-radius:6px;white-space:nowrap;flex-shrink:0}
+  .meetings .mt-dl:hover{background:#f3efe6;color:var(--ink);border-color:#c9c3b5}
+  .meetings .mt-photo-act{display:flex;justify-content:flex-end;margin-top:5px}
   .meetings .mt-tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
   .meetings .mt-tasks li{display:flex;align-items:center;gap:9px;font-size:13.5px;color:#46415a}
   .meetings .mt-tasks .mt-chk{flex:0 0 auto;width:18px;height:18px;border:1.6px solid var(--line);border-radius:5px;background:#fff;cursor:pointer;display:grid;place-items:center;font-size:11px;color:#fff;padding:0}
@@ -4879,17 +4882,17 @@ function meetCardHtml(wid, it, cats, canEdit){
       <span class="mt-chev">▾</span>
     </div>
     <div class="mt-panel ${open?'':'hide'}">`;
-  if(it.foto) x+=`<img class="mt-photo" src="${esc(MEDIA[it.foto]||it.foto)}" alt="" loading="lazy">`;
+  if(it.foto){ const furl=esc(MEDIA[it.foto]||it.foto); x+=`<img class="mt-photo" src="${furl}" alt="" loading="lazy"><div class="mt-photo-act"><a class="mt-dl" href="${furl}" download target="_blank" rel="noopener">⬇ Baixar foto</a></div>`; }
   if(it.resumo) x+=`<div class="mt-resumo">${esc(it.resumo).replace(/\n/g,'<br>')}</div>`;
   // acesso / local
   const accLinks=[];
   if(it.modo!=='local' && it.link) accLinks.push(`<a href="${safeUrl(it.link)}" target="_blank" rel="noopener">🔗 Entrar na reunião</a>`);
-  if(it.modo==='local' && it.local) accLinks.push(`<span class="mt-mini-static">📍 ${esc(it.local)}</span>`);
+  if(it.modo==='local' && it.local){ const mq=encodeURIComponent(it.local); accLinks.push(`<a href="https://www.google.com/maps/search/?api=1&query=${mq}" target="_blank" rel="noopener">📍 Ver no mapa</a>`); accLinks.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${mq}" target="_blank" rel="noopener">🗺 Traçar rota</a>`); }
   if(it.gravacao) accLinks.push(`<a href="${safeUrl(it.gravacao)}" target="_blank" rel="noopener">🎬 Ver gravação</a>`);
   if(accLinks.length) x+=`<div class="mt-block"><div class="mt-links">${accLinks.join('')}</div></div>`;
   // documentos
   if((it.docs||[]).length){ x+=`<div class="mt-block"><h6>Documentos</h6>`+
-    it.docs.map(d=>`<div class="mt-docline">${docIcon(d.nome||d.url)} <a href="${safeUrl(d.url)}" target="_blank" rel="noopener">${esc(d.nome||docNameFromUrl(d.url))}</a></div>`).join('')+`</div>`; }
+    it.docs.map(d=>{ const durl=safeUrl(d.url); const dnm=esc(d.nome||docNameFromUrl(d.url)); return `<div class="mt-docline">${docIcon(d.nome||d.url)} <a href="${durl}" target="_blank" rel="noopener">${dnm}</a><a class="mt-dl" href="${durl}" download="${dnm}" target="_blank" rel="noopener">⬇ Baixar</a></div>`; }).join('')+`</div>`; }
   // tarefas
   if((it.tarefas||[]).length){ x+=`<div class="mt-block"><h6>Tarefas</h6><ul class="mt-tasks">`+
     it.tarefas.map((t,ti)=>`<li class="${t.done?'done':''}"><button class="mt-chk" ${canEdit?`data-mttask="${wid}|${it.id}|${ti}"`:'disabled'} title="Concluir">${t.done?'✓':''}</button><span class="mt-tk">${esc(t.t||'')}</span>${t.quem?`<span class="mt-who">${esc(t.quem)}</span>`:''}</li>`).join('')+`</ul></div>`; }
@@ -4966,7 +4969,7 @@ function meetRenderForm(card){
   const taskRows=(d.tarefas||[]).map((t,i)=>`<div class="mf-item"><input type="text" data-mftask="t|${i}" value="${esc(t.t||'')}" placeholder="Tarefa"><input type="text" data-mftask="quem|${i}" value="${esc(t.quem||'')}" placeholder="Responsável" style="max-width:170px"><button class="mf-x" data-mftaskdel="${i}">×</button></div>`).join('');
   const hasGuest=(em,nm)=> (d.convidados||[]).some(g=> (em&&g.email===em) || (!em&&g.name===nm));
   const teamChecks = team.length ? `<div class="mf-gcheck">`+team.map(m=>`<button type="button" class="mf-gck ${hasGuest(m.email,m.name)?'on':''}" data-mfguest="${esc(m.email||'')}|${esc(m.name||'')}">${esc(m.name||m.email)}</button>`).join('')+`</div>` : '';
-  const guestChips = (d.convidados||[]).map((g,i)=>`<span class="mt-guest"><span class="mt-av">${esc(meetInitials(g.name||g.email))}</span>${esc(g.name||g.email)} <button class="mf-x" style="width:20px;height:20px;font-size:12px" data-mfguestdel="${i}">×</button></span>`).join('');
+  const guestRows = (d.convidados||[]).map((g,i)=>`<div class="mf-item"><input type="text" data-mfgname="${i}" value="${esc(g.name||'')}" placeholder="Nome"><input type="text" data-mfgemail="${i}" value="${esc(g.email||'')}" placeholder="E-mail" style="max-width:200px"><button class="mf-x" data-mfguestdel="${i}">×</button></div>`).join('');
   const body=`
     <div class="mf-f"><label>Título da reunião</label><input type="text" data-mf="titulo" value="${esc(d.titulo||'')}" placeholder="Ex.: Alinhamento de campanha"></div>
     <div class="mf-row">
@@ -4982,7 +4985,7 @@ function meetRenderForm(card){
       <button type="button" class="${d.modo==='local'?'on':''}" data-mfmodo="local">📍 Presencial</button>
     </div></div>
     ${d.modo==='local'
-      ? `<div class="mf-f"><label>Local</label><input type="text" data-mf="local" value="${esc(d.local||'')}" placeholder="Endereço / sala"></div>`
+      ? `<div class="mf-f"><label>Local</label><div class="mf-inline"><input type="text" data-mf="local" value="${esc(d.local||'')}" placeholder="Endereço / sala"><a id="mfMapLink" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.local||'')}" target="_blank" rel="noopener" class="mf-mini" style="text-decoration:none;${d.local?'':'display:none'}">🗺 Ver</a></div></div>`
       : `<div class="mf-f"><label>Link da reunião</label><input type="text" data-mf="link" value="${esc(d.link||'')}" placeholder="https://meet.google.com/… ou Zoom/Teams"></div>`}
     <div class="mf-f"><label>Foto da reunião</label><div class="mf-inline">${d.foto?`<img class="mf-thumb" src="${esc(MEDIA[d.foto]||d.foto)}" alt="">`:''}<input type="text" data-mf="foto" value="${esc(d.foto||'')}" placeholder="Link da imagem">${upOk?`<button type="button" class="mf-up" data-mfup="foto|image">⬆ Enviar</button>`:''}</div></div>
     <div class="mf-f"><label>Link da gravação</label><div class="mf-inline"><input type="text" data-mf="gravacao" value="${esc(d.gravacao||'')}" placeholder="Link do vídeo da gravação">${upOk?`<button type="button" class="mf-up" data-mfup="gravacao|video">⬆ Enviar</button>`:''}</div></div>
@@ -4993,8 +4996,8 @@ function meetRenderForm(card){
       <button type="button" class="mf-add" data-mftaskadd style="margin-top:7px">＋ Tarefa</button></div>
     <div class="mf-f"><label>Convidar usuários ${team.length?'':'(equipe)'}</label>
       ${teamChecks}
-      ${guestChips?`<div class="mf-gcheck" style="margin-top:7px">${guestChips}</div>`:''}
-      <div class="mf-inline" style="margin-top:7px"><input type="text" id="mfGuestName" placeholder="Nome do convidado"><input type="text" id="mfGuestEmail" placeholder="E-mail (opcional)" style="max-width:200px"><button type="button" class="mf-mini" id="mfGuestAdd">Convidar</button></div>
+      ${guestRows?`<div class="mf-list" style="margin-top:8px">${guestRows}</div>`:''}
+      <div class="mf-inline" style="margin-top:7px"><input type="text" id="mfGuestName" placeholder="Nome do convidado"><input type="text" id="mfGuestEmail" placeholder="E-mail (opcional)" style="max-width:200px"><button type="button" class="mf-mini" id="mfGuestAdd">＋ Convidar</button></div>
       <div class="mf-note">Os convidados recebem um aviso de nova reunião no portal; o e-mail entra no convite de calendário (.ics).</div></div>
     <div class="mf-foot">
       <button type="button" class="mf-save" id="mfSave">${d._editing?'Salvar alterações':'Criar reunião'}</button>
@@ -5004,11 +5007,15 @@ function meetRenderForm(card){
   const host=$("#mform",card); host.innerHTML=body;
   // texto/campos simples → atualizam o rascunho sem rebuild
   $$("[data-mf]",host).forEach(el=>{ const k=el.dataset.mf; const ev=(el.tagName==='SELECT')?'change':'input';
-    el.addEventListener(ev,()=>{ d[k]= (k==='dur')? (parseInt(el.value,10)||0) : el.value; }); });
+    el.addEventListener(ev,()=>{ d[k]= (k==='dur')? (parseInt(el.value,10)||0) : el.value;
+      if(k==='local'){ const lnk=host.querySelector('#mfMapLink'); if(lnk){ const q=encodeURIComponent(el.value); lnk.href=`https://www.google.com/maps/search/?api=1&query=${q}`; lnk.style.display=el.value?'':'none'; } }
+    }); });
   // estruturais → rebuild
   $$("[data-mfmodo]",host).forEach(btn=>btn.addEventListener('click',()=>{ d.modo=btn.dataset.mfmodo; meetRenderForm(card); }));
   $$("[data-mfguest]",host).forEach(btn=>btn.addEventListener('click',()=>{ const [em,nm]=btn.dataset.mfguest.split('|'); d.convidados=d.convidados||[];
     const ix=d.convidados.findIndex(g=> em?g.email===em:g.name===nm); if(ix>=0) d.convidados.splice(ix,1); else d.convidados.push({name:nm,email:em}); meetRenderForm(card); }));
+  $$("[data-mfgname]",host).forEach(el=>el.addEventListener('input',()=>{ const i=+el.dataset.mfgname; if(d.convidados[i]) d.convidados[i].name=el.value; }));
+  $$("[data-mfgemail]",host).forEach(el=>el.addEventListener('input',()=>{ const i=+el.dataset.mfgemail; if(d.convidados[i]) d.convidados[i].email=el.value; }));
   $$("[data-mfguestdel]",host).forEach(btn=>btn.addEventListener('click',()=>{ d.convidados.splice(+btn.dataset.mfguestdel,1); meetRenderForm(card); }));
   const gAdd=$("#mfGuestAdd",host); if(gAdd) gAdd.addEventListener('click',()=>{ const nm=$("#mfGuestName",host).value.trim(), em=$("#mfGuestEmail",host).value.trim(); if(!nm&&!em) return; d.convidados=d.convidados||[]; d.convidados.push({name:nm||em,email:em}); meetRenderForm(card); });
   $$("[data-mfdoc]",host).forEach(el=>el.addEventListener('input',()=>{ const [f,i]=el.dataset.mfdoc.split('|'); d.docs[+i][f]=el.value; }));
