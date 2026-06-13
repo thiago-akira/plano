@@ -1551,6 +1551,80 @@
   #mtNotice .mtn-close{position:absolute;top:9px;right:11px;border:none;background:transparent;font-size:17px;cursor:pointer;color:#bdb7cc}
   #mtNotice .mtn-ok{margin-top:9px;border:none;background:var(--ink);color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer}
 
+  /* ===== Central de notificações (sino + badge + dropdown) ===== */
+  .tb-bell{position:relative;flex:0 0 auto;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:17px;display:grid;place-items:center;color:var(--ink);transition:background .15s}
+  .tb-bell:hover{background:#f6f3ec}
+  .tb-bell .bell-dot{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--magenta);color:#fff;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;line-height:1;border:2px solid var(--card)}
+  .tb-bell.has-new .bell-dot{display:flex}
+  .tb-bell.has-new{animation:bellWiggle .6s ease}
+  @keyframes bellWiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(13deg)}40%{transform:rotate(-11deg)}60%{transform:rotate(7deg)}80%{transform:rotate(-4deg)}}
+  @media(max-width:760px){ .tb-bell{width:34px;height:34px;font-size:15px} }
+  #notifCenter{position:fixed;z-index:9200;width:360px;max-width:calc(100vw - 24px);max-height:min(70vh,520px);background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(36,26,110,.22);display:flex;flex-direction:column;overflow:hidden;animation:ncPop .16s ease}
+  @keyframes ncPop{from{transform:translateY(-8px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+  #notifCenter .nc-head{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--line)}
+  #notifCenter .nc-head h4{margin:0;font-size:15px;font-weight:800;color:var(--ink);flex:1}
+  #notifCenter .nc-clear{border:none;background:transparent;color:#9a93ad;font-size:12px;cursor:pointer;font-weight:600;padding:3px 6px;border-radius:6px}
+  #notifCenter .nc-clear:hover{background:#f3efe6;color:var(--ink)}
+  #notifCenter .nc-list{overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:4px}
+  #notifCenter .nc-empty{text-align:center;color:#9a93ad;font-size:13px;padding:34px 16px}
+  #notifCenter .nc-item{display:flex;gap:11px;padding:11px 12px;border-radius:11px;cursor:default;position:relative}
+  #notifCenter .nc-item:hover{background:#faf8f3}
+  #notifCenter .nc-item.unread{background:#fff7ef}
+  #notifCenter .nc-item.unread:hover{background:#fdf1e3}
+  #notifCenter .nc-ic{flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:#f3efe6;display:grid;place-items:center;font-size:17px}
+  #notifCenter .nc-body{flex:1;min-width:0}
+  #notifCenter .nc-t{font-weight:700;color:var(--ink);font-size:13.5px;display:flex;align-items:center;gap:7px}
+  #notifCenter .nc-t .nc-tag{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;padding:2px 6px;border-radius:10px;flex:0 0 auto}
+  #notifCenter .nc-txt{font-size:12.5px;color:#56506b;line-height:1.45;margin-top:3px;word-wrap:break-word}
+  #notifCenter .nc-meta{font-size:11px;color:#a59fb5;margin-top:4px;display:flex;gap:8px}
+  #notifCenter .nc-del{position:absolute;top:9px;right:9px;border:none;background:transparent;color:#cdc7d6;font-size:15px;cursor:pointer;display:none;line-height:1}
+  #notifCenter .nc-item:hover .nc-del{display:block}
+  #notifCenter .nc-del:hover{color:var(--magenta)}
+  #notifCenter .nc-dot{position:absolute;left:4px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--orange);display:none}
+  #notifCenter .nc-item.unread .nc-dot{display:block}
+  /* ===== Toasts empilhados (canto inferior direito) ===== */
+  #ntoasts{position:fixed;right:18px;bottom:18px;z-index:9000;display:flex;flex-direction:column-reverse;gap:10px;max-width:340px;pointer-events:none}
+  #ntoasts .ntoast{pointer-events:auto;background:#fff;border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:13px;box-shadow:0 10px 34px rgba(36,26,110,.2);padding:13px 14px 13px 15px;display:flex;gap:11px;cursor:pointer;animation:mtSlide .3s ease;position:relative}
+  #ntoasts .ntoast:hover{box-shadow:0 12px 40px rgba(36,26,110,.28)}
+  #ntoasts .ntoast.out{animation:ntOut .25s ease forwards}
+  @keyframes ntOut{to{transform:translateX(120%);opacity:0}}
+  #ntoasts .nt-ic{flex:0 0 auto;width:32px;height:32px;border-radius:9px;background:#f3efe6;display:grid;place-items:center;font-size:16px}
+  #ntoasts .nt-body{flex:1;min-width:0}
+  #ntoasts .nt-t{font-weight:800;color:var(--ink);font-size:13px;line-height:1.3}
+  #ntoasts .nt-x{font-size:13px;color:#56506b;line-height:1.45;margin-top:3px}
+  #ntoasts .nt-close{position:absolute;top:7px;right:9px;border:none;background:transparent;font-size:15px;cursor:pointer;color:#cdc7d6;line-height:1}
+  /* ===== Painel admin de mensagens (aba do menu de conta) ===== */
+  .ncfg .ncfg-card{border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:14px}
+  .ncfg h5.um-h5{margin:0 0 10px}
+  .ncfg .ncfg-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+  .ncfg .ncfg-emoji{width:58px;text-align:center;font-size:17px}
+  .ncfg .um-in,.ncfg textarea.um-in{width:100%}
+  .ncfg textarea.um-in{min-height:64px;resize:vertical;font-family:inherit}
+  .ncfg .ncfg-emos{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0 9px}
+  .ncfg .ncfg-emos button{border:1px solid var(--line);background:#fff;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer}
+  .ncfg .ncfg-emos button:hover,.ncfg .ncfg-emos button.on{background:#f3efe6;border-color:var(--orange)}
+  .ncfg .ncfg-aud{display:flex;gap:8px;margin-bottom:9px}
+  .ncfg .ncfg-aud button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:8px;font-size:12.5px;font-weight:600;cursor:pointer;color:#7a7490}
+  .ncfg .ncfg-aud button.on{border-color:var(--orange);background:rgba(243,106,33,.07);color:var(--orange)}
+  .ncfg .ncfg-people{display:flex;flex-direction:column;gap:5px;margin-bottom:9px;max-height:140px;overflow-y:auto}
+  .ncfg .ncfg-people label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);padding:5px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+  .ncfg .ncfg-sugs{display:flex;flex-direction:column;gap:6px}
+  .ncfg .ncfg-sug{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer;text-align:left;background:#fff;font-size:12.5px;color:var(--ink)}
+  .ncfg .ncfg-sug:hover{background:#f6f3ec;border-color:var(--orange)}
+  .ncfg .ncfg-sug .s-ic{font-size:17px;flex:0 0 auto}
+  .ncfg .ncfg-sug b{display:block;font-size:13px}
+  .ncfg .ncfg-sug span{color:#7a7490;font-size:11.5px}
+  .ncfg .ncfg-toggle{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink);padding:7px 0}
+  .ncfg .ncfg-toggle input{width:17px;height:17px;flex:0 0 auto}
+  .ncfg .ncfg-hist{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto}
+  .ncfg .ncfg-hrow{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12.5px}
+  .ncfg .ncfg-hrow .h-ic{font-size:15px;flex:0 0 auto}
+  .ncfg .ncfg-hrow .h-main{flex:1;min-width:0}
+  .ncfg .ncfg-hrow b{display:block;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ncfg .ncfg-hrow small{color:#a59fb5}
+  .ncfg .ncfg-hrow .h-del{border:none;background:transparent;color:#cdc7d6;font-size:15px;cursor:pointer}
+  .ncfg .ncfg-hrow .h-del:hover{color:var(--magenta)}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -1697,6 +1771,7 @@
         <button id="fontDown" title="Diminuir texto">A−</button>
         <button id="fontUp" title="Aumentar texto">A+</button>
       </span>
+      <button class="tb-bell" id="bellBtn" title="Notificações">🔔<span class="bell-dot" id="bellDot">0</span></button>
       <button class="tb-btn" id="previewClientBtn" style="display:none" title="Ver como cliente"><span class="pc-ico">👁</span><span class="lbl">&nbsp;Ver como cliente</span></button>
       <button class="tb-btn" id="editBtn" style="display:none"><span class="lbl">Editar</span> ✏️</button>
       <button class="tb-btn ai" id="aiBtn">✦ <span class="lbl">Assistente</span></button>
@@ -1706,6 +1781,9 @@
     </div>
   </div>
 </div>
+
+<!-- ===================== TOASTS (notificações) ===================== -->
+<div id="ntoasts"></div>
 
 <!-- ===================== AI PANEL ===================== -->
 <div id="ai">
@@ -2691,6 +2769,8 @@ STATE.layout    = STATE.layout    || {};   // { [secKey]: { cols, cellH, items:[
 STATE.styles    = STATE.styles    || {};   // { [blockId]: { bg?, top?, fg? } }
 STATE.nav       = STATE.nav       || {};   // { order[], hidden[], add{}, secAdd{}, secOrder{}, secHidden[], _seq }
 STATE.delBlocks = STATE.delBlocks || {};   // { [blockId]: 1 } — blocos do PLAN apagados (não voltam pelo syncLayoutBlocks)
+STATE.notes     = STATE.notes     || [];   // [{id,title,icon,body,ts,type,audience,by}] — histórico de notificações (sincronizado)
+STATE.noteCfg   = STATE.noteCfg   || { meetingAuto:true };  // automáticas ligadas/desligadas
 if(STATE.ui){ CUR = STATE.ui; if(CUR.section!=null) CUR.section=String(CUR.section); } // seção vira chave (string)
 
 function txt(key, def){ return (key && STATE.overrides[key]!=null) ? STATE.overrides[key] : def; }
@@ -2703,7 +2783,8 @@ let _cloudTimer=null, _applyingRemote=false;
 function isCloudAdmin(){ return !!(CLOUD && fbAuth && fbAuth.currentUser); }
 function cloudPayload(){
   return { overrides:STATE.overrides||{}, statuses:STATE.statuses||{}, media:STATE.media||{},
-    layout:STATE.layout||{}, styles:STATE.styles||{}, nav:STATE.nav||{}, delBlocks:STATE.delBlocks||{}, _addSeq:_addSeq||0,
+    layout:STATE.layout||{}, styles:STATE.styles||{}, nav:STATE.nav||{}, delBlocks:STATE.delBlocks||{},
+    notes:STATE.notes||[], noteCfg:STATE.noteCfg||{}, _addSeq:_addSeq||0,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 }
 function cloudPush(){
@@ -2717,7 +2798,7 @@ function cloudPush(){
         const p=$("#savePill"); if(p){ p.textContent="Falha ao salvar ("+(e.code||'erro')+") · "+who; p.className="save-pill err"; } });
   }, 400);
 }
-function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},v:o.nav||{},n:o._addSeq||0}); }
+function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},v:o.nav||{},nt:o.notes||[],nc:o.noteCfg||{},n:o._addSeq||0}); }
 let _initialApplied=false;
 function applyRemote(data){
   if(!data) return;
@@ -2734,6 +2815,8 @@ function applyRemote(data){
   STATE.styles    = data.styles    || {};
   STATE.nav       = data.nav       || {};
   STATE.delBlocks = data.delBlocks || {};
+  STATE.notes     = Array.isArray(data.notes) ? data.notes : [];
+  STATE.noteCfg   = data.noteCfg   || { meetingAuto:true };
   _addSeq = Math.max(_addSeq||0, data._addSeq||0); STATE._addSeq=_addSeq;
   if(typeof sanitizeOverride==='function'){ Object.keys(STATE.overrides).forEach(k=>{ STATE.overrides[k]=sanitizeOverride(STATE.overrides[k]); }); }
   localStorage.setItem(LS_STATE, JSON.stringify(STATE));   // cache local
@@ -2880,14 +2963,14 @@ function fileToAvatar(file, cb){
 function openUserMenu(initial){
   recomputeMe();
   const tabs=[{id:'perfil',label:'Meu perfil'}];
-  if(can('manageUsers')) tabs.push({id:'equipe',label:'Equipe'},{id:'papeis',label:'Papéis'});
+  if(can('manageUsers')) tabs.push({id:'equipe',label:'Equipe'},{id:'papeis',label:'Papéis'},{id:'notif',label:'Mensagens'});
   const card=showModal("Conta & Equipe",
     `<div class="um-tabs">${tabs.map((t,i)=>`<button class="um-tab ${i===0?'active':''}" data-tab="${t.id}">${esc(t.label)}</button>`).join('')}</div><div class="um-panel" id="umPanel"></div>`);
   const renderTab=id=>{
     $$(".um-tab",card).forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
     const panel=$("#umPanel",card);
-    panel.innerHTML = id==='equipe'?teamTabHtml() : id==='papeis'?rolesTabHtml() : profileTabHtml();
-    wireUserTab(id, card);
+    panel.innerHTML = id==='equipe'?teamTabHtml() : id==='papeis'?rolesTabHtml() : id==='notif'?notifTabHtml() : profileTabHtml();
+    if(id==='notif') wireNotifTab(panel); else wireUserTab(id, card);
   };
   $$(".um-tab",card).forEach(b=>b.addEventListener("click",()=>renderTab(b.dataset.tab)));
   renderTab(tabs.find(t=>t.id===initial)?initial:'perfil');
@@ -3175,6 +3258,7 @@ function refreshIdentity(){
   const umb=$("#userMenuBtn"); if(umb) umb.style.display="flex";
   if(PREVIEW_CLIENT) $("#urole").textContent="Prévia do cliente";
   updatePreviewBtn();
+  try{ renderBell(); }catch(_){}
 }
 
 /* =========================================================================
@@ -3602,7 +3686,7 @@ function render(){
   if($(".gridcanvas")) layoutTiles();
   if(scroller) scroller.scrollTop = keepScroll;   // restaura a posição com as alturas dos tiles já aplicadas
   if(typeof updateSelDom==="function" && SEL && SEL.size) updateSelDom();
-  try{ meetCheckNotices(); }catch(_){}   // aviso de novas reuniões (não bloqueia o render se falhar)
+  try{ renderBell(); notesTick(); }catch(_){}   // central de notificações (sino + toasts); não bloqueia o render
 }
 
 function renderBlock(b, sec, bi){
@@ -5042,10 +5126,18 @@ function meetSaveDraft(){
     convidados:(d.convidados||[]) };
   b.items=b.items||[];
   const ix=b.items.findIndex(m=>m.id===d.id);
+  const isNew = ix<0;
   if(ix>=0){ clean.created=b.items[ix].created; b.items[ix]=clean; }
   else { clean.created=Date.now(); b.items.push(clean); MEET_TAB[wid]= meetIsPast(clean)?'real':'prox'; }
   MEET_OPEN.add(clean.id);
   _MEETDRAFT=null;
+  // notificação automática de nova reunião (se ligada)
+  if(isNew && !meetIsPast(clean) && typeof notesAdd==='function' && !(STATE.noteCfg && STATE.noteCfg.meetingAuto===false)){
+    const box=meetDayBox(clean); const hr=(/^\d{1,2}:\d{2}/.test(clean.hora||''))?(' às '+clean.hora):'';
+    const onde = clean.modo==='local' ? (clean.local?(' · '+clean.local):' · Presencial') : ' · Online';
+    notesAdd({ type:'meeting', icon:'📅', title:'Nova reunião: '+clean.titulo,
+      body:box.d+' '+box.m+hr+onde, audience:'all' });
+  }
   pushHistory(ix>=0?'Editou reunião':'Adicionou reunião','reuniões'); saveState(); closeModal(); render();
 }
 function meetPickUpload(btn, kind, cb){
@@ -5073,26 +5165,181 @@ function meetColorHex(c){ c=(c||'').trim(); if(/^#[0-9a-f]{6}$/i.test(c)) return
   const map={'var(--ink)':'#241a6e','var(--orange)':'#f36a21','var(--green)':'#1aa64a','var(--yellow)':'#ffc415','var(--magenta)':'#e5167b','var(--cyan)':'#19b6e6'};
   return map[c]||'#888888'; }
 // --- aviso de nova reunião (toast) ---
-function meetEachMeeting(cb){ const seen=new Set();
-  const scanBag=bag=>{ if(!bag) return; ['desktop','tablet','mobile'].forEach(dv=>{ const v=bag[dv]; if(v&&v.items) v.items.forEach(it=>{ if(it.add&&it.add.type==='meetings'&&!seen.has(it.add._id)){ seen.add(it.add._id); (it.add.items||[]).forEach(m=>cb(m,it.add)); } }); }); };
-  Object.keys(STATE.layout||{}).forEach(k=>scanBag(STATE.layout[k]));
-  (PLAN.chapters||[]).concat([PLAN.onboarding]).forEach(ch=>{ if(!ch) return; (ch.sections||[]).forEach(s=>(s.blocks||[]).forEach(blk=>{ if(blk.type==='meetings'&&!seen.has(blk._id)){ seen.add(blk._id); (blk.items||[]).forEach(m=>cb(m,blk)); } })); });
+/* =========================================================================
+   CENTRAL DE NOTIFICAÇÕES — sino, histórico sincronizado, toasts e painel admin
+   ========================================================================= */
+const LS_NOTES_READ='pmt_notes_read';   // ids lidos (por-dispositivo)
+const LS_NOTES_SEEN='pmt_notes_seen';   // ts da última vez que toasts foram exibidos
+let _notesToasted = new Set();          // ids já exibidos como toast nesta sessão
+let _noteSeq=0, _ncOutside=null;
+const NOTE_TYPES = {
+  message:{tag:'Mensagem',    color:'var(--ink)'},
+  change: {tag:'Atualização', color:'var(--green)'},
+  meeting:{tag:'Reunião',     color:'var(--magenta)'},
+  system: {tag:'Sistema',     color:'var(--cyan)'}
+};
+const NOTE_SUGGESTIONS = [
+  {icon:'✨', title:'Nova área no portal',  body:'Adicionamos uma nova seção ao plano. Confira as novidades!'},
+  {icon:'🔧', title:'Melhorias no portal',  body:'Fizemos melhorias na navegação e nos widgets — tudo mais fluido para você.'},
+  {icon:'📊', title:'Conteúdo atualizado',  body:'Atualizamos o conteúdo do plano. Dê uma olhada nas mudanças mais recentes.'},
+  {icon:'🎉', title:'Bem-vindo ao portal',  body:'Seja bem-vindo ao portal do plano de marketing. Explore à vontade!'},
+  {icon:'✅', title:'Ação concluída',        body:'Concluímos uma ação importante do plano. Obrigado pelo acompanhamento!'},
+  {icon:'📣', title:'Comunicado importante', body:'Temos um aviso importante para compartilhar com você.'}
+];
+function noteUid(){ _noteSeq=(_noteSeq+1)%100000; return 'n'+Date.now().toString(36)+_noteSeq; }
+function notesReadSet(){ try{ return new Set(JSON.parse(localStorage.getItem(LS_NOTES_READ)||'[]')); }catch(_){ return new Set(); } }
+function notesSaveRead(set){ try{ localStorage.setItem(LS_NOTES_READ, JSON.stringify([...set])); }catch(_){} }
+function noteForMe(n){
+  if(!n) return false;
+  const aud=n.audience;
+  if(!aud || aud==='all') return true;
+  if(typeof can==='function' && (can('manageUsers')||(ME&&ME.isSuper))) return true;  // admin vê tudo que enviou
+  const arr=Array.isArray(aud)?aud:[];
+  const mail=((ME&&ME.email)||'').toLowerCase(), uid=(ME&&ME.uid)||'';
+  return arr.some(a=>{ a=String(a||'').toLowerCase(); return a && (a===mail || a===uid); });
 }
-function meetCheckNotices(){
-  if(document.getElementById('mtNotice')) return;
-  let seen=0; try{ seen=+(localStorage.getItem('pmt_meet_seen')||0); }catch(_){}
-  if(!seen){ try{ localStorage.setItem('pmt_meet_seen', String(Date.now())); }catch(_){}; return; }  // 1ª visita: marca e não alerta retroativo
-  const now=Date.now(); const list=[];
-  meetEachMeeting((m)=>{ const s=meetStart(m); if(m.created && m.created>seen && s && s.getTime()>=meetStartOfToday().getTime()) list.push(m); });
-  if(!list.length) return;
-  list.sort((a,b)=>meetCmp(a,b,1));
-  const items=list.slice(0,4).map(m=>{ const box=meetDayBox(m); return `<div class="mtn-i">📅 <b>${esc(box.d)} ${esc(box.m)}</b> — ${esc(m.titulo||'Reunião')}${/^\d{1,2}:\d{2}/.test(m.hora||'')?(' · '+esc(m.hora)):''}</div>`; }).join('');
-  const extra=list.length>4?`<div class="mtn-i">+ ${list.length-4} outra(s)…</div>`:'';
-  const n=document.createElement('div'); n.id='mtNotice';
-  n.innerHTML=`<button class="mtn-close" id="mtnX">×</button><div class="mtn-t">🔔 ${list.length===1?'Nova reunião agendada':list.length+' novas reuniões'}</div>${items}${extra}<button class="mtn-ok" id="mtnOk">Entendi</button>`;
-  document.body.appendChild(n);
-  const dismiss=()=>{ try{ localStorage.setItem('pmt_meet_seen', String(Date.now())); }catch(_){}; n.remove(); };
-  $("#mtnX",n).addEventListener('click',dismiss); $("#mtnOk",n).addEventListener('click',dismiss);
+function notesForMe(){ return (STATE.notes||[]).filter(noteForMe).slice().sort((a,b)=>(b.ts||0)-(a.ts||0)); }
+function notesUnread(){ const read=notesReadSet(); return notesForMe().filter(n=>!read.has(n.id)); }
+function notesMarkAllRead(){ const read=notesReadSet(); notesForMe().forEach(n=>read.add(n.id)); notesSaveRead(read); renderBell(); }
+function notesMarkRead(id){ const read=notesReadSet(); read.add(id); notesSaveRead(read); renderBell(); }
+function noteAgo(ts){
+  if(!ts) return '';
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'agora';
+  const m=Math.floor(s/60); if(m<60) return m+' min';
+  const h=Math.floor(m/60); if(h<24) return h+'h';
+  const d=Math.floor(h/24); if(d<7) return d+'d';
+  const dt=new Date(ts); return _p2(dt.getDate())+'/'+_p2(dt.getMonth()+1);
+}
+function _noteTrunc(s,n){ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; }
+// cria e dispara uma notificação (admin/automática). Marca como lida para quem envia.
+function notesAdd(o){
+  const n={ id:noteUid(), title:(o.title||'').trim()||'Notificação', icon:o.icon||'🔔',
+    body:(o.body||'').trim(), ts:Date.now(), type:o.type||'message',
+    audience:o.audience||'all', by:o.by||(ME&&ME.name)||'Equipe' };
+  STATE.notes=STATE.notes||[]; STATE.notes.push(n);
+  if(STATE.notes.length>200) STATE.notes=STATE.notes.slice(-200);   // limita histórico
+  const set=notesReadSet(); set.add(n.id); notesSaveRead(set);      // quem envia já "leu"
+  saveState(); renderBell();
+  return n;
+}
+function notesDelete(id){ STATE.notes=(STATE.notes||[]).filter(n=>n.id!==id); saveState(); renderBell(); closeNotifCenter(); }
+function notesClearAll(){ if(!confirm('Apagar todo o histórico de notificações para todos?')) return; STATE.notes=[]; saveState(); renderBell(); closeNotifCenter(); }
+// --- sino (badge) ---
+function renderBell(){
+  const b=$("#bellBtn"); if(!b) return;
+  const n=notesUnread().length, dot=$("#bellDot");
+  const had=b.classList.contains('has-new');
+  b.classList.toggle('has-new', n>0);
+  if(!had && n>0){ b.classList.remove('has-new'); void b.offsetWidth; b.classList.add('has-new'); } // re-dispara animação
+  if(dot) dot.textContent = n>9?'9+':String(n);
+  b.title = n>0 ? (n+(n===1?' nova notificação':' novas notificações')) : 'Notificações';
+}
+// --- central (dropdown sob o sino) ---
+function closeNotifCenter(){ const c=$("#notifCenter"); if(c) c.remove();
+  if(_ncOutside){ document.removeEventListener('mousedown',_ncOutside,true); _ncOutside=null; } }
+function openNotifCenter(){
+  closeNotifCenter();
+  const read=notesReadSet(), list=notesForMe();
+  const isAdm = (typeof can==='function') && (can('manageUsers')||(ME&&ME.isSuper));
+  const items = list.length ? list.map(n=>{
+    const ty=NOTE_TYPES[n.type]||NOTE_TYPES.message, unread=!read.has(n.id);
+    return `<div class="nc-item ${unread?'unread':''}" data-ncid="${n.id}">
+      <span class="nc-dot"></span><span class="nc-ic">${esc(n.icon||'🔔')}</span>
+      <div class="nc-body"><div class="nc-t">${esc(n.title)}<span class="nc-tag" style="background:${ty.color}">${esc(ty.tag)}</span></div>
+        ${n.body?`<div class="nc-txt">${esc(n.body).replace(/\n/g,'<br>')}</div>`:''}
+        <div class="nc-meta"><span>${esc(noteAgo(n.ts))}</span>${n.by?`<span>· ${esc(n.by)}</span>`:''}</div></div>
+      ${isAdm?`<button class="nc-del" data-ncdel="${n.id}" title="Remover">×</button>`:''}
+    </div>`;
+  }).join('') : `<div class="nc-empty">Nenhuma notificação ainda.</div>`;
+  const wrap=document.createElement('div'); wrap.id='notifCenter';
+  wrap.innerHTML=`<div class="nc-head"><h4>Notificações</h4>${(isAdm&&list.length)?`<button class="nc-clear" id="ncClear">Limpar tudo</button>`:''}</div><div class="nc-list">${items}</div>`;
+  document.body.appendChild(wrap);
+  const bell=$("#bellBtn"); if(bell){ const r=bell.getBoundingClientRect(); wrap.style.top=(r.bottom+8)+'px';
+    const w=wrap.offsetWidth||360; let left=r.right-w; if(left<12) left=12; wrap.style.left=left+'px'; }
+  notesMarkAllRead();                                  // abrir = marcar como lidas
+  $$(".nc-del",wrap).forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); notesDelete(btn.dataset.ncdel); }));
+  const clr=$("#ncClear",wrap); if(clr) clr.addEventListener('click',e=>{ e.stopPropagation(); notesClearAll(); });
+  // fecha ao clicar fora / esc / rolar
+  _ncOutside=ev=>{ if(!wrap.contains(ev.target) && ev.target.id!=='bellBtn' && !$("#bellBtn").contains(ev.target)) closeNotifCenter(); };
+  setTimeout(()=>document.addEventListener('mousedown',_ncOutside,true),0);
+  window.addEventListener('scroll',closeNotifCenter,{once:true,passive:true,capture:true});
+  window.addEventListener('resize',closeNotifCenter,{once:true});
+}
+// --- toasts empilhados (canto inferior direito) ---
+function notesTick(){
+  const host=$("#ntoasts"); if(!host) return;
+  let seen=0; try{ seen=+(localStorage.getItem(LS_NOTES_SEEN)||0); }catch(_){}
+  if(!seen){ try{ localStorage.setItem(LS_NOTES_SEEN,String(Date.now())); }catch(_){}; return; }  // 1ª visita: sem alerta retroativo
+  const read=notesReadSet();
+  const fresh=notesForMe().filter(n=> (n.ts||0)>seen && !read.has(n.id) && !_notesToasted.has(n.id));
+  if(!fresh.length) return;
+  fresh.sort((a,b)=>(a.ts||0)-(b.ts||0));
+  fresh.forEach(n=>{ _notesToasted.add(n.id); spawnToast(n); });
+  try{ localStorage.setItem(LS_NOTES_SEEN,String(Date.now())); }catch(_){}
+}
+function spawnToast(n){
+  const host=$("#ntoasts"); if(!host) return;
+  while(host.querySelectorAll('.ntoast').length>=4 && host.firstElementChild){ host.firstElementChild.remove(); }
+  const ty=NOTE_TYPES[n.type]||NOTE_TYPES.message;
+  const el=document.createElement('div'); el.className='ntoast'; el.style.borderLeftColor=ty.color;
+  el.innerHTML=`<button class="nt-close" title="Dispensar">×</button><span class="nt-ic">${esc(n.icon||'🔔')}</span>
+    <div class="nt-body"><div class="nt-t">${esc(n.title)}</div>${n.body?`<div class="nt-x">${esc(_noteTrunc(n.body,90)).replace(/\n/g,' ')}</div>`:''}</div>`;
+  host.appendChild(el);
+  const remove=()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),250); };
+  el.addEventListener('click',()=>{ remove(); openNotifCenter(); });   // clicar = abre central (marca lidas)
+  el.querySelector('.nt-close').addEventListener('click',e=>{ e.stopPropagation(); notesMarkRead(n.id); remove(); });
+  setTimeout(()=>{ if(el.isConnected) remove(); }, 9000);              // some sozinho; segue não-lida no sino
+}
+// --- painel admin (aba "Mensagens" no menu de conta) ---
+let _ncAud='all';
+function notifTabHtml(){
+  const team=meetTeamMembers();
+  const meetingAuto = !(STATE.noteCfg && STATE.noteCfg.meetingAuto===false);
+  const curName = ($("#tbTitle")&&$("#tbTitle").textContent||'').trim();
+  const sugs = NOTE_SUGGESTIONS.concat(curName?[{icon:'📝', title:'Atualização em '+curName, body:'Revisei e atualizei o conteúdo de "'+curName+'". Confira as mudanças!'}]:[]);
+  const sugHtml = sugs.map((s,i)=>`<button class="ncfg-sug" data-ncsug="${i}"><span class="s-ic">${esc(s.icon)}</span><span><b>${esc(s.title)}</b><span>${esc(_noteTrunc(s.body,52))}</span></span></button>`).join('');
+  const people = team.length ? team.map(m=>`<label><input type="checkbox" class="ncfg-pck" value="${esc(m.email||m.uid||'')}"> ${esc(m.name||m.email)}${m.email?` <small style="color:#a59fb5">${esc(m.email)}</small>`:''}</label>`).join('') : '<p class="um-note" style="margin:0">Convide pessoas na aba Equipe para enviar mensagens individuais.</p>';
+  const hist=(STATE.notes||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,30);
+  const histHtml = hist.length ? hist.map(n=>`<div class="ncfg-hrow"><span class="h-ic">${esc(n.icon||'🔔')}</span><div class="h-main"><b>${esc(n.title)}</b><small>${esc(noteAgo(n.ts))} · ${n.audience==='all'?'Todos':'Específicos'}</small></div><button class="h-del" data-nhdel="${n.id}" title="Excluir">×</button></div>`).join('') : '<p class="um-note" style="margin:0">Nenhuma notificação enviada ainda.</p>';
+  const emos=['📣','✨','🔧','📊','📅','🎉','✅','⚠️','💡','🚀','📌','🔔'];
+  return `<div class="ncfg">
+    <div class="ncfg-card"><h5 class="um-h5">Enviar notificação</h5>
+      <div class="ncfg-emos">${emos.map(e=>`<button data-ncemo="${e}">${e}</button>`).join('')}</div>
+      <div class="ncfg-row"><input class="um-in ncfg-emoji" id="ncEmoji" value="📣" maxlength="2"><input class="um-in" id="ncTitle" placeholder="Título da notificação" style="flex:1;min-width:160px"></div>
+      <textarea class="um-in" id="ncBody" placeholder="Texto da mensagem…"></textarea>
+      <label class="um-l">Destinatários</label>
+      <div class="ncfg-aud"><button class="${_ncAud==='all'?'on':''}" data-ncaud="all">📢 Todos</button><button class="${_ncAud==='some'?'on':''}" data-ncaud="some">👤 Específicos</button></div>
+      <div class="ncfg-people" id="ncPeople" style="${_ncAud==='some'?'':'display:none'}">${people}</div>
+      <div class="um-actions"><button class="gt-btn accent" id="ncSend">Enviar notificação</button><span class="um-msg" id="ncMsg"></span></div>
+    </div>
+    <div class="ncfg-card"><h5 class="um-h5">Sugestões rápidas</h5><div class="ncfg-sugs">${sugHtml}</div></div>
+    <div class="ncfg-card"><h5 class="um-h5">Notificações automáticas</h5>
+      <label class="ncfg-toggle"><input type="checkbox" id="ncAutoMeet" ${meetingAuto?'checked':''}> Avisar a equipe quando uma nova reunião for criada</label></div>
+    <div class="ncfg-card"><h5 class="um-h5">Histórico de envios</h5><div class="ncfg-hist">${histHtml}</div></div>
+  </div>`;
+}
+function wireNotifTab(card){
+  const host=card;
+  const sugs=NOTE_SUGGESTIONS.concat([]);
+  $$("[data-ncemo]",host).forEach(b=>b.addEventListener('click',()=>{ const em=$("#ncEmoji",host); if(em) em.value=b.dataset.ncemo; $$("[data-ncemo]",host).forEach(x=>x.classList.toggle('on',x===b)); }));
+  $$("[data-ncaud]",host).forEach(b=>b.addEventListener('click',()=>{ _ncAud=b.dataset.ncaud; $$("[data-ncaud]",host).forEach(x=>x.classList.toggle('on',x===b)); const p=$("#ncPeople",host); if(p) p.style.display = _ncAud==='some'?'':'none'; }));
+  $$("[data-ncsug]",host).forEach(b=>b.addEventListener('click',()=>{ const all=NOTE_SUGGESTIONS.concat((()=>{ const curName=($("#tbTitle")&&$("#tbTitle").textContent||'').trim(); return curName?[{icon:'📝', title:'Atualização em '+curName, body:'Revisei e atualizei o conteúdo de "'+curName+'". Confira as mudanças!'}]:[]; })()); const s=all[+b.dataset.ncsug]; if(!s) return; $("#ncEmoji",host).value=s.icon; $("#ncTitle",host).value=s.title; $("#ncBody",host).value=s.body; const msg=$("#ncMsg",host); if(msg){ msg.textContent='Sugestão carregada — revise e envie.'; msg.style.color='var(--green)'; } }));
+  const auto=$("#ncAutoMeet",host); if(auto) auto.addEventListener('change',()=>{ STATE.noteCfg=STATE.noteCfg||{}; STATE.noteCfg.meetingAuto=auto.checked; saveState(); });
+  $$("[data-nhdel]",host).forEach(b=>b.addEventListener('click',()=>{ notesDelete(b.dataset.nhdel); openUserMenu('notif'); }));
+  const send=$("#ncSend",host); if(send) send.addEventListener('click',()=>{
+    const title=($("#ncTitle",host).value||'').trim(), body=($("#ncBody",host).value||'').trim(), icon=($("#ncEmoji",host).value||'📣').trim();
+    const msg=$("#ncMsg",host);
+    if(!title && !body){ if(msg){ msg.textContent='Escreva um título ou texto.'; msg.style.color='var(--magenta)'; } return; }
+    let audience='all';
+    if(_ncAud==='some'){ const sel=$$(".ncfg-pck",host).filter(c=>c.checked).map(c=>c.value).filter(Boolean);
+      if(!sel.length){ if(msg){ msg.textContent='Escolha ao menos uma pessoa.'; msg.style.color='var(--magenta)'; } return; }
+      audience=sel; }
+    notesAdd({title, body, icon, type:'message', audience});
+    if(msg){ msg.textContent='Notificação enviada!'; msg.style.color='var(--green)'; }
+    $("#ncTitle",host).value=''; $("#ncBody",host).value='';
+    setTimeout(()=>openUserMenu('notif'),350);
+  });
 }
 // ===== Upload de mídia para o Firebase Storage =====
 const UPLOAD_MAX = 15*1024*1024;   // 15 MB por arquivo
@@ -6430,6 +6677,7 @@ $("#fontUp").addEventListener("click", ()=>setFont(1));
 applyFontScale();
 $$("#devSwitch .dev-btn").forEach(b=> b.addEventListener("click",()=>{ EDIT_DEVICE=b.dataset.dev; render(); }));
 $("#userMenuBtn").addEventListener("click", ()=>openUserMenu());
+$("#bellBtn") && $("#bellBtn").addEventListener("click", e=>{ e.stopPropagation(); if($("#notifCenter")) closeNotifCenter(); else openNotifCenter(); });
 
 /* indicador de autosave */
 function setSaveStatus(s){
