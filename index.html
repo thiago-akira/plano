@@ -2578,6 +2578,7 @@ STATE.media     = STATE.media     || {};
 STATE.layout    = STATE.layout    || {};   // { [secKey]: { cols, cellH, items:[{id,x,y,w,h,add?}] } }
 STATE.styles    = STATE.styles    || {};   // { [blockId]: { bg?, top?, fg? } }
 STATE.nav       = STATE.nav       || {};   // { order[], hidden[], add{}, secAdd{}, secOrder{}, secHidden[], _seq }
+STATE.delBlocks = STATE.delBlocks || {};   // { [blockId]: 1 } — blocos do PLAN apagados (não voltam pelo syncLayoutBlocks)
 if(STATE.ui){ CUR = STATE.ui; if(CUR.section!=null) CUR.section=String(CUR.section); } // seção vira chave (string)
 
 function txt(key, def){ return (key && STATE.overrides[key]!=null) ? STATE.overrides[key] : def; }
@@ -2590,7 +2591,7 @@ let _cloudTimer=null, _applyingRemote=false;
 function isCloudAdmin(){ return !!(CLOUD && fbAuth && fbAuth.currentUser); }
 function cloudPayload(){
   return { overrides:STATE.overrides||{}, statuses:STATE.statuses||{}, media:STATE.media||{},
-    layout:STATE.layout||{}, styles:STATE.styles||{}, nav:STATE.nav||{}, _addSeq:_addSeq||0,
+    layout:STATE.layout||{}, styles:STATE.styles||{}, nav:STATE.nav||{}, delBlocks:STATE.delBlocks||{}, _addSeq:_addSeq||0,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 }
 function cloudPush(){
@@ -2620,6 +2621,7 @@ function applyRemote(data){
   STATE.layout    = data.layout    || {};
   STATE.styles    = data.styles    || {};
   STATE.nav       = data.nav       || {};
+  STATE.delBlocks = data.delBlocks || {};
   _addSeq = Math.max(_addSeq||0, data._addSeq||0); STATE._addSeq=_addSeq;
   if(typeof sanitizeOverride==='function'){ Object.keys(STATE.overrides).forEach(k=>{ STATE.overrides[k]=sanitizeOverride(STATE.overrides[k]); }); }
   localStorage.setItem(LS_STATE, JSON.stringify(STATE));   // cache local
@@ -2940,11 +2942,13 @@ function syncLayoutBlocks(bag, sec){
   DEVICES.forEach(dv=>{ const v=bag[dv.id]; if(!v||!v.items) return;
     const have=new Set(v.items.map(it=>it.id)); const cols=v.cols||GRID_COLS;
     let y=v.items.length?Math.max(...v.items.map(it=>(it.y||0)+(it.h||1))):0;
-    sec.blocks.forEach(b=>{ if(!b._id || have.has(b._id) || b.type==='hero' || b.type==='secTitle') return;
+    sec.blocks.forEach(b=>{ if(!b._id || have.has(b._id) || (STATE.delBlocks&&STATE.delBlocks[b._id]) || b.type==='hero' || b.type==='secTitle') return;
       const h=(b.type==='action'||b.type==='roadmap'||b.type==='publico'||b.type==='aprendizado')?16:((b.type==='faq'||b.type==='table'||b.type==='caracteristicas'||b.type==='swot'||b.type==='diagnostic')?8:6);
       v.items.push({id:b._id, x:0, y, w:cols, h}); y+=h; });
   });
 }
+// marca um bloco como apagado (impede o syncLayoutBlocks de re-adicionar blocos do PLAN apagados)
+function markBlockDeleted(id){ if(!id) return; STATE.delBlocks=STATE.delBlocks||{}; STATE.delBlocks[id]=1; }
 function effectiveLayout(sec, key){
   const dev=curDevice(), bag=layoutBag(key);
   if(bag) syncLayoutBlocks(bag, sec);
@@ -5177,7 +5181,7 @@ function onGridUp(){
   const tz0=$("#trashzone"); if(tz0) tz0.classList.remove("hot");
   if(d.overTrash && d.mode!=="resize"){   // soltou na lixeira -> apaga
     const bag=layoutBag(d.key); const ids = d.group? d.group.map(g=>g.it.id) : [d.item.id];
-    if(bag) ids.forEach(id=>{ DEVICES.forEach(dv=>{ if(bag[dv.id]) bag[dv.id].items=bag[dv.id].items.filter(x=>x.id!==id); }); if(STATE.styles[id]) delete STATE.styles[id]; });
+    if(bag) ids.forEach(id=>{ DEVICES.forEach(dv=>{ if(bag[dv.id]) bag[dv.id].items=bag[dv.id].items.filter(x=>x.id!==id); }); if(STATE.styles[id]) delete STATE.styles[id]; markBlockDeleted(id); });
     SEL.clear(); GDRAG=null; pushHistory("Apagou na lixeira", ids.length>1?"grupo":widgetNameOfItem(d.item)); saveState(); render(); return;
   }
   const items=layoutItemsOf(d.key);
@@ -5227,7 +5231,7 @@ function updateSelActionsBar(){
 }
 function groupAction(key,what){
   const ids=[...SEL];
-  if(what==='del'){ ids.forEach(id=>{ const bag=layoutBag(key); if(bag) DEVICES.forEach(d=>{ if(bag[d.id]) bag[d.id].items=bag[d.id].items.filter(x=>x.id!==id); }); if(STATE.styles[id]) delete STATE.styles[id]; });
+  if(what==='del'){ ids.forEach(id=>{ const bag=layoutBag(key); if(bag) DEVICES.forEach(d=>{ if(bag[d.id]) bag[d.id].items=bag[d.id].items.filter(x=>x.id!==id); }); if(STATE.styles[id]) delete STATE.styles[id]; markBlockDeleted(id); });
     pushHistory("Excluiu "+ids.length+" widgets","grupo"); }
   else { ids.forEach(id=> duplicateTile(key,id,true)); pushHistory("Duplicou "+ids.length+" widgets","grupo"); }
   SEL.clear(); saveState(); render();
@@ -5292,6 +5296,7 @@ function deleteTile(key, id){
   const sty=STATE.styles[id]?JSON.parse(JSON.stringify(STATE.styles[id])):null;
   if(Object.keys(snapItems).length) trashAdd({kind:'widget', label:'Widget: '+(nome||'?'), key, wid:id, items:snapItems, styles:sty, overrides:ov});
   if(STATE.styles[id]) delete STATE.styles[id];
+  markBlockDeleted(id);
   pushHistory("Removeu widget", nome); saveState(); render();
 }
 
@@ -5483,7 +5488,7 @@ function pretty(v, ind){
 let HIST=[], HMETA=[], HI=-1, _restoring=false;
 function snapshotState(){
   return JSON.stringify({ overrides:STATE.overrides, statuses:STATE.statuses, media:STATE.media,
-    layout:STATE.layout, styles:STATE.styles, _addSeq:_addSeq });
+    layout:STATE.layout, styles:STATE.styles, delBlocks:STATE.delBlocks, _addSeq:_addSeq });
 }
 function histInit(){ if(HIST.length) return; HIST=[snapshotState()]; HMETA=[{label:"Estado inicial"}]; HI=0; }
 function curContextLabel(){
@@ -5510,7 +5515,7 @@ function restoreSnapshot(i){
   _restoring=true;
   const s=JSON.parse(HIST[i]);
   STATE.overrides=s.overrides||{}; STATE.statuses=s.statuses||{}; STATE.media=s.media||{};
-  STATE.layout=s.layout||{}; STATE.styles=s.styles||{}; _addSeq=s._addSeq||0; STATE._addSeq=_addSeq;
+  STATE.layout=s.layout||{}; STATE.styles=s.styles||{}; STATE.delBlocks=s.delBlocks||{}; _addSeq=s._addSeq||0; STATE._addSeq=_addSeq;
   HI=i;
   _restoring=false;
   saveState();   // sincroniza o estado restaurado
@@ -5540,6 +5545,7 @@ function openHistory(){
 let TRASH=[];
 function trashAdd(e){ e.id='tr'+(TRASH._n=(TRASH._n||0)+1); e.ctx=curContextLabel(); e.ts=nowHM(); TRASH.unshift(e); if(TRASH.length>60) TRASH.pop(); }
 function recoverWidget(e){
+  if(STATE.delBlocks) delete STATE.delBlocks[e.wid];   // volta a aparecer
   let bag=STATE.layout[e.key]; if(!bag) bag=STATE.layout[e.key]={};
   DEVICES.forEach(d=>{ const it=e.items[d.id]; if(!it) return;
     let v=bag[d.id]; if(!v) v=bag[d.id]={cols:GRID_COLS,cellH:GRID_CELLH,items:[]};
