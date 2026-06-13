@@ -1439,6 +1439,23 @@
   .matriz .mz-xaxis span{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cor,var(--ink));border:1px solid var(--line);border-radius:4px;padding:4px 10px;background:#fff}
   body.grid-edit .matriz .mz-add{margin-top:8px}
 
+  /* Documentos */
+  .docs{display:flex;flex-direction:column;gap:9px}
+  .docs .doc-row{display:flex;align-items:center;gap:11px;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;background:#fff;transition:border-color .15s,box-shadow .15s}
+  .docs .doc-row:hover{border-color:#d8d2c2;box-shadow:0 2px 8px rgba(36,26,110,.06)}
+  .docs .doc-ic{flex:0 0 auto;width:38px;height:38px;border-radius:9px;display:grid;place-items:center;font-size:20px;background:#f6f3ec}
+  .docs .doc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .docs .doc-name{font-weight:700;color:var(--ink);font-size:14px;word-break:break-word;line-height:1.25}
+  .docs .doc-meta{font-size:11px;color:#8a849a;letter-spacing:.02em}
+  .docs .doc-open{flex:0 0 auto;border:1px solid var(--cyan);color:var(--cyan);background:#fff;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;transition:background .15s}
+  .docs .doc-open:hover{background:rgba(25,182,230,.09)}
+  .docs .doc-ctrls{flex:0 0 auto;display:flex;align-items:center;gap:3px;margin-left:2px}
+  .docs .doc-ctrls button{border:1px solid var(--line);background:#fff;border-radius:7px;width:26px;height:26px;font-size:12px;line-height:1;cursor:pointer;color:var(--ink);padding:0}
+  .docs .doc-ctrls button:hover{background:#f6f3ec}
+  .docs .doc-ctrls button.danger:hover{background:rgba(229,22,123,.1);border-color:var(--magenta);color:var(--magenta)}
+  .docs .doc-add{margin-top:4px}
+  .docs .doc-empty .vinput{justify-content:center}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -3313,7 +3330,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz', arquetipo:'Arquétipos' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz', arquetipo:'Arquétipos', documentos:'Documentos' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -4246,6 +4263,29 @@ function renderBlock(b, sec, bi){
         ${editing?`<button class="li-plus mz-add" data-boxadd="${id}|items">＋ cartão</button>`:''}
       </div>`;
     }
+    case "documentos":{
+      const wid=b._id;
+      const isAdmin = EDIT && can('editContent');   // controles só no modo edição
+      let x = `<div class="block docs" data-wid="${wid}">`;
+      if(b.showTitle!==false && (b.title||isAdmin)) x += `<div class="wtitle wed wedrich" data-wedit="${wid}|title">${richHtml(b.title||'Documentos')}</div>`;
+      (b.items||[]).forEach((it,i)=>{
+        const url=safeUrl(it.url||'');
+        const nome = it.nome || docNameFromUrl(it.url) || 'Documento';
+        const ctrls = isAdmin ? `<span class="doc-ctrls">${grip(wid,'items',i)}<button data-itemmove="${wid}|items|${i}|-1" title="Subir">▲</button><button data-itemmove="${wid}|items|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${wid}|items|${i}" title="Apagar">×</button></span>` : '';
+        x += `<div class="doc-row dnd-row">
+          <span class="doc-ic">${docIcon(it.nome||it.url)}</span>
+          <span class="doc-main"><span class="doc-name wed" data-wedit="${wid}|o/${i}/nome">${esc(nome)}</span><span class="doc-meta">${esc(docMeta(it.url))}</span></span>
+          <a class="doc-open" href="${url}" target="_blank" rel="noopener">Abrir ↗</a>${ctrls}</div>`;
+      });
+      if(isAdmin){
+        const upDoc = (CLOUD && fbStorage) ? `<button class="icon-btn up" data-upload="${wid}|doc" title="Enviar um arquivo do seu computador">⬆ Enviar arquivo</button>` : '';
+        x += `<div class="vinput doc-add${(b.items&&b.items.length)?'':' doc-empty'}"><input data-docurl="${wid}" placeholder="Cole o link de um documento ou envie um arquivo →">
+                 <button class="icon-btn" data-docadd="${wid}">Adicionar link</button>${upDoc}</div>`;
+      } else if(!b.items||!b.items.length){
+        return `<div class="block media-empty"><div class="mi">📁</div><b>Nenhum documento.</b></div>`;
+      }
+      return x+`</div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -4576,6 +4616,11 @@ function wireBlockEvents(){
     const id=btn.dataset.galadd; const inp=$(`[data-galurl="${id}"]`); galAdd(id, inp?inp.value:''); }));
   $$("[data-galdel]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.galdel.split('|'); galDel(id,+i); }));
   $$("[data-galurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation()); });
+  // widget Documentos
+  $$("[data-docadd]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation();
+    const id=btn.dataset.docadd; const inp=$(`[data-docurl="${id}"]`); docAdd(id, inp?inp.value:''); }));
+  $$("[data-docurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation());
+    inp.addEventListener("keydown",e=>{ if(e.key==='Enter'){ e.preventDefault(); docAdd(inp.dataset.docurl, inp.value); } }); });
   // upload de mídia (Firebase Storage): data-upload="chave|tipo"
   $$("[data-upload]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [key,kind]=btn.dataset.upload.split('|'); pickAndUpload(btn, key, kind); }));
   // widget Públicos
@@ -4687,15 +4732,23 @@ function liAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items|
 function liBul(id,i){ const b=findWidgetBlock(id); if(!b) return; const it=liItemObj(b,i); const k=LI_COLORS.indexOf(it.color); it.color=LI_COLORS[(k+1)%LI_COLORS.length]; pushHistory("Lista","list"); saveState(); render(); }
 function galAdd(id,url){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({src:url,caption:''}); pushHistory("Galeria","gallery"); saveState(); render(); }
 function galDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Galeria","gallery"); saveState(); render(); }
+// ===== Documentos (links ou arquivos enviados) =====
+function docAdd(id,url,nome){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({nome:(nome||'').trim()||docNameFromUrl(url), url:url}); pushHistory("Documentos","documentos"); saveState(); render(); }
+function docDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Documentos","documentos"); saveState(); render(); }
+function docExt(s){ s=(s||'').split('?')[0].split('#')[0]; const m=s.match(/\.([a-z0-9]{1,5})$/i); return m?m[1].toLowerCase():''; }
+function docIcon(s){ const e=docExt(s); const map={pdf:'📕',doc:'📘',docx:'📘',rtf:'📘',odt:'📘',xls:'📗',xlsx:'📗',csv:'📗',ods:'📗',ppt:'📙',pptx:'📙',odp:'📙',zip:'🗜️',rar:'🗜️','7z':'🗜️',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',webp:'🖼️',svg:'🖼️',mp4:'🎬',mov:'🎬',avi:'🎬',mp3:'🎵',m4a:'🎵',wav:'🎵',txt:'📃'}; return map[e]||'📄'; }
+function docNameFromUrl(url){ try{ let s=(url||'').split('?')[0].split('#')[0]; const seg=s.split('/').filter(Boolean).pop()||'Documento'; let n=decodeURIComponent(seg).replace(/^\d+_\d+-/,''); return n||'Documento'; }catch(_){ return 'Documento'; } }
+function docMeta(url){ const e=docExt(url); return e ? e.toUpperCase() : 'Link'; }
 // ===== Upload de mídia para o Firebase Storage =====
 const UPLOAD_MAX = 15*1024*1024;   // 15 MB por arquivo
 function pickAndUpload(btn, key, kind){
   if(!CLOUD || !fbStorage){ alert("O envio de arquivos requer o Firebase Storage ativado no projeto.\n\nVeja o passo a passo em FIREBASE_SETUP.md (ativar Storage + colar as regras). Enquanto isso, você pode colar um link de imagem no campo ao lado."); return; }
   if(!isCloudAdmin()){ alert("Entre como administrador (login) para enviar arquivos."); return; }
-  const accept = kind==='audio' ? 'audio/*' : (kind==='video' ? 'video/*' : 'image/*');
+  const accept = kind==='audio' ? 'audio/*' : (kind==='video' ? 'video/*' : (kind==='doc' ? '' : 'image/*'));
   const inp=document.createElement('input'); inp.type='file'; inp.accept=accept; inp.style.display='none';
   inp.addEventListener('change',()=>{ const f=inp.files&&inp.files[0]; if(f) uploadMedia(f, btn, url=>{
     if(kind==='gallery'){ galAdd(key, url); }
+    else if(kind==='doc'){ docAdd(key, url, f.name); }
     else { STATE.media[key]=url; pushHistory("Enviou "+(kind==='audio'?'áudio':(kind==='video'?'vídeo':'imagem')), kind); saveState(); render(); }
   }); inp.remove(); });
   document.body.appendChild(inp); inp.click();
@@ -5414,6 +5467,7 @@ const WIDGET_CATALOG=[
     {titulo:"Exemplos Inspiradores", items:[{lab:"Exemplo 1:",txt:"descrição curta do caso"},{lab:"Exemplo 2:",txt:"descrição curta do caso"}]},
     {titulo:"Aplicação no Amapá", items:[{lab:"Ponto central:",txt:"como aplicar aqui"},{lab:"Prova tangível:",txt:"evidência concreta"}]}
   ]})},
+  {ic:"📁", label:"Documentos", desc:"Lista de arquivos: link ou upload", make:id=>({type:"documentos", _id:id, title:"Documentos", showTitle:true, items:[]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
