@@ -1530,6 +1530,16 @@
   .mform .mf-up.up-busy{opacity:.7;cursor:progress}
   .mform .mf-inline{display:flex;gap:8px;align-items:center}
   .mform .mf-inline input{flex:1}
+  .mform .mf-local-wrap{position:relative;flex:1}
+  .mform .mf-local-wrap input{width:100%;box-sizing:border-box}
+  .mf-ac-pop{position:absolute;left:0;right:0;top:calc(100% + 3px);background:#fff;border:1.5px solid var(--line);border-radius:10px;z-index:500;box-shadow:0 4px 18px rgba(36,26,110,.12);max-height:220px;overflow-y:auto}
+  .mf-ac-item{padding:9px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid #f3efe6;line-height:1.3;display:flex;align-items:flex-start;gap:7px}
+  .mf-ac-item:last-child{border-bottom:none}
+  .mf-ac-item.hov,.mf-ac-item:hover{background:#f6f3ec}
+  .mf-ac-icon{flex:0 0 auto;font-size:15px;margin-top:1px}
+  .mf-ac-text strong{display:block;color:var(--ink);font-size:13px}
+  .mf-ac-text span{color:#8a849a;font-size:11px}
+  .mf-ac-empty{padding:10px 13px;color:#aaa;font-size:12px;font-style:italic}
   .mform .mf-list{display:flex;flex-direction:column;gap:7px}
   .mform .mf-item{display:flex;gap:7px;align-items:center}
   .mform .mf-item input{flex:1}
@@ -2780,8 +2790,9 @@ STATE.layout    = STATE.layout    || {};   // { [secKey]: { cols, cellH, items:[
 STATE.styles    = STATE.styles    || {};   // { [blockId]: { bg?, top?, fg? } }
 STATE.nav       = STATE.nav       || {};   // { order[], hidden[], add{}, secAdd{}, secOrder{}, secHidden[], _seq }
 STATE.delBlocks = STATE.delBlocks || {};   // { [blockId]: 1 } — blocos do PLAN apagados (não voltam pelo syncLayoutBlocks)
-STATE.notes     = STATE.notes     || [];   // [{id,title,icon,body,ts,type,audience,by}] — histórico de notificações (sincronizado)
+STATE.notes      = STATE.notes      || [];   // [{id,title,icon,body,ts,type,audience,by}] — histórico de notificações (sincronizado)
 STATE.noteCfg   = STATE.noteCfg   || { meetingAuto:true };  // automáticas ligadas/desligadas
+STATE.widgetItems= STATE.widgetItems|| {};  // { [blockId]: items[] | {items,cats} } — persiste items dinâmicos (reuniões, docs, etc.)
 if(STATE.ui){ CUR = STATE.ui; if(CUR.section!=null) CUR.section=String(CUR.section); } // seção vira chave (string)
 
 function txt(key, def){ return (key && STATE.overrides[key]!=null) ? STATE.overrides[key] : def; }
@@ -2795,7 +2806,7 @@ function isCloudAdmin(){ return !!(CLOUD && fbAuth && fbAuth.currentUser); }
 function cloudPayload(){
   return { overrides:STATE.overrides||{}, statuses:STATE.statuses||{}, media:STATE.media||{},
     layout:STATE.layout||{}, styles:STATE.styles||{}, nav:STATE.nav||{}, delBlocks:STATE.delBlocks||{},
-    notes:STATE.notes||[], noteCfg:STATE.noteCfg||{}, _addSeq:_addSeq||0,
+    notes:STATE.notes||[], noteCfg:STATE.noteCfg||{}, widgetItems:STATE.widgetItems||{}, _addSeq:_addSeq||0,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 }
 function cloudPush(){
@@ -2809,7 +2820,7 @@ function cloudPush(){
         const p=$("#savePill"); if(p){ p.textContent="Falha ao salvar ("+(e.code||'erro')+") · "+who; p.className="save-pill err"; } });
   }, 400);
 }
-function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},v:o.nav||{},nt:o.notes||[],nc:o.noteCfg||{},n:o._addSeq||0}); }
+function syncSig(o){ return JSON.stringify({o:o.overrides||{},s:o.statuses||{},m:o.media||{},l:o.layout||{},y:o.styles||{},v:o.nav||{},nt:o.notes||[],nc:o.noteCfg||{},wi:o.widgetItems||{},n:o._addSeq||0}); }
 let _initialApplied=false;
 function applyRemote(data){
   if(!data) return;
@@ -2826,8 +2837,9 @@ function applyRemote(data){
   STATE.styles    = data.styles    || {};
   STATE.nav       = data.nav       || {};
   STATE.delBlocks = data.delBlocks || {};
-  STATE.notes     = Array.isArray(data.notes) ? data.notes : [];
+  STATE.notes      = Array.isArray(data.notes) ? data.notes : [];
   STATE.noteCfg   = data.noteCfg   || { meetingAuto:true };
+  STATE.widgetItems= data.widgetItems || {};
   _addSeq = Math.max(_addSeq||0, data._addSeq||0); STATE._addSeq=_addSeq;
   if(typeof sanitizeOverride==='function'){ Object.keys(STATE.overrides).forEach(k=>{ STATE.overrides[k]=sanitizeOverride(STATE.overrides[k]); }); }
   localStorage.setItem(LS_STATE, JSON.stringify(STATE));   // cache local
@@ -4837,6 +4849,7 @@ function wireBlockEvents(){
       const [id,idx]=el.dataset.docdesc.split("|");
       const bl=findWidgetBlock(id); if(!bl) return;
       if(bl.items[+idx]) bl.items[+idx].desc=el.textContent.trim();
+      STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[id]=bl.items;
       saveState();
     });
   });
@@ -4858,6 +4871,7 @@ function wireBlockEvents(){
       const parts=sw.dataset.doccolor.split("|"); const id=parts[0],i=parts[1],cor=parts[2];
       const bl=findWidgetBlock(id); if(!bl||!bl.items[+i]) return;
       if(cor==="#f6f3ec") delete bl.items[+i].cor; else bl.items[+i].cor=cor;
+      STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[id]=bl.items;
       pushHistory("Documentos","documentos"); saveState(); render();
     });
   });
@@ -4943,11 +4957,12 @@ function wireBlockEvents(){
   $$("[data-mttask]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,mid,ti]=b.dataset.mttask.split('|'); meetTaskToggle(id,mid,+ti); }));
 }
 /* ----- dados inline de widgets criados (add) ----- */
+function _wiRestore(b){ if(!b) return b; const wi=STATE.widgetItems&&STATE.widgetItems[b._id]; if(!wi) return b; if(Array.isArray(wi)) b.items=wi; else { b.items=wi.items||[]; if(wi.cats) b.cats=wi.cats; } return b; }
 function findWidgetBlock(id){
   const cv=$(".gridcanvas"); const key=cv?cv.dataset.seckey:secKey();
   const bag=layoutBag(key);
-  if(bag){ for(const dv of DEVICES){ const v=bag[dv.id]; if(v){ const it=v.items.find(x=>x.id===id); if(it&&it.add) return it.add; } } }
-  const sec=curSecObj(); return (sec.blocks||[]).find(b=>b._id===id)||null;
+  if(bag){ for(const dv of DEVICES){ const v=bag[dv.id]; if(v){ const it=v.items.find(x=>x.id===id); if(it&&it.add) return _wiRestore(it.add); } } }
+  const sec=curSecObj(); return _wiRestore((sec.blocks||[]).find(b=>b._id===id)||null);
 }
 function updateWidgetField(id, path, val){
   const b=findWidgetBlock(id); if(!b) return;
@@ -4958,6 +4973,7 @@ function updateWidgetField(id, path, val){
   else if(p[0]==='cap'){ b.items=b.items||[]; if(b.items[+p[1]]) b.items[+p[1]].caption=val; }
   else if(p[0]==='o'){ b.items=b.items||[]; const it=b.items[+p[1]]; if(it) it[p[2]]=val; }
   else if(p[0]==='z'){ b.zones=b.zones||[]; const z=b.zones[+p[1]]; if(z) z[p[2]]=val; }
+  if(b.items!==undefined && ['i','cap','o'].includes(p[0])){ STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[id]=b.items; }
   saveState();
 }
 function ckToggle(id,i){ const b=findWidgetBlock(id); if(!b||!b.items[i]) return;
@@ -4978,8 +4994,8 @@ function liBul(id,i){ const b=findWidgetBlock(id); if(!b) return; const it=liIte
 function galAdd(id,url){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({src:url,caption:''}); pushHistory("Galeria","gallery"); saveState(); render(); }
 function galDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Galeria","gallery"); saveState(); render(); }
 // ===== Documentos (links ou arquivos enviados) =====
-function docAdd(id,url,nome){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({nome:(nome||'').trim()||docNameFromUrl(url), url:url}); pushHistory("Documentos","documentos"); saveState(); render(); }
-function docDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Documentos","documentos"); saveState(); render(); }
+function docAdd(id,url,nome){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({nome:(nome||'').trim()||docNameFromUrl(url), url:url}); STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[id]=b.items; pushHistory("Documentos","documentos"); saveState(); render(); }
+function docDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[id]=b.items; pushHistory("Documentos","documentos"); saveState(); render(); }
 function docExt(s){ s=(s||'').split('?')[0].split('#')[0]; const m=s.match(/\.([a-z0-9]{1,5})$/i); return m?m[1].toLowerCase():''; }
 function docIcon(s){ const e=docExt(s); const map={pdf:'📕',doc:'📘',docx:'📘',rtf:'📘',odt:'📘',xls:'📗',xlsx:'📗',csv:'📗',ods:'📗',ppt:'📙',pptx:'📙',odp:'📙',zip:'🗜️',rar:'🗜️','7z':'🗜️',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',webp:'🖼️',svg:'🖼️',mp4:'🎬',mov:'🎬',avi:'🎬',webm:'🎬',mp3:'🎵',m4a:'🎵',wav:'🎵',ogg:'🎵',txt:'📃',md:'📃'}; return map[e]||'📄'; }
 function docTipo(url,nome){ const T={pdf:{label:'PDF',bg:'#fee2e2',col:'#dc2626'},doc:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},docx:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},rtf:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},odt:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},xls:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},xlsx:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},csv:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},ods:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},ppt:{label:'Apresentação',bg:'#ffedd5',col:'#ea580c'},pptx:{label:'Apresentação',bg:'#ffedd5',col:'#ea580c'},odp:{label:'Apresentação',bg:'#ffedd5',col:'#ea580c'},zip:{label:'Compactado',bg:'#fef9c3',col:'#b45309'},rar:{label:'Compactado',bg:'#fef9c3',col:'#b45309'},'7z':{label:'Compactado',bg:'#fef9c3',col:'#b45309'},jpg:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},jpeg:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},png:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},gif:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},webp:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},svg:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},mp4:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},mov:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},avi:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},webm:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},mp3:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},m4a:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},wav:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},ogg:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},txt:{label:'Texto',bg:'#f6f3ec',col:'#8a849a'},md:{label:'Texto',bg:'#f6f3ec',col:'#8a849a'}}; const en=docExt(nome); const eu=docExt(url); if(T[en]) return T[en]; if(T[eu]) return T[eu]; const isFile=(url||'').includes('firebasestorage')||(url||'').includes('storage.googleapis')||eu.length>0; return isFile?{label:'Arquivo',bg:'#f1f5f9',col:'#64748b'}:{label:'Link',bg:'#e0f2fe',col:'#0369a1'}; }
@@ -5090,7 +5106,7 @@ function meetDownloadICS(wid,id){ const b=findWidgetBlock(wid); if(!b) return; c
 function meetToggleOpen(wid,id){ if(MEET_OPEN.has(id)) MEET_OPEN.delete(id); else MEET_OPEN.add(id); render(); }
 function meetSetTab(wid,tab){ MEET_TAB[wid]=tab; render(); }
 function meetTaskToggle(wid,id,ti){ const b=findWidgetBlock(wid); if(!b) return; const it=(b.items||[]).find(m=>m.id===id); if(!it||!it.tarefas||!it.tarefas[ti]) return; it.tarefas[ti].done=!it.tarefas[ti].done; pushHistory('Tarefa da reunião','reuniões'); saveState(); render(); }
-function meetDel(wid,id){ const b=findWidgetBlock(wid); if(!b) return; if(!confirm('Excluir esta reunião?')) return; b.items=(b.items||[]).filter(m=>m.id!==id); MEET_OPEN.delete(id); pushHistory('Removeu reunião','reuniões'); saveState(); render(); }
+function meetDel(wid,id){ const b=findWidgetBlock(wid); if(!b) return; if(!confirm('Excluir esta reunião?')) return; b.items=(b.items||[]).filter(m=>m.id!==id); MEET_OPEN.delete(id); STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[wid]={items:b.items||[],cats:b.cats||[]}; pushHistory('Removeu reunião','reuniões'); saveState(); render(); }
 // --- formulário (adicionar/editar) ---
 function meetTeamMembers(){ const m=(TEAM&&TEAM.members)||{}; return Object.keys(m).map(uid=>({uid, name:m[uid].name||m[uid].email, email:m[uid].email||''})).filter(x=>x.name||x.email); }
 function openMeetingForm(wid, id){
@@ -5126,7 +5142,7 @@ function meetRenderForm(card){
       <button type="button" class="${d.modo==='local'?'on':''}" data-mfmodo="local">📍 Presencial</button>
     </div></div>
     ${d.modo==='local'
-      ? `<div class="mf-f"><label>Local</label><div class="mf-inline"><input type="text" data-mf="local" value="${esc(d.local||'')}" placeholder="Endereço / sala"><a id="mfMapLink" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.local||'')}" target="_blank" rel="noopener" class="mf-mini" style="text-decoration:none;${d.local?'':'display:none'}">🗺 Ver</a></div></div>`
+      ? `<div class="mf-f"><label>Local</label><div class="mf-inline"><div class="mf-local-wrap"><input type="text" id="mfLocalInp" data-mf="local" value="${esc(d.local||'')}" placeholder="Digite o endereço ou nome do local" autocomplete="off"><div class="mf-ac-pop" id="mfAcPop" style="display:none"></div></div><a id="mfMapLink" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.local||'')}" target="_blank" rel="noopener" class="mf-mini" style="text-decoration:none;${d.local?'':'display:none'}">🗺 Ver</a></div></div>`
       : `<div class="mf-f"><label>Link da reunião</label><input type="text" data-mf="link" value="${esc(d.link||'')}" placeholder="https://meet.google.com/… ou Zoom/Teams"></div>`}
     <div class="mf-f"><label>Foto da reunião</label><div class="mf-inline">${d.foto?`<img class="mf-thumb" src="${esc(MEDIA[d.foto]||d.foto)}" alt="">`:''}<input type="text" data-mf="foto" value="${esc(d.foto||'')}" placeholder="Link da imagem">${upOk?`<button type="button" class="mf-up" data-mfup="foto|image">⬆ Enviar</button>`:''}</div></div>
     <div class="mf-f"><label>Link da gravação</label><div class="mf-inline"><input type="text" data-mf="gravacao" value="${esc(d.gravacao||'')}" placeholder="Link do vídeo da gravação">${upOk?`<button type="button" class="mf-up" data-mfup="gravacao|video">⬆ Enviar</button>`:''}</div></div>
@@ -5151,6 +5167,43 @@ function meetRenderForm(card){
     el.addEventListener(ev,()=>{ d[k]= (k==='dur')? (parseInt(el.value,10)||0) : el.value;
       if(k==='local'){ const lnk=host.querySelector('#mfMapLink'); if(lnk){ const q=encodeURIComponent(el.value); lnk.href=`https://www.google.com/maps/search/?api=1&query=${q}`; lnk.style.display=el.value?'':'none'; } }
     }); });
+  // autocomplete de localização (Nominatim/OpenStreetMap)
+  (function(){
+    const inp=host.querySelector('#mfLocalInp'), pop=host.querySelector('#mfAcPop');
+    if(!inp||!pop) return;
+    let _acT=null, _acIdx=-1, _acItems=[];
+    function acRender(results){
+      _acItems=results; _acIdx=-1;
+      if(!results.length){ pop.style.display='none'; return; }
+      pop.innerHTML=results.map((r,i)=>{
+        const name=r.name||(r.address&&r.address.road)||r.display_name.split(',')[0];
+        const detail=r.display_name.split(',').slice(1,4).join(',').trim();
+        return `<div class="mf-ac-item" data-acidx="${i}"><span class="mf-ac-icon">📍</span><span class="mf-ac-text"><strong>${esc(name)}</strong><span>${esc(detail)}</span></span></div>`;
+      }).join('');
+      pop.style.display='block';
+      pop.querySelectorAll('.mf-ac-item').forEach(el=>el.addEventListener('mousedown',e=>{
+        e.preventDefault(); const r=results[+el.dataset.acidx];
+        const val=r.display_name; inp.value=val; d.local=val;
+        const lnk=host.querySelector('#mfMapLink'); if(lnk){ lnk.href=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val)}`; lnk.style.display=''; }
+        pop.style.display='none';
+      }));
+    }
+    function acSearch(q){
+      if(!q||q.length<3){ pop.style.display='none'; return; }
+      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6&accept-language=pt-BR,pt,en`)
+        .then(r=>r.json()).then(acRender).catch(()=>{ pop.style.display='none'; });
+    }
+    inp.addEventListener('input',()=>{ clearTimeout(_acT); _acT=setTimeout(()=>acSearch(inp.value.trim()),350); });
+    inp.addEventListener('keydown',e=>{
+      if(!_acItems.length||pop.style.display==='none') return;
+      const items=pop.querySelectorAll('.mf-ac-item');
+      if(e.key==='ArrowDown'){ e.preventDefault(); _acIdx=Math.min(_acIdx+1,items.length-1); items.forEach((el,i)=>el.classList.toggle('hov',i===_acIdx)); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); _acIdx=Math.max(_acIdx-1,0); items.forEach((el,i)=>el.classList.toggle('hov',i===_acIdx)); }
+      else if(e.key==='Enter'&&_acIdx>=0){ e.preventDefault(); items[_acIdx].dispatchEvent(new MouseEvent('mousedown')); }
+      else if(e.key==='Escape'){ pop.style.display='none'; }
+    });
+    inp.addEventListener('blur',()=>setTimeout(()=>{ pop.style.display='none'; },200));
+  })();
   // estruturais → rebuild
   $$("[data-mfmodo]",host).forEach(btn=>btn.addEventListener('click',()=>{ d.modo=btn.dataset.mfmodo; meetRenderForm(card); }));
   $$("[data-mfguest]",host).forEach(btn=>btn.addEventListener('click',()=>{ const [em,nm]=btn.dataset.mfguest.split('|'); d.convidados=d.convidados||[];
@@ -5195,6 +5248,7 @@ function meetSaveDraft(){
     notesAdd({ type:'meeting', icon:'📅', title:'Nova reunião: '+clean.titulo,
       body:box.d+' '+box.m+hr+onde, audience:'all' });
   }
+  STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[wid]={items:b.items||[],cats:b.cats||[]};
   pushHistory(ix>=0?'Editou reunião':'Adicionou reunião','reuniões'); saveState(); closeModal(); render();
 }
 function meetPickUpload(btn, kind, cb){
@@ -5211,11 +5265,12 @@ function openMeetCats(wid, onClose){
   const rows=cats.map((c,i)=>`<div class="mcat-row"><input type="text" data-mcname="${i}" value="${esc(c.nome)}"><input type="color" data-mccolor="${i}" value="${meetColorHex(c.color)}"><div class="mcat-sw">${MEET_CAT_COLORS.map(col=>`<button data-mcsw="${i}|${col}" style="background:${col}" title="${col}"></button>`).join('')}</div><button class="mf-x" data-mcdel="${i}">×</button></div>`).join('');
   const card=showModal('Categorias de reunião', `<div class="mcat-list">${rows}<button class="mf-add" id="mcAdd" style="margin-top:6px">＋ Categoria</button></div><div class="mf-foot"><button class="mf-save" id="mcDone">Concluir</button></div>`);
   const reopen=()=>openMeetCats(wid,onClose);
-  $$("[data-mcname]",card).forEach(el=>el.addEventListener('change',()=>{ cats[+el.dataset.mcname].nome=el.value.trim()||'Categoria'; saveState(); }));
-  $$("[data-mccolor]",card).forEach(el=>el.addEventListener('input',()=>{ cats[+el.dataset.mccolor].color=el.value; saveState(); }));
-  $$("[data-mcsw]",card).forEach(btn=>btn.addEventListener('click',()=>{ const [i,col]=btn.dataset.mcsw.split('|'); cats[+i].color=col; saveState(); reopen(); }));
-  $$("[data-mcdel]",card).forEach(btn=>btn.addEventListener('click',()=>{ if(cats.length<=1){ alert('Mantenha ao menos uma categoria.'); return; } if(confirm('Excluir esta categoria?')){ cats.splice(+btn.dataset.mcdel,1); saveState(); reopen(); } }));
-  $("#mcAdd",card).addEventListener('click',()=>{ cats.push({id:meetUid('c'),nome:'Nova categoria',color:MEET_CAT_COLORS[cats.length%MEET_CAT_COLORS.length]}); saveState(); reopen(); });
+  const _mcSync=()=>{ STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[wid]={items:b.items||[],cats:b.cats||[]}; };
+  $$("[data-mcname]",card).forEach(el=>el.addEventListener('change',()=>{ cats[+el.dataset.mcname].nome=el.value.trim()||'Categoria'; _mcSync(); saveState(); }));
+  $$("[data-mccolor]",card).forEach(el=>el.addEventListener('input',()=>{ cats[+el.dataset.mccolor].color=el.value; _mcSync(); saveState(); }));
+  $$("[data-mcsw]",card).forEach(btn=>btn.addEventListener('click',()=>{ const [i,col]=btn.dataset.mcsw.split('|'); cats[+i].color=col; _mcSync(); saveState(); reopen(); }));
+  $$("[data-mcdel]",card).forEach(btn=>btn.addEventListener('click',()=>{ if(cats.length<=1){ alert('Mantenha ao menos uma categoria.'); return; } if(confirm('Excluir esta categoria?')){ cats.splice(+btn.dataset.mcdel,1); _mcSync(); saveState(); reopen(); } }));
+  $("#mcAdd",card).addEventListener('click',()=>{ cats.push({id:meetUid('c'),nome:'Nova categoria',color:MEET_CAT_COLORS[cats.length%MEET_CAT_COLORS.length]}); _mcSync(); saveState(); reopen(); });
   $("#mcDone",card).addEventListener('click',()=>{ closeModal(); render(); if(onClose) onClose(); });
 }
 function meetColorHex(c){ c=(c||'').trim(); if(/^#[0-9a-f]{6}$/i.test(c)) return c;
