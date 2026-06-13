@@ -370,11 +370,40 @@
   .callout-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 
   /* manifesto */
-  .manifesto{background:var(--ink);color:#fff;border-radius:16px;padding:26px 28px;position:relative}
+  .manifesto{background:var(--ink);border-radius:16px;padding:26px 28px;position:relative;
+    --man-fg:#fff;--man-muted:rgba(255,255,255,.6);transition:background .2s}
   .manifesto .mlabel{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:800;
-    color:var(--yellow);margin-bottom:12px}
-  .manifesto p{color:#e7e3ff;margin:13px 0;font-size:15.5px;line-height:1.7}
-  .manifesto p:first-of-type{font-size:17px;color:#fff;font-weight:600}
+    color:var(--man-muted)}
+  .manifesto .man-hdr{margin-bottom:12px}
+  .manifesto p{color:var(--man-muted);margin:13px 0;font-size:15.5px;line-height:1.7;font-weight:400}
+  .manifesto p:first-of-type{font-size:17px;color:var(--man-fg);font-weight:400}
+
+  /* mapa do turismo */
+  .mtur{border-radius:14px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);overflow:visible}
+  .mtur-tbl-wrap{overflow-x:auto;border-radius:14px 14px 0 0}
+  .mtur table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:540px}
+  .mtur thead th{background:var(--ink);color:#fff;padding:10px 14px;text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .mtur tbody tr{border-top:1px solid var(--line)}
+  .mtur tbody tr:first-child{border-top:none}
+  .mtur td{padding:9px 13px;vertical-align:middle}
+  .mtur .mtur-rname-cell{font-weight:700;font-size:13px;color:var(--ink);background:#f7f5ff;border-right:2px solid var(--line);vertical-align:middle}
+  .mtur .mtur-rname-cell .ed{display:block;margin-bottom:4px}
+  .mtur .mt-cat{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;line-height:1.5}
+  .mtur .mt-turistico{background:#dcfce7;color:#166534}
+  .mtur .mt-complementar{background:#fef9c3;color:#854d0e}
+  .mtur .mt-apoio{background:#dbeafe;color:#1e40af}
+  .mtur .mt-nao_inserido{background:#f1f5f9;color:#64748b}
+  .mtur [data-mturcat]{cursor:pointer;transition:opacity .15s}
+  .mtur [data-mturcat]:hover{opacity:.75;transform:scale(1.02)}
+  .mtur .mtur-row-acts{width:56px;text-align:right;white-space:nowrap}
+  .mtur .mtur-act-btn,.mtur .mtur-add-btn,.mtur .mtur-del-btn{border:none;background:none;cursor:pointer;padding:2px 6px;font-size:14px;border-radius:6px;transition:color .12s,background .12s;line-height:1}
+  .mtur .mtur-act-btn{color:#ccc}.mtur .mtur-act-btn:hover{color:var(--magenta);background:#fce4ec}
+  .mtur .mtur-add-btn{color:#aaa}.mtur .mtur-add-btn:hover{color:var(--green);background:#e8f5e9}
+  .mtur .mtur-del-btn{color:#ccc}.mtur .mtur-del-btn:hover{color:var(--magenta);background:#fce4ec}
+  .mtur-footer{padding:10px 14px;border-top:1px solid var(--line);background:#fafaf9}
+  .mtur-add-reg-btn{border:2px dashed var(--line);background:none;border-radius:9px;padding:7px 16px;font-size:12.5px;font-weight:700;color:#b0a496;cursor:pointer;transition:border-color .12s,color .12s;font-family:inherit}
+  .mtur-add-reg-btn:hover{border-color:var(--orange);color:var(--orange)}
+  .mtur-legend{display:flex;gap:7px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);background:#fafaf9}
 
   /* label table */
   .ltable{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;
@@ -699,7 +728,10 @@
   /* media: image / gallery / infographic / audio */
   .media{margin:14px 0}
   .media figure{margin:0}
-  .media img{width:100%;display:block;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  .media img{width:100%;height:auto;max-width:100%;display:block;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  /* imagem no grid: sem corte, altura livre */
+  .gtile[data-type="image"],.gtile[data-type="infographic"]{overflow:visible}
+  .gtile[data-type="image"] .gtile-body,.gtile[data-type="infographic"] .gtile-body{height:auto;justify-content:flex-start}
   .media figcaption{font-size:12.5px;color:var(--muted);margin-top:7px;text-align:center}
   .media.infografico img{background:#fff;padding:8px;border-top:4px solid var(--cyan)}
   .media .badge{display:inline-block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
@@ -1004,36 +1036,42 @@
   body.grid-edit .li-acts, body.grid-edit .gl-acts, body.grid-edit .tbl-rowacts,
   body.grid-edit .row-acts, body.grid-edit .box-edit, body.grid-edit .box-edit-in,
   body.grid-edit .col-x, body.grid-edit .obj-x, body.grid-edit .li-x{ opacity:1 !important; }
-  .bxe-rowacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
-  .bxe-rowacts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer}
-  .bxe-rowacts button.danger{color:var(--magenta)}
-  .bxe-rowacts button:hover{border-color:var(--orange)}
+  .bxe-rowacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed #d5cfc0}
+  .bxe-rowacts button{border:none;background:#f0ebe2;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;transition:background .12s}
+  .bxe-rowacts button.danger{background:#f2d4d0;color:#8b3a36}
+  .bxe-rowacts button:hover{background:#e5dfd5}
+  .bxe-rowacts button.danger:hover{background:#e8c0bb}
   /* caixa flutuante de edição de campos */
   .bxe-back{position:fixed;inset:0;z-index:84;background:rgba(20,14,60,.28);backdrop-filter:blur(1.5px)}
   .bxe{position:fixed;z-index:85;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:min(680px,94vw);max-height:90vh;background:var(--paper);border:1px solid var(--line);
-    border-radius:18px;box-shadow:0 26px 70px rgba(36,26,110,.34);display:flex;flex-direction:column;overflow:hidden}
-  .bxe-head{display:flex;align-items:center;gap:8px;padding:14px 18px;background:var(--ink);color:#fff}
-  .bxe-head b{flex:1;font-size:15.5px;font-weight:800}
-  .bxe-close{border:none;background:rgba(255,255,255,.18);color:#fff;width:28px;height:28px;border-radius:9px;font-size:17px;cursor:pointer}
-  .bxe-close:hover{background:rgba(255,255,255,.3)}
-  .bxe-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
-  .bxe-body::-webkit-scrollbar{width:8px}
-  .bxe-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
-  .bxe-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 8px;padding-top:12px;border-top:1px dashed var(--line)}
+    width:min(680px,94vw);max-height:90vh;background:#fdfaf6;border:none;
+    border-radius:20px;box-shadow:0 16px 56px rgba(36,26,110,.22);display:flex;flex-direction:column;overflow:hidden}
+  .bxe-head{display:flex;align-items:center;gap:8px;padding:18px 20px 12px;background:#f0ebe2;color:var(--ink);border-bottom:1px solid #e5dfd5}
+  .bxe-head b{flex:1;font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+  .bxe-close{border:none;background:#e5dfd5;color:#9a8f82;width:28px;height:28px;border-radius:9px;font-size:15px;cursor:pointer;display:grid;place-items:center;transition:background .12s,color .12s;flex-shrink:0}
+  .bxe-close:hover{background:#d5cfc0;color:var(--ink)}
+  .bxe-body{padding:16px 20px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;background:#fdfaf6}
+  .bxe-body::-webkit-scrollbar{width:7px}
+  .bxe-body::-webkit-scrollbar-thumb{background:#e5dfd5;border-radius:8px}
+  .bxe-foot{display:flex;gap:9px;padding:12px 20px 16px;border-top:1px solid #e5dfd5;background:#f7f3ec;align-items:center}
+  .bxe-foot .bxe-btn-save{border:none;background:#c47c3a;color:#fff;border-radius:11px;padding:10px 22px;font-size:13.5px;font-weight:600;cursor:pointer;transition:background .12s}
+  .bxe-foot .bxe-btn-save:hover{background:#b06c2c}
+  .bxe-foot .bxe-btn-cancel{border:none;background:#e5dfd5;border-radius:11px;padding:10px 18px;font-size:13.5px;cursor:pointer;color:#7a7070;font-weight:500;transition:background .12s}
+  .bxe-foot .bxe-btn-cancel:hover{background:#d5cfc0;color:var(--ink)}
+  .bxe-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 8px;padding-top:12px;border-top:1px dashed #d5cfc0}
   .bxe-group:first-child{border-top:none;margin-top:0;padding-top:0}
-  .bxe-group > span{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 11px}
+  .bxe-group > span{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b0a496;background:#f0ebe2;border:none;border-radius:20px;padding:3px 11px}
   .bxe-cols{display:inline-flex;gap:4px;margin-left:2px}
   .bxe-cols button{width:18px;height:18px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
   .bxe-cols button:hover{transform:scale(1.18)}
-  .bxe-del{margin-left:auto;border:1px solid var(--line);background:#fff;color:var(--magenta);width:26px;height:26px;border-radius:8px;font-size:15px;cursor:pointer}
-  .bxe-del:hover{background:rgba(229,22,123,.1);border-color:var(--magenta)}
+  .bxe-del{margin-left:auto;border:none;background:#f2d4d0;color:#8b3a36;width:26px;height:26px;border-radius:8px;font-size:14px;cursor:pointer;display:grid;place-items:center;transition:background .12s}
+  .bxe-del:hover{background:#e8c0bb}
   .bxe-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px}
-  .bxe-row{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--ink2)}
+  .bxe-row{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:#b0a496;letter-spacing:.06em;text-transform:uppercase}
   .bxe-row.wide{grid-column:1/-1}
-  .bxe-row input,.bxe-row textarea{border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-weight:500;color:var(--ink);font-family:inherit;resize:vertical;background:#fff}
-  .bxe-row input:focus,.bxe-row textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(243,106,33,.12)}
-  .bxe-add{margin-top:16px;align-self:flex-start;border:2px dashed var(--line);background:#fff;border-radius:11px;padding:9px 16px;font-size:13.5px;font-weight:800;color:var(--ink2);cursor:pointer}
+  .bxe-row input,.bxe-row textarea{border:none;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:400;color:var(--ink);font-family:inherit;resize:vertical;background:#f0ebe2;text-transform:none;letter-spacing:0}
+  .bxe-row input:focus,.bxe-row textarea:focus{outline:none;background:#fdf8f2;box-shadow:0 0 0 2px rgba(196,124,58,.3)}
+  .bxe-add{margin-top:16px;align-self:flex-start;border:2px dashed #d5cfc0;background:#fdfaf6;border-radius:11px;padding:9px 16px;font-size:13.5px;font-weight:700;color:#b0a496;cursor:pointer;transition:border-color .12s,color .12s;text-transform:none;letter-spacing:0}
   .bxe-add:hover{border-color:var(--orange);color:var(--orange)}
   .cpop .sw .szbtn{width:auto;height:24px;padding:0 9px;border:1.5px solid var(--line);border-radius:7px;
     background:#fff;font-size:12px;font-weight:700;color:var(--ink2)}
@@ -2124,6 +2162,34 @@ const PLAN = {
             { lab:"Meio do Mundo", key:"c4/reg4", text:"Macapá, Santana e Mazagão." },
             { lab:"Tumucumaque e Cachoeiras", key:"c4/reg5", text:"Pedra Branca do Amapari, Porto Grande, Ferreira Gomes e Serra do Navio." },
             { lab:"Vale do Jari", key:"c4/reg6", text:"Laranjal do Jari e Vitória do Jari." }
+          ]},
+          { type:"mapatutor", _id:"c4mtur", regioes:[
+            { nome:"Cabo Orange", municipios:[
+              { nome:"Oiapoque", cat:"complementar" },
+              { nome:"Calçoene", cat:"nao_inserido" }
+            ]},
+            { nome:"Lagos e Pororocas", municipios:[
+              { nome:"Tartarugalzinho", cat:"apoio" },
+              { nome:"Pracuúba", cat:"nao_inserido" },
+              { nome:"Amapá", cat:"nao_inserido" },
+              { nome:"Itaubal", cat:"nao_inserido" },
+              { nome:"Cutias", cat:"nao_inserido" }
+            ]},
+            { nome:"Meio do Mundo", municipios:[
+              { nome:"Macapá", cat:"turistico" },
+              { nome:"Santana", cat:"complementar" },
+              { nome:"Mazagão", cat:"complementar" }
+            ]},
+            { nome:"Tumucumaque e Cachoeiras", municipios:[
+              { nome:"Pedra Branca do Amapari", cat:"complementar" },
+              { nome:"Ferreira Gomes", cat:"complementar" },
+              { nome:"Porto Grande", cat:"complementar" },
+              { nome:"Serra do Navio", cat:"nao_inserido" }
+            ]},
+            { nome:"Vale do Jari", municipios:[
+              { nome:"Laranjal do Jari", cat:"complementar" },
+              { nome:"Vitória do Jari", cat:"complementar" }
+            ]}
           ]}
         ]},
         { titulo:"Consciência de Marca", blocks:[
@@ -3537,7 +3603,8 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
   shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
-  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz', arquetipo:'Arquétipos', documentos:'Documentos' };
+  learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz', arquetipo:'Arquétipos', documentos:'Documentos',
+  mapatutor:'Mapa do Turismo' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
 function isLightColor(c){
@@ -3669,7 +3736,7 @@ function render(){
       if(st.top){ sv+="--w-top:"+st.top+";"; cls+=" has-top"; }
       if(st.cols){ sv+="--wcols:"+st.cols+";"; cls+=" has-cols"; }
       if(blk.type==='hero'||blk.type==='secTitle') cls+=" gtile-plain";
-      h += `<div class="gtile${cls}" data-id="${item.id}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
+      h += `<div class="gtile${cls}" data-id="${item.id}" data-type="${blk.type}" data-gx="${item.x}" data-gy="${item.y}" data-gw="${item.w}" data-gh="${item.h}" style="${sv}">
               <span class="gtile-type">${esc(widgetLabel(blk.type))}</span>
               <div class="gtile-tools"><button class="gtile-fields" title="Editar conteúdo em campos">✎</button><button class="gtile-config" title="Configurar (tamanho e cores)">⚙</button><button class="gtile-dup" title="Duplicar widget">⧉</button><span class="t-move" title="Arrastar para mover">⠿</span><button class="gtile-del" title="Remover widget">×</button></div>
               <div class="gtile-body">${st.title?`<div class="wtitle ed" data-ed="wt/${item.id}">${esc(txt('wt/'+item.id,'Título do widget'))}</div>`:''}${renderBlock(blk)}</div>
@@ -3733,11 +3800,40 @@ function renderBlock(b, sec, bi){
       return x+`</div>`;
     }
     case "manifesto":{
-      let x=`<div class="block manifesto" data-wid="${b._id}" ${dz(b._id,'paras')}><div class="mlabel ed" data-ed="${b._id}/label">${esc(txt(b._id+'/label','Manifesto · Amazônia Autêntica'))}</div>`;
+      const _mBg=STATE.overrides[b._id+'/$bg']||'';
+      const _mFg=_mBg?(isLightColor(_mBg)?'var(--ink)':'#fff'):'';
+      const _mMut=_mBg?(isLightColor(_mBg)?'rgba(36,26,110,.6)':'rgba(255,255,255,.6)'):'';
+      const _mSt=(_mBg?`background:${_mBg};`:'')+(_mFg?`--man-fg:${_mFg};`:'')+(_mMut?`--man-muted:${_mMut};`:'');
+      let x=`<div class="block manifesto" data-wid="${b._id}" ${_mSt?`style="${_mSt}"`:''}  ${dz(b._id,'paras')}>
+        <div class="man-hdr dnd-box"><span data-dragitem="${b._id}|$bg|0" style="display:none"></span><div class="mlabel ed" data-ed="${b._id}/label">${esc(txt(b._id+'/label','Manifesto · Amazônia Autêntica'))}</div></div>`;
       (b.paras).forEach((p,i)=> x+=`<div class="man-para dnd-row"><p class="ed" data-ed="${b.key}/${i}">${esc(txt(b.key+'/'+i,p))}</p>
         <span class="li-acts row-acts">${grip(b._id,'paras',i)}<button data-itemmove="${b._id}|paras|${i}|-1" title="Subir">▲</button><button data-itemmove="${b._id}|paras|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${b._id}|paras|${i}" title="Apagar">×</button></span></div>`);
       x+=`<button class="li-plus" data-boxadd="${b._id}|paras" style="margin-top:8px">＋ parágrafo</button>`;
       return x+`</div>`;
+    }
+    case "mapatutor":{
+      const _isAdm=EDIT&&can('editContent');
+      const _regs=(b.regioes||[]);
+      const _getCat=(ri,mi)=>{ const mu=(_regs[ri]?.municipios||[])[mi]; return (_mu=>_mu&&_mu.cat)(mu)||'nao_inserido'; };
+      const _CATS={turistico:'Município turístico',complementar:'Município com oferta turística complementar',apoio:'Município de apoio ao turismo',nao_inserido:'Município não inserido no Mapa do Turismo'};
+      let _rows='';
+      _regs.forEach((reg,ri)=>{
+        const muns=reg.municipios||[];
+        const rNm=txt(b._id+'/r/'+ri+'/nome', reg.nome||'Região');
+        muns.forEach((mun,mi)=>{
+          const mNm=txt(b._id+'/r/'+ri+'/m/'+mi+'/nome', mun.nome||'Município');
+          const ck=_getCat(ri,mi);
+          _rows+=`<tr>`;
+          if(mi===0){
+            _rows+=`<td rowspan="${muns.length}" class="mtur-rname-cell">${_isAdm?`<span class="ed" data-ed="${b._id}/r/${ri}/nome">${esc(rNm)}</span><button class="mtur-act-btn" data-mturdelreg="${b._id}|${ri}" title="Remover região">×</button>`:`<span>${esc(rNm)}</span>`}</td>`;
+          }
+          _rows+=`<td>${_isAdm?`<span class="ed" data-ed="${b._id}/r/${ri}/m/${mi}/nome">${esc(mNm)}</span>`:esc(mNm)}</td>`;
+          _rows+=`<td><span class="mt-cat mt-${ck}"${_isAdm?` data-mturcat="${b._id}|${ri}|${mi}" title="Clique para alterar categoria"`:''}>${esc(_CATS[ck]||ck)}</span></td>`;
+          if(_isAdm) _rows+=`<td class="mtur-row-acts"><button class="mtur-add-btn" data-mturaddmun="${b._id}|${ri}" title="Adicionar município">＋</button><button class="mtur-del-btn" data-mturdelmun="${b._id}|${ri}|${mi}" title="Remover">×</button></td>`;
+          _rows+=`</tr>`;
+        });
+      });
+      return `<div class="block mtur" data-wid="${b._id}"><div class="mtur-tbl-wrap"><table><thead><tr><th>Região Turística</th><th>Municípios</th><th>Categoria (MTUR)</th>${_isAdm?'<th></th>':''}</tr></thead><tbody>${_rows}</tbody></table></div>${_isAdm?`<div class="mtur-footer"><button class="mtur-add-reg-btn" data-mturaddreg="${b._id}">＋ Adicionar Região</button></div>`:''}<div class="mtur-legend"><span class="mt-cat mt-turistico">Município turístico</span><span class="mt-cat mt-complementar">Município com oferta turística complementar</span><span class="mt-cat mt-apoio">Município de apoio ao turismo</span><span class="mt-cat mt-nao_inserido">Município não inserido no Mapa do Turismo</span></div></div>`;
     }
     case "labelTable":{
       let x=`<div class="block ltable" data-wid="${b._id}" ${dz(b._id,'rows')}>`;
@@ -4760,6 +4856,17 @@ function toEmbed(url){
 }
 
 /* =========================================================================
+   MAPA DO TURISMO — helpers de edição
+   ========================================================================= */
+const MTUR_CYCLE=['turistico','complementar','apoio','nao_inserido'];
+function _mturSave(wid,b){ STATE.widgetItems=STATE.widgetItems||{}; STATE.widgetItems[wid]={regioes:b.regioes}; saveState(); render(); }
+function mturAddReg(wid){ const b=findWidgetBlock(wid); if(!b) return; b.regioes=b.regioes||[]; b.regioes.push({nome:'Nova Região',municipios:[{nome:'Município',cat:'nao_inserido'}]}); _mturSave(wid,b); }
+function mturDelReg(wid,ri){ const b=findWidgetBlock(wid); if(!b) return; if(!confirm('Remover esta região e seus municípios?')) return; (b.regioes=b.regioes||[]).splice(ri,1); _mturSave(wid,b); }
+function mturAddMun(wid,ri){ const b=findWidgetBlock(wid); if(!b) return; const reg=(b.regioes||[])[ri]; if(!reg) return; (reg.municipios=reg.municipios||[]).push({nome:'Município',cat:'nao_inserido'}); _mturSave(wid,b); }
+function mturDelMun(wid,ri,mi){ const b=findWidgetBlock(wid); if(!b) return; if(!confirm('Remover este município?')) return; const reg=(b.regioes||[])[ri]; if(!reg) return; reg.municipios.splice(mi,1); if(!reg.municipios.length) reg.municipios.push({nome:'Município',cat:'nao_inserido'}); _mturSave(wid,b); }
+function mturCatNext(wid,ri,mi){ const b=findWidgetBlock(wid); if(!b) return; const reg=(b.regioes||[])[ri]; if(!reg) return; const mun=(reg.municipios||[])[mi]; if(!mun) return; const cur=mun.cat||'nao_inserido'; mun.cat=MTUR_CYCLE[(MTUR_CYCLE.indexOf(cur)+1)%MTUR_CYCLE.length]; _mturSave(wid,b); }
+
+/* =========================================================================
    EVENTOS dos blocos (status + edição + vídeo)
    ========================================================================= */
 function wireBlockEvents(){
@@ -4794,6 +4901,12 @@ function wireBlockEvents(){
   $$("[data-itemmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i,d]=b.dataset.itemmove.split('|'); moveItem(id,cont,+i,cont,+i+(+d>0?2:-1)); }));
   $$("[data-itemdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdel.split('|'); deleteItemUx(id,cont,+i); }));
   $$("[data-itemdup]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [id,cont,i]=b.dataset.itemdup.split('|'); duplicateItem(id,cont,+i); }));
+  // Mapa do Turismo
+  $$("[data-mturcat]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,ri,mi]=btn.dataset.mturcat.split('|'); mturCatNext(id,+ri,+mi); }));
+  $$("[data-mturaddreg]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); mturAddReg(btn.dataset.mturaddreg); }));
+  $$("[data-mturdelreg]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,ri]=btn.dataset.mturdelreg.split('|'); mturDelReg(id,+ri); }));
+  $$("[data-mturaddmun]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,ri]=btn.dataset.mturaddmun.split('|'); mturAddMun(id,+ri); }));
+  $$("[data-mturdelmun]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,ri,mi]=btn.dataset.mturdelmun.split('|'); mturDelMun(id,+ri,+mi); }));
   // FAQ: clicar nos controles (alça/▲▼/×) dentro do <summary> não pode abrir/fechar o accordion
   $$(".faq-item summary").forEach(s=> s.addEventListener("click",e=>{ if(e.target.closest('.faq-acts')) e.preventDefault(); }));
   // widget "O que aprendemos": trocar cor e direção da seta
@@ -4962,7 +5075,7 @@ function wireBlockEvents(){
   $$("[data-mttask]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,mid,ti]=b.dataset.mttask.split('|'); meetTaskToggle(id,mid,+ti); }));
 }
 /* ----- dados inline de widgets criados (add) ----- */
-function _wiRestore(b){ if(!b) return b; const wi=STATE.widgetItems&&STATE.widgetItems[b._id]; if(!wi) return b; if(Array.isArray(wi)) b.items=wi; else { b.items=wi.items||[]; if(wi.cats) b.cats=wi.cats; } return b; }
+function _wiRestore(b){ if(!b) return b; const wi=STATE.widgetItems&&STATE.widgetItems[b._id]; if(!wi) return b; if(Array.isArray(wi)) b.items=wi; else { b.items=wi.items||[]; if(wi.cats) b.cats=wi.cats; if(wi.regioes) b.regioes=wi.regioes; } return b; }
 function findWidgetBlock(id){
   const cv=$(".gridcanvas"); const key=cv?cv.dataset.seckey:secKey();
   const bag=layoutBag(key);
@@ -6439,11 +6552,18 @@ function fieldInput(f, i){
   const key=f.hasAttribute('data-ed')?('ed::'+f.getAttribute('data-ed')):('wed::'+f.getAttribute('data-wedit'));
   const label=fieldLabel(f,i), val=fieldText(f);
   const multi = val.length>40 || ['P','H3','LI'].includes(f.tagName) || /(q-text|ph-text|tb-text|ag-l|bd|cd|p\b|pf|pv)/.test(f.className);
-  return `<label class="bxe-row ${multi?'wide':''}"><span>${esc(label)}</span>${multi?`<textarea data-bxk="${esc(key)}" rows="3">${esc(val)}</textarea>`:`<input type="text" data-bxk="${esc(key)}" value="${esc(val)}">`}</label>`;
+  return `<label class="bxe-row ${multi?'wide':''}"><span>${esc(label)}</span>${multi?`<textarea data-bxk="${esc(key)}">${esc(val)}</textarea>`:`<input type="text" data-bxk="${esc(key)}" value="${esc(val)}">`}</label>`;
 }
 function bxeSwatches(wid,cont,idx){ return `<span class="bxe-cols">${COLOR_SWATCHES.map(([n,c])=>`<button title="${n}" data-bxcolor="${wid}|${cont}|${idx}|${c}" style="background:${c}"></button>`).join('')}</span>`; }
 function openFieldEditor(tileEl, anchorEl, scopeBox){
   closeFieldEditor();
+  // snapshot para cancelar: captura os campos que podem ser modificados inline
+  const _snap = {
+    overrides: JSON.parse(JSON.stringify(STATE.overrides||{})),
+    styles: JSON.parse(JSON.stringify(STATE.styles||{})),
+    widgetItems: JSON.parse(JSON.stringify(STATE.widgetItems||{})),
+    layout: JSON.parse(JSON.stringify(STATE.layout||{}))
+  };
   _bxeTileId=tileEl.dataset.id; _bxeScope = scopeBox || null;
   _bxeScopeKey = scopeBox ? ((($$('[data-dragitem]',scopeBox).filter(g=>g.closest('.dnd-box, .dnd-row')===scopeBox)[0]||{}).dataset||{}).dragitem||null) : null;
   const b=findWidgetBlock(tileEl.dataset.id);
@@ -6454,7 +6574,7 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
     const grips=$$('[data-dragitem]',box).filter(g=> g.closest('.dnd-box, .dnd-row')===box);
     const dg=grips[0]?grips[0].dataset.dragitem.split('|'):null;
     let h='';
-    if(dg && b && COLOR_BOX[b.type]) h+=`<div class="bxe-group"><span>Cor</span>${bxeSwatches(dg[0],dg[1],dg[2])}</div>`;
+    if(dg && b && (COLOR_BOX[b.type]||dg[1]==='$bg')) h+=`<div class="bxe-group"><span>Cor do fundo</span>${bxeSwatches(dg[0],dg[1],dg[2])}</div>`;
     h+=`<div class="bxe-fields">${directFields(box).map((f,i)=>fieldInput(f,i)).join('')}</div>`;
     return h;
   };
@@ -6480,7 +6600,7 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
         const grips=$$('[data-dragitem]',box).filter(g=> g.closest('.dnd-box, .dnd-row')===box);
         const dg=grips[0]?grips[0].dataset.dragitem.split('|'):null;
         html+=`<div class="bxe-group"><span>Caixa ${bi+1}</span>`;
-        if(dg){ if(b&&COLOR_BOX[b.type]) html+=bxeSwatches(dg[0],dg[1],dg[2]); html+=`<button class="bxe-del" data-bxdel="${dg.join('|')}" title="Remover esta caixa">×</button>`; }
+        if(dg){ if(b&&(COLOR_BOX[b.type]||dg[1]==='$bg')) html+=bxeSwatches(dg[0],dg[1],dg[2]); if(!dg[1].startsWith('$')) html+=`<button class="bxe-del" data-bxdel="${dg.join('|')}" title="Remover esta caixa">×</button>`; }
         html+=`</div><div class="bxe-fields">${directFields(box).map((f,i)=>fieldInput(f,i)).join('')}</div>`;
       });
       if(b) html+=`<button class="bxe-add" data-bxadd="${b._id}|items">＋ Adicionar caixa</button>`;
@@ -6491,9 +6611,22 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
   }
   const back=document.createElement('div'); back.className='bxe-back'; back.id='bxeback'; document.body.appendChild(back);
   const pop=document.createElement('div'); pop.className='bxe'; pop.id='bxeditor';
-  pop.innerHTML=`<div class="bxe-head"><b>✎ Editar ${esc(titleTxt)}</b><button class="bxe-close" title="Fechar">×</button></div><div class="bxe-body">${html}</div>`;
+  pop.innerHTML=`<div class="bxe-head"><b>✎ Editar ${esc(titleTxt)}</b><button class="bxe-close" title="Fechar">×</button></div><div class="bxe-body">${html}</div><div class="bxe-foot"><button class="bxe-btn-save">Salvar</button><button class="bxe-btn-cancel">Cancelar</button></div>`;
   document.body.appendChild(pop);
-  back.addEventListener('click', closeFieldEditor);
+  // auto-expand textareas conforme o conteúdo
+  $$('.bxe-row textarea', pop).forEach(t=>{
+    t.style.height='auto';
+    t.style.height=Math.min(t.scrollHeight+2, 360)+'px';
+    t.addEventListener('input',()=>{ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight+2,360)+'px'; });
+  });
+  const _doCancel=()=>{
+    clearTimeout(_bxeTimer);
+    STATE.overrides=_snap.overrides; STATE.styles=_snap.styles;
+    STATE.widgetItems=_snap.widgetItems; STATE.layout=_snap.layout;
+    saveState(); render(); closeFieldEditor();
+  };
+  const _doSave=()=>{ clearTimeout(_bxeTimer); saveState(); render(); closeFieldEditor(); };
+  back.addEventListener('click', _doCancel);
   $$('[data-bxk]',pop).forEach(inp=> inp.addEventListener('input',()=>{
     const i2=inp.dataset.bxk.indexOf('::'); const t=inp.dataset.bxk.slice(0,i2), k=inp.dataset.bxk.slice(i2+2);
     if(t==='ed'){ STATE.overrides[k]=inp.value; } else { const p=k.split('|'); updateWidgetField(p[0],p[1],inp.value); }
@@ -6508,7 +6641,9 @@ function openFieldEditor(tileEl, anchorEl, scopeBox){
   $$('[data-statsrc]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.statsrc.split('|'); statSrcToggle(p[0],+p[1],p[2]==='1'); bxeReopen(); }));
   $$('[data-statfadd]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.statfadd.split('|'); statFieldAdd(p[0],+p[1]); bxeReopen(); }));
   $$('[data-statfdel]',pop).forEach(btn=> btn.addEventListener('click',()=>{ const p=btn.dataset.statfdel.split('|'); statFieldDel(p[0],+p[1],+p[2]); bxeReopen(); }));
-  $('.bxe-close',pop).addEventListener('click',closeFieldEditor);
+  $('.bxe-close',pop).addEventListener('click', _doCancel);
+  $('.bxe-btn-save',pop).addEventListener('click', _doSave);
+  $('.bxe-btn-cancel',pop).addEventListener('click', _doCancel);
 }
 function statSrcToggle(id,i,on){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s) return;
   if(on){ if(s.src==null) s.src='Fonte'; } else { delete s.src; } pushHistory('Campo Fonte','widget'); saveState(); render(); }
@@ -6516,7 +6651,9 @@ function statFieldAdd(id,i){ const b=findWidgetBlock(id); if(!b) return; consoli
   s.extra=s.extra||[]; s.extra.push('Novo campo'); pushHistory('Campo extra','widget'); saveState(); render(); }
 function statFieldDel(id,i,k){ const b=findWidgetBlock(id); if(!b) return; consolidateWidget(b); const s=(b.items||[])[i]; if(!s||!Array.isArray(s.extra)) return;
   s.extra.splice(k,1); if(!s.extra.length) delete s.extra; pushHistory('Campo extra','widget'); saveState(); render(); }
-function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return; const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
+function setBoxColor(wid,cont,idx,color){ const b=findWidgetBlock(wid); if(!b) return;
+  if(cont==='$bg'){ STATE.overrides[wid+'/$bg']=color; pushHistory('Cor do bloco','widget'); saveState(); render(); return; }
+  const list=resolveList(b,cont); if(list&&list[idx]){ list[idx].color=color; pushHistory('Cor da caixa','widget'); saveState(); render(); } }
 function setLearnProp(wid,prop,val){ const b=findWidgetBlock(wid); if(!b) return; b[prop]=val; pushHistory(prop==='color'?'Cor do widget':'Direção da seta','widget'); saveState(); render(); }
 function arqSide(id){ const b=findWidgetBlock(id); if(!b) return; b.side=(b.side==='left')?'right':'left'; pushHistory('Lado da caixa','arquétipo'); saveState(); render(); }
 // ===== widget Públicos (ficha de perfil) =====
