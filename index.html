@@ -1445,6 +1445,17 @@
   .docs .doc-ctrls button.danger:hover{background:rgba(229,22,123,.1);border-color:var(--magenta);color:var(--magenta)}
   .docs .doc-add{margin-top:4px}
   .docs .doc-empty .vinput{justify-content:center}
+  .docs .doc-meta-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:1px}
+  .docs .doc-type{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:5px;text-transform:uppercase;flex-shrink:0}
+  .docs .doc-desc{font-size:12px;color:#8a849a;font-style:italic;margin-top:2px;word-break:break-word;line-height:1.35}
+  .docs .doc-desc-edit{display:block;font-size:12px;color:#8a849a;font-style:italic;margin-top:2px;outline:none;word-break:break-word;min-height:14px;line-height:1.35;cursor:text;border-radius:4px}
+  .docs .doc-desc-edit:empty:before{content:attr(data-ph);color:#ccc;font-style:italic}
+  .docs .doc-desc-edit:focus{background:rgba(36,26,110,.04);padding:1px 3px}
+  .docs .doc-cpal{position:relative}
+  .docs .doc-cpal-pop{position:absolute;right:0;top:calc(100% + 5px);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px;display:flex;gap:5px;flex-wrap:wrap;z-index:300;box-shadow:0 4px 16px rgba(36,26,110,.13);width:132px}
+  .docs .doc-cpal-sw{width:22px;height:22px;border-radius:5px;border:1.5px solid rgba(0,0,0,.12);cursor:pointer;transition:transform .1s;flex-shrink:0}
+  .docs .doc-cpal-sw:hover{transform:scale(1.15)}
+  .docs .doc-cpal-sw.sel{outline:2.5px solid var(--ink);outline-offset:1.5px}
 
   /* Reuniões */
   .meetings{display:flex;flex-direction:column;gap:0}
@@ -4422,16 +4433,29 @@ function renderBlock(b, sec, bi){
     }
     case "documentos":{
       const wid=b._id;
-      const isAdmin = EDIT && can('editContent');   // controles só no modo edição
+      const isAdmin = EDIT && can('editContent');
+      const DOC_PALS=['#f6f3ec','#241a6e','#f36a21','#1aa64a','#ffc415','#e5167b','#19b6e6','#ffffff'];
       let x = `<div class="block docs" data-wid="${wid}">`;
       if(b.showTitle!==false && (b.title||isAdmin)) x += `<div class="wtitle wed wedrich" data-wedit="${wid}|title">${richHtml(b.title||'Documentos')}</div>`;
       (b.items||[]).forEach((it,i)=>{
         const url=safeUrl(it.url||'');
         const nome = it.nome || docNameFromUrl(it.url) || 'Documento';
-        const ctrls = isAdmin ? `<span class="doc-ctrls">${grip(wid,'items',i)}<button data-itemmove="${wid}|items|${i}|-1" title="Subir">▲</button><button data-itemmove="${wid}|items|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${wid}|items|${i}" title="Apagar">×</button></span>` : '';
+        const tipo = docTipo(it.url, it.nome);
+        const icBg = it.cor ? `style="background:${esc(it.cor)}"` : '';
+        const swatches = DOC_PALS.map(c=>`<span class="doc-cpal-sw${(it.cor||'#f6f3ec')===c?' sel':''}" style="background:${c}" data-doccolor="${wid}|${i}|${c}" title="${c}"></span>`).join('');
+        const palBtn = isAdmin ? `<span class="doc-cpal"><button class="doc-ctrls" style="font-size:13px" data-doccp="${wid}|${i}" title="Cor do ícone">🎨</button><div class="doc-cpal-pop" id="dcp_${wid}_${i}" style="display:none">${swatches}</div></span>` : '';
+        const ctrls = isAdmin ? `<span class="doc-ctrls">${palBtn}${grip(wid,'items',i)}<button data-itemmove="${wid}|items|${i}|-1" title="Subir">▲</button><button data-itemmove="${wid}|items|${i}|1" title="Descer">▼</button><button class="danger" data-itemdel="${wid}|items|${i}" title="Apagar">×</button></span>` : '';
+        const typeBadge = `<span class="doc-type" style="background:${tipo.bg};color:${tipo.col}">${tipo.label}</span>`;
+        const descHtml = isAdmin
+          ? `<span class="doc-desc-edit" contenteditable="true" data-docdesc="${wid}|${i}" data-ph="Descrição opcional...">${esc(it.desc||'')}</span>`
+          : (it.desc ? `<span class="doc-desc">${esc(it.desc)}</span>` : '');
         x += `<div class="doc-row dnd-row">
-          <span class="doc-ic">${docIcon(it.nome||it.url)}</span>
-          <span class="doc-main"><span class="doc-name wed" data-wedit="${wid}|o/${i}/nome">${esc(nome)}</span><span class="doc-meta">${esc(docMeta(it.url))}</span></span>
+          <span class="doc-ic" ${icBg}>${docIcon(it.nome||it.url)}</span>
+          <span class="doc-main">
+            <span class="doc-name wed" data-wedit="${wid}|o/${i}/nome">${esc(nome)}</span>
+            <span class="doc-meta-row">${typeBadge}<span class="doc-meta">${esc(docMeta(it.url))}</span></span>
+            ${descHtml}
+          </span>
           <a class="doc-open" href="${url}" target="_blank" rel="noopener">Abrir ↗</a>${ctrls}</div>`;
       });
       if(isAdmin){
@@ -4805,6 +4829,38 @@ function wireBlockEvents(){
     const id=btn.dataset.docadd; const inp=$(`[data-docurl="${id}"]`); docAdd(id, inp?inp.value:''); }));
   $$("[data-docurl]").forEach(inp=>{ inp.addEventListener("click",e=>e.stopPropagation()); inp.addEventListener("pointerdown",e=>e.stopPropagation());
     inp.addEventListener("keydown",e=>{ if(e.key==='Enter'){ e.preventDefault(); docAdd(inp.dataset.docurl, inp.value); } }); });
+  // docs: descrição editável
+  $$("[data-docdesc]").forEach(el=>{
+    el.addEventListener("click",e=>e.stopPropagation());
+    el.addEventListener("pointerdown",e=>e.stopPropagation());
+    el.addEventListener("blur",()=>{
+      const [id,idx]=el.dataset.docdesc.split("|");
+      const bl=findWidgetBlock(id); if(!bl) return;
+      if(bl.items[+idx]) bl.items[+idx].desc=el.textContent.trim();
+      saveState();
+    });
+  });
+  // docs: paleta de cores do ícone
+  $$("[data-doccp]").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const [id,i]=btn.dataset.doccp.split("|");
+      const pop=document.getElementById(`dcp_${id}_${i}`);
+      if(!pop) return;
+      const open=pop.style.display!=="none";
+      $$(".doc-cpal-pop").forEach(p=>p.style.display="none");
+      if(!open){ pop.style.display="flex"; const close=(ev)=>{ if(!pop.contains(ev.target)){ pop.style.display="none"; document.removeEventListener("click",close,true); } }; document.addEventListener("click",close,true); }
+    });
+  });
+  $$("[data-doccolor]").forEach(sw=>{
+    sw.addEventListener("click",e=>{
+      e.stopPropagation();
+      const parts=sw.dataset.doccolor.split("|"); const id=parts[0],i=parts[1],cor=parts[2];
+      const bl=findWidgetBlock(id); if(!bl||!bl.items[+i]) return;
+      if(cor==="#f6f3ec") delete bl.items[+i].cor; else bl.items[+i].cor=cor;
+      pushHistory("Documentos","documentos"); saveState(); render();
+    });
+  });
   // upload de mídia (Firebase Storage): data-upload="chave|tipo"
   $$("[data-upload]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const [key,kind]=btn.dataset.upload.split('|'); pickAndUpload(btn, key, kind); }));
   // widget Públicos
@@ -4925,9 +4981,10 @@ function galDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splic
 function docAdd(id,url,nome){ url=(url||'').trim(); if(!url) return; const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({nome:(nome||'').trim()||docNameFromUrl(url), url:url}); pushHistory("Documentos","documentos"); saveState(); render(); }
 function docDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Documentos","documentos"); saveState(); render(); }
 function docExt(s){ s=(s||'').split('?')[0].split('#')[0]; const m=s.match(/\.([a-z0-9]{1,5})$/i); return m?m[1].toLowerCase():''; }
-function docIcon(s){ const e=docExt(s); const map={pdf:'📕',doc:'📘',docx:'📘',rtf:'📘',odt:'📘',xls:'📗',xlsx:'📗',csv:'📗',ods:'📗',ppt:'📙',pptx:'📙',odp:'📙',zip:'🗜️',rar:'🗜️','7z':'🗜️',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',webp:'🖼️',svg:'🖼️',mp4:'🎬',mov:'🎬',avi:'🎬',mp3:'🎵',m4a:'🎵',wav:'🎵',txt:'📃'}; return map[e]||'📄'; }
+function docIcon(s){ const e=docExt(s); const map={pdf:'📕',doc:'📘',docx:'📘',rtf:'📘',odt:'📘',xls:'📗',xlsx:'📗',csv:'📗',ods:'📗',ppt:'📙',pptx:'📙',odp:'📙',zip:'🗜️',rar:'🗜️','7z':'🗜️',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',webp:'🖼️',svg:'🖼️',mp4:'🎬',mov:'🎬',avi:'🎬',webm:'🎬',mp3:'🎵',m4a:'🎵',wav:'🎵',ogg:'🎵',txt:'📃',md:'📃'}; return map[e]||'📄'; }
+function docTipo(url,nome){ const T={pdf:{label:'PDF',bg:'#fee2e2',col:'#dc2626'},doc:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},docx:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},rtf:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},odt:{label:'Documento',bg:'#dbeafe',col:'#2563eb'},xls:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},xlsx:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},csv:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},ods:{label:'Planilha',bg:'#dcfce7',col:'#16a34a'},ppt:{label:'Apresentação',bg:'#ffedd5',col:'#ea580c'},pptx:{label:'Apresentação',bg:'#ffedd5',col:'#ea580c'},odp:{label:'Apresentação',bg:'#ffedd5',col:'#ea580c'},zip:{label:'Compactado',bg:'#fef9c3',col:'#b45309'},rar:{label:'Compactado',bg:'#fef9c3',col:'#b45309'},'7z':{label:'Compactado',bg:'#fef9c3',col:'#b45309'},jpg:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},jpeg:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},png:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},gif:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},webp:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},svg:{label:'Imagem',bg:'#f3e8ff',col:'#9333ea'},mp4:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},mov:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},avi:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},webm:{label:'Vídeo',bg:'rgba(229,22,123,.1)',col:'#e5167b'},mp3:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},m4a:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},wav:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},ogg:{label:'Áudio',bg:'rgba(25,182,230,.1)',col:'#19b6e6'},txt:{label:'Texto',bg:'#f6f3ec',col:'#8a849a'},md:{label:'Texto',bg:'#f6f3ec',col:'#8a849a'}}; const en=docExt(nome); const eu=docExt(url); if(T[en]) return T[en]; if(T[eu]) return T[eu]; const isFile=(url||'').includes('firebasestorage')||(url||'').includes('storage.googleapis')||eu.length>0; return isFile?{label:'Arquivo',bg:'#f1f5f9',col:'#64748b'}:{label:'Link',bg:'#e0f2fe',col:'#0369a1'}; }
 function docNameFromUrl(url){ try{ let s=(url||'').split('?')[0].split('#')[0]; const seg=s.split('/').filter(Boolean).pop()||'Documento'; let n=decodeURIComponent(seg).replace(/^\d+_\d+-/,''); return n||'Documento'; }catch(_){ return 'Documento'; } }
-function docMeta(url){ const e=docExt(url); return e ? e.toUpperCase() : 'Link'; }
+function docMeta(url){ const e=docExt(url); if(e) return e.toUpperCase(); try{ return new URL(url).hostname.replace(/^www\./,''); }catch(_){ return 'Link'; } }
 // ===== Reuniões =====
 const MEET_OPEN = new Set();     // reuniões expandidas (por-sessão)
 const MEET_TAB = {};             // aba ativa por widget (por-sessão)
