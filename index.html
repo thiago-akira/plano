@@ -1456,6 +1456,108 @@
   .docs .doc-add{margin-top:4px}
   .docs .doc-empty .vinput{justify-content:center}
 
+  /* Reuniões */
+  .meetings{display:flex;flex-direction:column;gap:0}
+  .meetings .mt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .meetings .mt-tabs{display:inline-flex;gap:4px;background:#f3efe6;border-radius:11px;padding:4px}
+  .meetings .mt-tab{border:none;background:transparent;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;color:#7a7490;cursor:pointer;transition:all .15s}
+  .meetings .mt-tab:hover{color:var(--ink)}
+  .meetings .mt-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(36,26,110,.12)}
+  .meetings .mt-tab .mt-n{font-size:10px;opacity:.6;margin-left:3px}
+  .meetings .mt-new{margin-left:auto;border:none;background:var(--orange);color:#fff;border-radius:9px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .meetings .mt-new:hover{filter:brightness(1.05)}
+  .meetings .mt-month{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9a93ad;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .meetings .mt-month:first-child{margin-top:0}
+  .meetings .mt-empty{text-align:center;color:#8a849a;font-size:13.5px;padding:26px 10px;border:1.5px dashed var(--line);border-radius:14px}
+  .meetings .mt-card{border:1.5px solid var(--line);border-radius:14px;margin-bottom:9px;overflow:hidden;background:#fff;transition:border-color .15s,box-shadow .15s}
+  .meetings .mt-card.past{opacity:.82}
+  .meetings .mt-card:hover{border-color:#d8d2c2;box-shadow:0 2px 9px rgba(36,26,110,.07)}
+  .meetings .mt-row{display:flex;align-items:center;gap:13px;padding:12px 14px;cursor:pointer}
+  .meetings .mt-date{flex:0 0 auto;width:54px;text-align:center;border-radius:10px;background:#f6f3ec;padding:7px 0;line-height:1}
+  .meetings .mt-date .mt-d{display:block;font-size:21px;font-weight:800;color:var(--ink)}
+  .meetings .mt-date .mt-m{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--orange);margin-top:2px}
+  .meetings .mt-main{flex:1;min-width:0}
+  .meetings .mt-tt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .meetings .mt-title{font-weight:700;color:var(--ink);font-size:14.5px;line-height:1.25}
+  .meetings .mt-cat{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;padding:3px 8px;border-radius:20px;white-space:nowrap}
+  .meetings .mt-meta{font-size:12px;color:#7a7490;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap}
+  .meetings .mt-meta a{color:var(--cyan);text-decoration:none}
+  .meetings .mt-chev{flex:0 0 auto;color:#bdb7cc;font-size:13px;transition:transform .15s}
+  .meetings .mt-card.open .mt-chev{transform:rotate(180deg)}
+  .meetings .mt-panel{padding:2px 16px 16px;border-top:1px solid #f0ece2;display:flex;flex-direction:column;gap:13px}
+  .meetings .mt-panel.hide{display:none}
+  .meetings .mt-photo{width:100%;max-height:230px;object-fit:cover;border-radius:11px}
+  .meetings .mt-resumo{font-size:13.5px;color:#46415a;line-height:1.55}
+  .meetings .mt-block h6{margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#9a93ad}
+  .meetings .mt-links{display:flex;flex-wrap:wrap;gap:7px}
+  .meetings .mt-links a,.meetings .mt-links button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:600;color:var(--ink);text-decoration:none;cursor:pointer}
+  .meetings .mt-links a:hover,.meetings .mt-links button:hover{background:#f6f3ec}
+  .meetings .mt-docline{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0}
+  .meetings .mt-docline a{color:var(--cyan);text-decoration:none;font-weight:600}
+  .meetings .mt-tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+  .meetings .mt-tasks li{display:flex;align-items:center;gap:9px;font-size:13.5px;color:#46415a}
+  .meetings .mt-tasks .mt-chk{flex:0 0 auto;width:18px;height:18px;border:1.6px solid var(--line);border-radius:5px;background:#fff;cursor:pointer;display:grid;place-items:center;font-size:11px;color:#fff;padding:0}
+  .meetings .mt-tasks li.done .mt-chk{background:var(--green);border-color:var(--green)}
+  .meetings .mt-tasks li.done .mt-tk{text-decoration:line-through;color:#a59fb5}
+  .meetings .mt-tasks .mt-who{font-size:11px;color:#8a849a;background:#f3efe6;border-radius:12px;padding:2px 9px;white-space:nowrap}
+  .meetings .mt-guests{display:flex;flex-wrap:wrap;gap:6px}
+  .meetings .mt-guest{display:inline-flex;align-items:center;gap:5px;background:#f3efe6;border-radius:20px;padding:4px 10px;font-size:12px;color:var(--ink)}
+  .meetings .mt-guest .mt-av{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center}
+  .meetings .mt-edacts{display:flex;gap:7px;margin-top:2px}
+  .meetings .mt-edacts button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .meetings .mt-edacts button:hover{background:#f6f3ec}
+  .meetings .mt-edacts button.danger:hover{background:rgba(229,22,123,.1);border-color:var(--magenta);color:var(--magenta)}
+  /* Form modal de reunião */
+  .mform{display:flex;flex-direction:column;gap:14px;max-width:620px}
+  .mform .mf-row{display:flex;gap:12px;flex-wrap:wrap}
+  .mform .mf-f{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
+  .mform label{font-size:11.5px;font-weight:700;color:#7a7490;letter-spacing:.02em}
+  .mform input[type=text],.mform input[type=date],.mform input[type=time],.mform input[type=number],.mform select,.mform textarea{border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;font-size:13.5px;font-family:inherit;color:var(--ink);width:100%}
+  .mform textarea{min-height:78px;resize:vertical}
+  .mform .mf-modo{display:flex;gap:8px}
+  .mform .mf-modo button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;color:#7a7490}
+  .mform .mf-modo button.on{border-color:var(--orange);background:rgba(243,106,33,.07);color:var(--orange)}
+  .mform .mf-cat{display:flex;gap:8px;align-items:center}
+  .mform .mf-cat select{flex:1}
+  .mform .mf-mini{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 11px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .mform .mf-mini:hover{background:#f6f3ec}
+  .mform .mf-up{border:1px solid var(--green);color:var(--green);background:#fff;border-radius:8px;padding:8px 11px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .mform .mf-up:hover{background:rgba(26,166,74,.08)}
+  .mform .mf-up.up-busy{opacity:.7;cursor:progress}
+  .mform .mf-inline{display:flex;gap:8px;align-items:center}
+  .mform .mf-inline input{flex:1}
+  .mform .mf-list{display:flex;flex-direction:column;gap:7px}
+  .mform .mf-item{display:flex;gap:7px;align-items:center}
+  .mform .mf-item input{flex:1}
+  .mform .mf-x{border:1px solid var(--line);background:#fff;border-radius:7px;width:30px;height:34px;font-size:14px;cursor:pointer;color:#9a93ad;flex:0 0 auto}
+  .mform .mf-x:hover{background:rgba(229,22,123,.1);border-color:var(--magenta);color:var(--magenta)}
+  .mform .mf-add{align-self:flex-start;border:1px dashed var(--line);background:#fff;border-radius:8px;padding:7px 12px;font-size:12.5px;color:#7a7490;cursor:pointer}
+  .mform .mf-add:hover{border-color:var(--orange);color:var(--orange)}
+  .mform .mf-guests{display:flex;flex-direction:column;gap:7px}
+  .mform .mf-gcheck{display:flex;flex-wrap:wrap;gap:6px}
+  .mform .mf-gck{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:20px;padding:5px 11px;font-size:12.5px;cursor:pointer;color:var(--ink);background:#fff}
+  .mform .mf-gck.on{border-color:var(--green);background:rgba(26,166,74,.08)}
+  .mform .mf-note{font-size:11.5px;color:#9a93ad}
+  .mform .mf-thumb{width:74px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+  .mform .mf-foot{display:flex;gap:9px;margin-top:6px;padding-top:14px;border-top:1px solid var(--line)}
+  .mform .mf-save{border:none;background:var(--orange);color:#fff;border-radius:9px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer}
+  .mform .mf-cancel{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer;color:#7a7490}
+  .mform .mf-del{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 16px;font-size:13px;cursor:pointer;color:var(--magenta)}
+  /* gerenciador de categorias */
+  .mcat-list{display:flex;flex-direction:column;gap:8px;max-width:440px}
+  .mcat-row{display:flex;gap:8px;align-items:center}
+  .mcat-row input[type=text]{flex:1;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13.5px}
+  .mcat-row input[type=color]{width:36px;height:36px;border:1px solid var(--line);border-radius:8px;padding:2px;cursor:pointer;background:#fff}
+  .mcat-sw{display:flex;gap:4px}
+  .mcat-sw button{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.1);cursor:pointer}
+  /* aviso de nova reunião */
+  #mtNotice{position:fixed;right:18px;bottom:18px;z-index:9000;max-width:330px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:13px;box-shadow:0 10px 34px rgba(36,26,110,.2);padding:14px 16px;animation:mtSlide .3s ease}
+  @keyframes mtSlide{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+  #mtNotice .mtn-t{font-weight:800;color:var(--ink);font-size:13.5px;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  #mtNotice .mtn-i{font-size:13px;color:#56506b;line-height:1.5;margin:3px 0}
+  #mtNotice .mtn-close{position:absolute;top:9px;right:11px;border:none;background:transparent;font-size:17px;cursor:pointer;color:#bdb7cc}
+  #mtNotice .mtn-ok{margin-top:9px;border:none;background:var(--ink);color:#fff;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer}
+
   /* AI panel */
   #ai{position:fixed;top:0;right:0;height:100vh;width:380px;max-width:90vw;background:#fff;
     border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(36,26,110,.12);
@@ -3507,6 +3609,7 @@ function render(){
   if($(".gridcanvas")) layoutTiles();
   if(scroller) scroller.scrollTop = keepScroll;   // restaura a posição com as alturas dos tiles já aplicadas
   if(typeof updateSelDom==="function" && SEL && SEL.size) updateSelDom();
+  try{ meetCheckNotices(); }catch(_){}   // aviso de novas reuniões (não bloqueia o render se falhar)
 }
 
 function renderBlock(b, sec, bi){
@@ -3708,13 +3811,6 @@ function renderBlock(b, sec, bi){
         <span class="dl">Anexar</span></div>`);
       x+=`</div><div class="placeholder pnote" style="border:none;padding:6px 2px;background:none;color:var(--muted);font-size:12.5px">O upload de arquivos é ativado quando o portal estiver hospedado online.</div>`;
       return x;
-    }
-    case "meetings":{
-      if(!b.items.length) return `<div class="block empty"><div class="ei">🗓️</div><b>Nenhum relatório de reunião ainda.</b><br>Os resumos de cada alinhamento aparecerão aqui após as reuniões.</div>`;
-      let x=`<div class="block">`;
-      b.items.forEach(m=> x+=`<div class="filerow"><div class="ic" style="background:var(--ink)">🗓️</div>
-        <div><div class="fn">${esc(m.titulo)}</div><div class="fm">${esc(m.data)} — ${esc(m.resumo)}</div></div></div>`);
-      return x+`</div>`;
     }
     case "statRow":{
       let x=`<div class="block stats" data-wid="${b._id}" ${dz(b._id,'items')}>`;
@@ -4286,6 +4382,33 @@ function renderBlock(b, sec, bi){
       }
       return x+`</div>`;
     }
+    case "meetings":{
+      const wid=b._id;
+      const canEdit = can('editContent');   // criar/editar reunião (admin ou papel com edição)
+      const cats=meetCats(b);
+      const all=(b.items||[]).slice();
+      const tab=MEET_TAB[wid]||'prox';
+      const nProx=all.filter(it=>!meetIsPast(it)).length, nReal=all.filter(it=>meetIsPast(it)).length;
+      let list;
+      if(tab==='prox'){ list=all.filter(it=>!meetIsPast(it)).sort((a,b)=>meetCmp(a,b,1)); }
+      else if(tab==='real'){ list=all.filter(it=>meetIsPast(it)).sort((a,b)=>meetCmp(a,b,-1)); }
+      else { list=all.slice().sort((a,b)=>meetCmp(a,b,1)); }
+      let x=`<div class="block meetings" data-wid="${wid}">`;
+      if(b.showTitle!==false && (b.title||canEdit)) x+=`<div class="wtitle wed wedrich" data-wedit="${wid}|title">${richHtml(b.title||'Reuniões')}</div>`;
+      x+=`<div class="mt-head"><div class="mt-tabs">
+        <button class="mt-tab ${tab==='prox'?'active':''}" data-mttab="${wid}|prox">Próximas<span class="mt-n">${nProx}</span></button>
+        <button class="mt-tab ${tab==='todas'?'active':''}" data-mttab="${wid}|todas">Todas<span class="mt-n">${all.length}</span></button>
+        <button class="mt-tab ${tab==='real'?'active':''}" data-mttab="${wid}|real">Realizadas<span class="mt-n">${nReal}</span></button>
+      </div>${canEdit?`<button class="mt-new" data-mtnew="${wid}">＋ Reunião</button>`:''}</div>`;
+      if(!list.length){ x+=`<div class="mt-empty">${tab==='real'?'Nenhuma reunião realizada ainda.':(tab==='prox'?'Nenhuma reunião agendada.':'Nenhuma reunião cadastrada.')}${canEdit&&tab!=='real'?'<br>Clique em <b>＋ Reunião</b> para adicionar.':''}</div>`; }
+      else {
+        meetGroups(list).forEach(g=>{
+          x+=`<div class="mt-month">${esc(g.label)}</div>`;
+          g.items.forEach(it=>{ x+=meetCardHtml(wid, it, cats, canEdit); });
+        });
+      }
+      return x+`</div>`;
+    }
     case "placeholder":{
       const subs = (b.subs||[]).map(s=>`<li>${esc(s)}</li>`).join("");
       return `<div class="block placeholder">
@@ -4696,6 +4819,14 @@ function wireBlockEvents(){
   $$("[data-limove]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=btn.dataset.limove.split('|'); liMove(id,+i,+d); }));
   $$("[data-lidel]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=btn.dataset.lidel.split('|'); liDel(id,+i); }));
   $$("[data-liadd]").forEach(btn=> btn.addEventListener("click",e=>{ e.stopPropagation(); liAdd(btn.dataset.liadd); }));
+  // reuniões
+  $$("[data-mttab]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,t]=b.dataset.mttab.split('|'); meetSetTab(id,t); }));
+  $$("[data-mtnew]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); openMeetingForm(b.dataset.mtnew); }));
+  $$("[data-mtexp]").forEach(r=> r.addEventListener("click",e=>{ if(e.target.closest('a')||e.target.closest('.wed')&&EDIT) return; e.stopPropagation(); const [id,mid]=r.dataset.mtexp.split('|'); meetToggleOpen(id,mid); }));
+  $$("[data-mtedit]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,mid]=b.dataset.mtedit.split('|'); openMeetingForm(id,mid); }));
+  $$("[data-mtdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,mid]=b.dataset.mtdel.split('|'); meetDel(id,mid); }));
+  $$("[data-mtics]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,mid]=b.dataset.mtics.split('|'); meetDownloadICS(id,mid); }));
+  $$("[data-mttask]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,mid,ti]=b.dataset.mttask.split('|'); meetTaskToggle(id,mid,+ti); }));
 }
 /* ----- dados inline de widgets criados (add) ----- */
 function findWidgetBlock(id){
@@ -4739,6 +4870,252 @@ function docExt(s){ s=(s||'').split('?')[0].split('#')[0]; const m=s.match(/\.([
 function docIcon(s){ const e=docExt(s); const map={pdf:'📕',doc:'📘',docx:'📘',rtf:'📘',odt:'📘',xls:'📗',xlsx:'📗',csv:'📗',ods:'📗',ppt:'📙',pptx:'📙',odp:'📙',zip:'🗜️',rar:'🗜️','7z':'🗜️',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',webp:'🖼️',svg:'🖼️',mp4:'🎬',mov:'🎬',avi:'🎬',mp3:'🎵',m4a:'🎵',wav:'🎵',txt:'📃'}; return map[e]||'📄'; }
 function docNameFromUrl(url){ try{ let s=(url||'').split('?')[0].split('#')[0]; const seg=s.split('/').filter(Boolean).pop()||'Documento'; let n=decodeURIComponent(seg).replace(/^\d+_\d+-/,''); return n||'Documento'; }catch(_){ return 'Documento'; } }
 function docMeta(url){ const e=docExt(url); return e ? e.toUpperCase() : 'Link'; }
+// ===== Reuniões =====
+const MEET_OPEN = new Set();     // reuniões expandidas (por-sessão)
+const MEET_TAB = {};             // aba ativa por widget (por-sessão)
+let _MEETDRAFT = null;           // rascunho do formulário
+let _meetSeq=0;
+function meetUid(p){ _meetSeq=(_meetSeq+1)%100000; return p+Date.now().toString(36)+_meetSeq; }
+const MES_ABBR=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const MES_FULL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MEET_CAT_COLORS=['var(--ink)','var(--orange)','var(--magenta)','var(--cyan)','var(--green)','var(--yellow)','#8e44ad','#e67e22'];
+function meetCats(b){ if(!b.cats||!b.cats.length){ b.cats=[{id:'c1',nome:'Consultoria',color:'var(--ink)'},{id:'c2',nome:'Evento',color:'var(--magenta)'},{id:'c3',nome:'Campanha',color:'var(--orange)'}]; } return b.cats; }
+function meetCatOf(b,catId){ return (meetCats(b)).find(c=>c.id===catId)||null; }
+function meetValidDate(d){ return /^\d{4}-\d{2}-\d{2}$/.test((d||'').trim()); }
+function meetStart(it){ if(!meetValidDate(it.data)) return null; const p=it.data.split('-'); let h=0,mi=0; if(/^\d{1,2}:\d{2}/.test(it.hora||'')){ const t=it.hora.split(':'); h=+t[0]; mi=+t[1]; } return new Date(+p[0],+p[1]-1,+p[2],h,mi); }
+function meetStartOfToday(){ const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
+function meetIsPast(it){ const s=meetStart(it); return !!(s && s.getTime() < meetStartOfToday().getTime()); }
+function meetCmp(a,b,dir){ const sa=meetStart(a), sb=meetStart(b); if(!sa&&!sb) return 0; if(!sa) return 1; if(!sb) return -1; return (sa.getTime()-sb.getTime())*dir; }
+function meetDayBox(it){ if(!meetValidDate(it.data)) return {d:'—',m:''}; const p=it.data.split('-'); return {d:String(+p[2]).padStart(2,'0'), m:MES_ABBR[+p[1]-1]}; }
+function meetMonthLabel(it){ if(!meetValidDate(it.data)) return 'Sem data definida'; const p=it.data.split('-'); return (MES_FULL[+p[1]-1]+' '+p[0]).toUpperCase(); }
+function meetGroups(items){ const gs=[]; let cur=null; items.forEach(it=>{ const lbl=meetMonthLabel(it); if(!cur||cur.label!==lbl){ cur={label:lbl,items:[]}; gs.push(cur); } cur.items.push(it); }); return gs; }
+function meetInitials(name){ const s=(name||'').trim(); if(!s) return '?'; const p=s.split(/\s+/); return ((p[0][0]||'')+(p.length>1?p[p.length-1][0]:'')).toUpperCase(); }
+// --- HTML de um card de reunião ---
+function meetCardHtml(wid, it, cats, canEdit){
+  const open=MEET_OPEN.has(it.id);
+  const cat=meetCatOf({cats}, it.catId);
+  const box=meetDayBox(it);
+  const catChip = cat ? `<span class="mt-cat" style="background:${cat.color}">${esc(cat.nome)}</span>` : '';
+  const modoTxt = it.modo==='local'
+    ? (it.local?`📍 ${esc(it.local)}`:'📍 Presencial')
+    : (it.link?`🔗 Online`:'🔗 Online');
+  const horaTxt = (/^\d{1,2}:\d{2}/.test(it.hora||'')) ? `🕒 ${esc(it.hora)}` : '';
+  let x=`<div class="mt-card ${meetIsPast(it)?'past':''} ${open?'open':''}" data-mtid="${it.id}">
+    <div class="mt-row" data-mtexp="${wid}|${it.id}">
+      <div class="mt-date"><span class="mt-d">${box.d}</span><span class="mt-m">${esc(box.m)}</span></div>
+      <div class="mt-main"><div class="mt-tt"><span class="mt-title">${esc(it.titulo||'Reunião')}</span>${catChip}</div>
+        <div class="mt-meta">${horaTxt?`<span>${horaTxt}</span>`:''}<span>${modoTxt}</span>${(it.gravacao)?`<span>🎬 Gravação</span>`:''}</div></div>
+      <span class="mt-chev">▾</span>
+    </div>
+    <div class="mt-panel ${open?'':'hide'}">`;
+  if(it.foto) x+=`<img class="mt-photo" src="${esc(MEDIA[it.foto]||it.foto)}" alt="" loading="lazy">`;
+  if(it.resumo) x+=`<div class="mt-resumo">${esc(it.resumo).replace(/\n/g,'<br>')}</div>`;
+  // acesso / local
+  const accLinks=[];
+  if(it.modo!=='local' && it.link) accLinks.push(`<a href="${safeUrl(it.link)}" target="_blank" rel="noopener">🔗 Entrar na reunião</a>`);
+  if(it.modo==='local' && it.local) accLinks.push(`<span class="mt-mini-static">📍 ${esc(it.local)}</span>`);
+  if(it.gravacao) accLinks.push(`<a href="${safeUrl(it.gravacao)}" target="_blank" rel="noopener">🎬 Ver gravação</a>`);
+  if(accLinks.length) x+=`<div class="mt-block"><div class="mt-links">${accLinks.join('')}</div></div>`;
+  // documentos
+  if((it.docs||[]).length){ x+=`<div class="mt-block"><h6>Documentos</h6>`+
+    it.docs.map(d=>`<div class="mt-docline">${docIcon(d.nome||d.url)} <a href="${safeUrl(d.url)}" target="_blank" rel="noopener">${esc(d.nome||docNameFromUrl(d.url))}</a></div>`).join('')+`</div>`; }
+  // tarefas
+  if((it.tarefas||[]).length){ x+=`<div class="mt-block"><h6>Tarefas</h6><ul class="mt-tasks">`+
+    it.tarefas.map((t,ti)=>`<li class="${t.done?'done':''}"><button class="mt-chk" ${canEdit?`data-mttask="${wid}|${it.id}|${ti}"`:'disabled'} title="Concluir">${t.done?'✓':''}</button><span class="mt-tk">${esc(t.t||'')}</span>${t.quem?`<span class="mt-who">${esc(t.quem)}</span>`:''}</li>`).join('')+`</ul></div>`; }
+  // convidados
+  if((it.convidados||[]).length){ x+=`<div class="mt-block"><h6>Convidados</h6><div class="mt-guests">`+
+    it.convidados.map(g=>`<span class="mt-guest"><span class="mt-av">${esc(meetInitials(g.name||g.email))}</span>${esc(g.name||g.email)}</span>`).join('')+`</div></div>`; }
+  // adicionar ao calendário
+  const cal=meetCalLinks(it);
+  if(cal){ x+=`<div class="mt-block"><h6>Adicionar ao calendário</h6><div class="mt-links">
+    <a href="${cal.google}" target="_blank" rel="noopener">📆 Google</a>
+    <a href="${cal.outlook}" target="_blank" rel="noopener">📆 Outlook</a>
+    <a href="${cal.office}" target="_blank" rel="noopener">📆 Microsoft 365</a>
+    <a href="${cal.yahoo}" target="_blank" rel="noopener">📆 Yahoo</a>
+    <button data-mtics="${wid}|${it.id}" title="Baixar .ics — Apple, iCal, Outlook app, Teams">📥 Apple / iCal (.ics)</button>
+  </div></div>`; }
+  if(canEdit) x+=`<div class="mt-edacts"><button data-mtedit="${wid}|${it.id}">✎ Editar</button><button class="danger" data-mtdel="${wid}|${it.id}">🗑 Excluir</button></div>`;
+  return x+`</div></div>`;
+}
+// --- datas para links de calendário ---
+function _p2(n){ return String(n).padStart(2,'0'); }
+function meetFmtLocal(dt){ return dt.getFullYear()+_p2(dt.getMonth()+1)+_p2(dt.getDate())+'T'+_p2(dt.getHours())+_p2(dt.getMinutes())+'00'; }
+function meetFmtDate(dt){ return dt.getFullYear()+_p2(dt.getMonth()+1)+_p2(dt.getDate()); }
+function meetIsoLocal(dt){ return dt.getFullYear()+'-'+_p2(dt.getMonth()+1)+'-'+_p2(dt.getDate())+'T'+_p2(dt.getHours())+':'+_p2(dt.getMinutes())+':00'; }
+function meetTiming(it){ const s=meetStart(it); if(!s) return null; const allDay=!/^\d{1,2}:\d{2}/.test(it.hora||'');
+  const end = allDay ? new Date(s.getFullYear(),s.getMonth(),s.getDate()+1) : new Date(s.getTime()+((+it.dur||60)*60000));
+  return {s,end,allDay}; }
+function meetLoc(it){ return it.modo==='local' ? (it.local||'') : (it.link||''); }
+function meetDesc(it){ return [(it.resumo||'').replace(/<[^>]+>/g,''), (it.modo!=='local'&&it.link)?('Link: '+it.link):'', it.gravacao?('Gravação: '+it.gravacao):''].filter(Boolean).join('\n'); }
+function meetCalLinks(it){ const t=meetTiming(it); if(!t) return null;
+  const title=encodeURIComponent(it.titulo||'Reunião'), loc=encodeURIComponent(meetLoc(it)), det=encodeURIComponent(meetDesc(it));
+  const gd = t.allDay ? (meetFmtDate(t.s)+'/'+meetFmtDate(t.end)) : (meetFmtLocal(t.s)+'/'+meetFmtLocal(t.end));
+  const sdt = t.allDay ? meetFmtDate(t.s) : meetIsoLocal(t.s), edt = t.allDay ? meetFmtDate(t.end) : meetIsoLocal(t.end);
+  return {
+    google:`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${gd}&details=${det}&location=${loc}`,
+    outlook:`https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&body=${det}&location=${loc}&startdt=${sdt}&enddt=${edt}${t.allDay?'&allday=true':''}`,
+    office:`https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&body=${det}&location=${loc}&startdt=${sdt}&enddt=${edt}${t.allDay?'&allday=true':''}`,
+    yahoo:`https://calendar.yahoo.com/?v=60&title=${title}&st=${meetFmtLocal(t.s)}${t.allDay?'&dur=allday':'&et='+meetFmtLocal(t.end)}&desc=${det}&in_loc=${loc}`
+  };
+}
+function _icsEsc(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+function meetICS(it){ const t=meetTiming(it); if(!t) return ''; const uid=_icsEsc((it.id||'mt')+'@plano-amapa');
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Plano Amapá//Reuniões//PT','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+meetFmtLocal(new Date()),'SUMMARY:'+_icsEsc(it.titulo||'Reunião')];
+  if(t.allDay){ L.push('DTSTART;VALUE=DATE:'+meetFmtDate(t.s)); L.push('DTEND;VALUE=DATE:'+meetFmtDate(t.end)); }
+  else { L.push('DTSTART:'+meetFmtLocal(t.s)); L.push('DTEND:'+meetFmtLocal(t.end)); }
+  const loc=meetLoc(it); if(loc) L.push('LOCATION:'+_icsEsc(loc));
+  const desc=meetDesc(it); if(desc) L.push('DESCRIPTION:'+_icsEsc(desc));
+  (it.convidados||[]).forEach(g=>{ if(g.email) L.push('ATTENDEE;CN='+_icsEsc(g.name||g.email)+':mailto:'+g.email); });
+  L.push('END:VEVENT','END:VCALENDAR'); return L.join('\r\n'); }
+function meetDownloadICS(wid,id){ const b=findWidgetBlock(wid); if(!b) return; const it=(b.items||[]).find(m=>m.id===id); if(!it) return;
+  const ics=meetICS(it); if(!ics) return; const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=((it.titulo||'reuniao').toLowerCase().replace(/[^\w]+/g,'-').slice(0,40))+'.ics';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },200); }
+// --- interações do card ---
+function meetToggleOpen(wid,id){ if(MEET_OPEN.has(id)) MEET_OPEN.delete(id); else MEET_OPEN.add(id); render(); }
+function meetSetTab(wid,tab){ MEET_TAB[wid]=tab; render(); }
+function meetTaskToggle(wid,id,ti){ const b=findWidgetBlock(wid); if(!b) return; const it=(b.items||[]).find(m=>m.id===id); if(!it||!it.tarefas||!it.tarefas[ti]) return; it.tarefas[ti].done=!it.tarefas[ti].done; pushHistory('Tarefa da reunião','reuniões'); saveState(); render(); }
+function meetDel(wid,id){ const b=findWidgetBlock(wid); if(!b) return; if(!confirm('Excluir esta reunião?')) return; b.items=(b.items||[]).filter(m=>m.id!==id); MEET_OPEN.delete(id); pushHistory('Removeu reunião','reuniões'); saveState(); render(); }
+// --- formulário (adicionar/editar) ---
+function meetTeamMembers(){ const m=(TEAM&&TEAM.members)||{}; return Object.keys(m).map(uid=>({uid, name:m[uid].name||m[uid].email, email:m[uid].email||''})).filter(x=>x.name||x.email); }
+function openMeetingForm(wid, id){
+  const b=findWidgetBlock(wid); if(!b) return; meetCats(b);
+  const existing = id ? (b.items||[]).find(m=>m.id===id) : null;
+  _MEETDRAFT = existing ? JSON.parse(JSON.stringify(existing)) : { id:meetUid('m'), titulo:'', catId:(b.cats[0]||{}).id||'', data:'', hora:'', dur:60, modo:'online', link:'', local:'', foto:'', gravacao:'', resumo:'', docs:[], tarefas:[], convidados:[] };
+  _MEETDRAFT._wid=wid; _MEETDRAFT._editing=!!existing;
+  const card=showModal(existing?'Editar reunião':'Nova reunião', `<div class="mform" id="mform"></div>`);
+  meetRenderForm(card);
+}
+function meetRenderForm(card){
+  const d=_MEETDRAFT, b=findWidgetBlock(d._wid); if(!b) return; const cats=meetCats(b);
+  const team=meetTeamMembers();
+  const catOpts=cats.map(c=>`<option value="${c.id}" ${c.id===d.catId?'selected':''}>${esc(c.nome)}</option>`).join('');
+  const upOk=(CLOUD&&fbStorage);
+  const docRows=(d.docs||[]).map((dc,i)=>`<div class="mf-item"><input type="text" data-mfdoc="nome|${i}" value="${esc(dc.nome||'')}" placeholder="Nome do documento"><input type="text" data-mfdoc="url|${i}" value="${esc(dc.url||'')}" placeholder="Link do arquivo"><button class="mf-x" data-mfdocdel="${i}">×</button></div>`).join('');
+  const taskRows=(d.tarefas||[]).map((t,i)=>`<div class="mf-item"><input type="text" data-mftask="t|${i}" value="${esc(t.t||'')}" placeholder="Tarefa"><input type="text" data-mftask="quem|${i}" value="${esc(t.quem||'')}" placeholder="Responsável" style="max-width:170px"><button class="mf-x" data-mftaskdel="${i}">×</button></div>`).join('');
+  const hasGuest=(em,nm)=> (d.convidados||[]).some(g=> (em&&g.email===em) || (!em&&g.name===nm));
+  const teamChecks = team.length ? `<div class="mf-gcheck">`+team.map(m=>`<button type="button" class="mf-gck ${hasGuest(m.email,m.name)?'on':''}" data-mfguest="${esc(m.email||'')}|${esc(m.name||'')}">${esc(m.name||m.email)}</button>`).join('')+`</div>` : '';
+  const guestChips = (d.convidados||[]).map((g,i)=>`<span class="mt-guest"><span class="mt-av">${esc(meetInitials(g.name||g.email))}</span>${esc(g.name||g.email)} <button class="mf-x" style="width:20px;height:20px;font-size:12px" data-mfguestdel="${i}">×</button></span>`).join('');
+  const body=`
+    <div class="mf-f"><label>Título da reunião</label><input type="text" data-mf="titulo" value="${esc(d.titulo||'')}" placeholder="Ex.: Alinhamento de campanha"></div>
+    <div class="mf-row">
+      <div class="mf-f"><label>Categoria</label><div class="mf-cat"><select data-mf="catId">${catOpts}</select><button type="button" class="mf-mini" id="mfCats">⚙ Categorias</button></div></div>
+    </div>
+    <div class="mf-row">
+      <div class="mf-f"><label>Data</label><input type="date" data-mf="data" value="${esc(d.data||'')}"></div>
+      <div class="mf-f"><label>Horário</label><input type="time" data-mf="hora" value="${esc(d.hora||'')}"></div>
+      <div class="mf-f" style="max-width:120px"><label>Duração (min)</label><input type="number" data-mf="dur" value="${esc(String(d.dur||60))}" min="0" step="15"></div>
+    </div>
+    <div class="mf-f"><label>Modalidade</label><div class="mf-modo">
+      <button type="button" class="${d.modo!=='local'?'on':''}" data-mfmodo="online">🔗 Online</button>
+      <button type="button" class="${d.modo==='local'?'on':''}" data-mfmodo="local">📍 Presencial</button>
+    </div></div>
+    ${d.modo==='local'
+      ? `<div class="mf-f"><label>Local</label><input type="text" data-mf="local" value="${esc(d.local||'')}" placeholder="Endereço / sala"></div>`
+      : `<div class="mf-f"><label>Link da reunião</label><input type="text" data-mf="link" value="${esc(d.link||'')}" placeholder="https://meet.google.com/… ou Zoom/Teams"></div>`}
+    <div class="mf-f"><label>Foto da reunião</label><div class="mf-inline">${d.foto?`<img class="mf-thumb" src="${esc(MEDIA[d.foto]||d.foto)}" alt="">`:''}<input type="text" data-mf="foto" value="${esc(d.foto||'')}" placeholder="Link da imagem">${upOk?`<button type="button" class="mf-up" data-mfup="foto|image">⬆ Enviar</button>`:''}</div></div>
+    <div class="mf-f"><label>Link da gravação</label><div class="mf-inline"><input type="text" data-mf="gravacao" value="${esc(d.gravacao||'')}" placeholder="Link do vídeo da gravação">${upOk?`<button type="button" class="mf-up" data-mfup="gravacao|video">⬆ Enviar</button>`:''}</div></div>
+    <div class="mf-f"><label>Resumo da reunião</label><textarea data-mf="resumo" placeholder="Pauta, decisões, próximos passos…">${esc(d.resumo||'')}</textarea></div>
+    <div class="mf-f"><label>Documentos da reunião</label><div class="mf-list">${docRows}</div>
+      <div class="mf-inline" style="margin-top:7px"><button type="button" class="mf-add" data-mfdocadd>＋ Documento (link)</button>${upOk?`<button type="button" class="mf-up" data-mfup="doc|doc">⬆ Enviar arquivo</button>`:''}</div></div>
+    <div class="mf-f"><label>Tarefas distribuídas</label><div class="mf-list">${taskRows}</div>
+      <button type="button" class="mf-add" data-mftaskadd style="margin-top:7px">＋ Tarefa</button></div>
+    <div class="mf-f"><label>Convidar usuários ${team.length?'':'(equipe)'}</label>
+      ${teamChecks}
+      ${guestChips?`<div class="mf-gcheck" style="margin-top:7px">${guestChips}</div>`:''}
+      <div class="mf-inline" style="margin-top:7px"><input type="text" id="mfGuestName" placeholder="Nome do convidado"><input type="text" id="mfGuestEmail" placeholder="E-mail (opcional)" style="max-width:200px"><button type="button" class="mf-mini" id="mfGuestAdd">Convidar</button></div>
+      <div class="mf-note">Os convidados recebem um aviso de nova reunião no portal; o e-mail entra no convite de calendário (.ics).</div></div>
+    <div class="mf-foot">
+      <button type="button" class="mf-save" id="mfSave">${d._editing?'Salvar alterações':'Criar reunião'}</button>
+      <button type="button" class="mf-cancel" id="mfCancel">Cancelar</button>
+      ${d._editing?`<button type="button" class="mf-del" id="mfDelete">Excluir reunião</button>`:''}
+    </div>`;
+  const host=$("#mform",card); host.innerHTML=body;
+  // texto/campos simples → atualizam o rascunho sem rebuild
+  $$("[data-mf]",host).forEach(el=>{ const k=el.dataset.mf; const ev=(el.tagName==='SELECT')?'change':'input';
+    el.addEventListener(ev,()=>{ d[k]= (k==='dur')? (parseInt(el.value,10)||0) : el.value; }); });
+  // estruturais → rebuild
+  $$("[data-mfmodo]",host).forEach(btn=>btn.addEventListener('click',()=>{ d.modo=btn.dataset.mfmodo; meetRenderForm(card); }));
+  $$("[data-mfguest]",host).forEach(btn=>btn.addEventListener('click',()=>{ const [em,nm]=btn.dataset.mfguest.split('|'); d.convidados=d.convidados||[];
+    const ix=d.convidados.findIndex(g=> em?g.email===em:g.name===nm); if(ix>=0) d.convidados.splice(ix,1); else d.convidados.push({name:nm,email:em}); meetRenderForm(card); }));
+  $$("[data-mfguestdel]",host).forEach(btn=>btn.addEventListener('click',()=>{ d.convidados.splice(+btn.dataset.mfguestdel,1); meetRenderForm(card); }));
+  const gAdd=$("#mfGuestAdd",host); if(gAdd) gAdd.addEventListener('click',()=>{ const nm=$("#mfGuestName",host).value.trim(), em=$("#mfGuestEmail",host).value.trim(); if(!nm&&!em) return; d.convidados=d.convidados||[]; d.convidados.push({name:nm||em,email:em}); meetRenderForm(card); });
+  $$("[data-mfdoc]",host).forEach(el=>el.addEventListener('input',()=>{ const [f,i]=el.dataset.mfdoc.split('|'); d.docs[+i][f]=el.value; }));
+  $$("[data-mfdocdel]",host).forEach(btn=>btn.addEventListener('click',()=>{ d.docs.splice(+btn.dataset.mfdocdel,1); meetRenderForm(card); }));
+  const dAdd=$("[data-mfdocadd]",host); if(dAdd) dAdd.addEventListener('click',()=>{ d.docs=d.docs||[]; d.docs.push({nome:'',url:''}); meetRenderForm(card); });
+  $$("[data-mftask]",host).forEach(el=>el.addEventListener('input',()=>{ const [f,i]=el.dataset.mftask.split('|'); d.tarefas[+i][f]=el.value; }));
+  $$("[data-mftaskdel]",host).forEach(btn=>btn.addEventListener('click',()=>{ d.tarefas.splice(+btn.dataset.mftaskdel,1); meetRenderForm(card); }));
+  const tAdd=$("[data-mftaskadd]",host); if(tAdd) tAdd.addEventListener('click',()=>{ d.tarefas=d.tarefas||[]; d.tarefas.push({t:'',quem:'',done:false}); meetRenderForm(card); });
+  $$("[data-mfup]",host).forEach(btn=>btn.addEventListener('click',()=>{ const [field,kind]=btn.dataset.mfup.split('|');
+    meetPickUpload(btn, kind, (url,fname)=>{ if(field==='doc'){ d.docs=d.docs||[]; d.docs.push({nome:fname||'',url:url}); } else { d[field]=url; } meetRenderForm(card); }); }));
+  const cats2=$("#mfCats",host); if(cats2) cats2.addEventListener('click',()=> openMeetCats(d._wid, ()=>meetRenderForm(card)));
+  $("#mfCancel",host).addEventListener('click', closeModal);
+  $("#mfSave",host).addEventListener('click',()=> meetSaveDraft());
+  const del=$("#mfDelete",host); if(del) del.addEventListener('click',()=>{ closeModal(); meetDel(d._wid, d.id); });
+}
+function meetSaveDraft(){
+  const d=_MEETDRAFT; if(!d) return; const wid=d._wid; const b=findWidgetBlock(wid); if(!b) return;
+  if(!(d.titulo||'').trim()){ alert('Dê um título à reunião.'); return; }
+  // limpa campos não persistidos e tarefas/docs vazios
+  const clean={ id:d.id, titulo:d.titulo.trim(), catId:d.catId, data:d.data||'', hora:d.hora||'', dur:+d.dur||60,
+    modo:d.modo||'online', link:(d.modo==='local'?'':(d.link||'')), local:(d.modo==='local'?(d.local||''):''),
+    foto:d.foto||'', gravacao:d.gravacao||'', resumo:d.resumo||'',
+    docs:(d.docs||[]).filter(x=>(x.url||'').trim()), tarefas:(d.tarefas||[]).filter(x=>(x.t||'').trim()),
+    convidados:(d.convidados||[]) };
+  b.items=b.items||[];
+  const ix=b.items.findIndex(m=>m.id===d.id);
+  if(ix>=0){ clean.created=b.items[ix].created; b.items[ix]=clean; }
+  else { clean.created=Date.now(); b.items.push(clean); MEET_TAB[wid]= meetIsPast(clean)?'real':'prox'; }
+  MEET_OPEN.add(clean.id);
+  _MEETDRAFT=null;
+  pushHistory(ix>=0?'Editou reunião':'Adicionou reunião','reuniões'); saveState(); closeModal(); render();
+}
+function meetPickUpload(btn, kind, cb){
+  if(!CLOUD||!fbStorage){ alert('O envio de arquivos requer o Firebase Storage ativado. Enquanto isso, cole um link no campo ao lado. (Veja FIREBASE_SETUP.md.)'); return; }
+  if(!isCloudAdmin()){ alert('Entre como administrador para enviar arquivos.'); return; }
+  const accept = kind==='image' ? 'image/*' : (kind==='video' ? 'video/*' : '');
+  const inp=document.createElement('input'); inp.type='file'; if(accept) inp.accept=accept; inp.style.display='none';
+  inp.addEventListener('change',()=>{ const f=inp.files&&inp.files[0]; if(f) uploadMedia(f, btn, url=>cb(url, f.name)); inp.remove(); });
+  document.body.appendChild(inp); inp.click();
+}
+// --- gerenciador de categorias ---
+function openMeetCats(wid, onClose){
+  const b=findWidgetBlock(wid); if(!b) return; const cats=meetCats(b);
+  const rows=cats.map((c,i)=>`<div class="mcat-row"><input type="text" data-mcname="${i}" value="${esc(c.nome)}"><input type="color" data-mccolor="${i}" value="${meetColorHex(c.color)}"><div class="mcat-sw">${MEET_CAT_COLORS.map(col=>`<button data-mcsw="${i}|${col}" style="background:${col}" title="${col}"></button>`).join('')}</div><button class="mf-x" data-mcdel="${i}">×</button></div>`).join('');
+  const card=showModal('Categorias de reunião', `<div class="mcat-list">${rows}<button class="mf-add" id="mcAdd" style="margin-top:6px">＋ Categoria</button></div><div class="mf-foot"><button class="mf-save" id="mcDone">Concluir</button></div>`);
+  const reopen=()=>openMeetCats(wid,onClose);
+  $$("[data-mcname]",card).forEach(el=>el.addEventListener('change',()=>{ cats[+el.dataset.mcname].nome=el.value.trim()||'Categoria'; saveState(); }));
+  $$("[data-mccolor]",card).forEach(el=>el.addEventListener('input',()=>{ cats[+el.dataset.mccolor].color=el.value; saveState(); }));
+  $$("[data-mcsw]",card).forEach(btn=>btn.addEventListener('click',()=>{ const [i,col]=btn.dataset.mcsw.split('|'); cats[+i].color=col; saveState(); reopen(); }));
+  $$("[data-mcdel]",card).forEach(btn=>btn.addEventListener('click',()=>{ if(cats.length<=1){ alert('Mantenha ao menos uma categoria.'); return; } if(confirm('Excluir esta categoria?')){ cats.splice(+btn.dataset.mcdel,1); saveState(); reopen(); } }));
+  $("#mcAdd",card).addEventListener('click',()=>{ cats.push({id:meetUid('c'),nome:'Nova categoria',color:MEET_CAT_COLORS[cats.length%MEET_CAT_COLORS.length]}); saveState(); reopen(); });
+  $("#mcDone",card).addEventListener('click',()=>{ closeModal(); render(); if(onClose) onClose(); });
+}
+function meetColorHex(c){ c=(c||'').trim(); if(/^#[0-9a-f]{6}$/i.test(c)) return c;
+  const map={'var(--ink)':'#241a6e','var(--orange)':'#f36a21','var(--green)':'#1aa64a','var(--yellow)':'#ffc415','var(--magenta)':'#e5167b','var(--cyan)':'#19b6e6'};
+  return map[c]||'#888888'; }
+// --- aviso de nova reunião (toast) ---
+function meetEachMeeting(cb){ const seen=new Set();
+  const scanBag=bag=>{ if(!bag) return; ['desktop','tablet','mobile'].forEach(dv=>{ const v=bag[dv]; if(v&&v.items) v.items.forEach(it=>{ if(it.add&&it.add.type==='meetings'&&!seen.has(it.add._id)){ seen.add(it.add._id); (it.add.items||[]).forEach(m=>cb(m,it.add)); } }); }); };
+  Object.keys(STATE.layout||{}).forEach(k=>scanBag(STATE.layout[k]));
+  (PLAN.chapters||[]).concat([PLAN.onboarding]).forEach(ch=>{ if(!ch) return; (ch.sections||[]).forEach(s=>(s.blocks||[]).forEach(blk=>{ if(blk.type==='meetings'&&!seen.has(blk._id)){ seen.add(blk._id); (blk.items||[]).forEach(m=>cb(m,blk)); } })); });
+}
+function meetCheckNotices(){
+  if(document.getElementById('mtNotice')) return;
+  let seen=0; try{ seen=+(localStorage.getItem('pmt_meet_seen')||0); }catch(_){}
+  if(!seen){ try{ localStorage.setItem('pmt_meet_seen', String(Date.now())); }catch(_){}; return; }  // 1ª visita: marca e não alerta retroativo
+  const now=Date.now(); const list=[];
+  meetEachMeeting((m)=>{ const s=meetStart(m); if(m.created && m.created>seen && s && s.getTime()>=meetStartOfToday().getTime()) list.push(m); });
+  if(!list.length) return;
+  list.sort((a,b)=>meetCmp(a,b,1));
+  const items=list.slice(0,4).map(m=>{ const box=meetDayBox(m); return `<div class="mtn-i">📅 <b>${esc(box.d)} ${esc(box.m)}</b> — ${esc(m.titulo||'Reunião')}${/^\d{1,2}:\d{2}/.test(m.hora||'')?(' · '+esc(m.hora)):''}</div>`; }).join('');
+  const extra=list.length>4?`<div class="mtn-i">+ ${list.length-4} outra(s)…</div>`:'';
+  const n=document.createElement('div'); n.id='mtNotice';
+  n.innerHTML=`<button class="mtn-close" id="mtnX">×</button><div class="mtn-t">🔔 ${list.length===1?'Nova reunião agendada':list.length+' novas reuniões'}</div>${items}${extra}<button class="mtn-ok" id="mtnOk">Entendi</button>`;
+  document.body.appendChild(n);
+  const dismiss=()=>{ try{ localStorage.setItem('pmt_meet_seen', String(Date.now())); }catch(_){}; n.remove(); };
+  $("#mtnX",n).addEventListener('click',dismiss); $("#mtnOk",n).addEventListener('click',dismiss);
+}
 // ===== Upload de mídia para o Firebase Storage =====
 const UPLOAD_MAX = 15*1024*1024;   // 15 MB por arquivo
 function pickAndUpload(btn, key, kind){
@@ -5468,6 +5845,8 @@ const WIDGET_CATALOG=[
     {titulo:"Aplicação no Amapá", items:[{lab:"Ponto central:",txt:"como aplicar aqui"},{lab:"Prova tangível:",txt:"evidência concreta"}]}
   ]})},
   {ic:"📁", label:"Documentos", desc:"Lista de arquivos: link ou upload", make:id=>({type:"documentos", _id:id, title:"Documentos", showTitle:true, items:[]})},
+  {ic:"🗓", label:"Reuniões", desc:"Registros em abas (Próximas/Todas/Realizadas) + calendário", w:24, h:18, make:id=>({type:"meetings", _id:id, title:"Reuniões", showTitle:true,
+    cats:[{id:'c1',nome:'Consultoria',color:'var(--ink)'},{id:'c2',nome:'Evento',color:'var(--magenta)'},{id:'c3',nome:'Campanha',color:'var(--orange)'}], items:[]})},
 ];
 function openPalette(key, layout){
   const cells=WIDGET_CATALOG.map((w,i)=>`<button class="palette-item" data-wi="${i}">
