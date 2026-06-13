@@ -233,16 +233,6 @@
   .gal-del{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:7px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;cursor:pointer;display:none}
   body.grid-edit .gal-del{display:block}
   .gal-add{margin-top:10px}
-  /* agenda */
-  .agenda{display:flex;flex-direction:column;gap:9px}
-  .agenda .wtitle{font-weight:800;color:var(--ink);font-size:16px;margin-bottom:2px}
-  .ag-item{display:flex;align-items:stretch;gap:11px}
-  .ag-date{flex:0 0 auto;width:66px;border-radius:10px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 4px;text-align:center}
-  .ag-date .ag-d{font-weight:800;font-size:13.5px;line-height:1.1}
-  .ag-date .ag-h{font-size:11.5px;opacity:.9}
-  .ag-body{flex:1;display:flex;flex-direction:column;justify-content:center}
-  .ag-body .ag-t{font-weight:700;color:var(--ink);font-size:14.5px}
-  .ag-body .ag-l{font-size:12.5px;color:var(--muted)}
   /* atalhos */
   .shortcuts .wtitle{font-weight:800;color:var(--ink);font-size:16px;margin-bottom:8px}
   .sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
@@ -953,13 +943,13 @@
   .gtile.has-cols .personas,.gtile.has-cols .bm .bcols,.gtile.has-cols .chan .ccols,.gtile.has-cols .dcols{
     display:grid;grid-template-columns:repeat(var(--wcols),minmax(0,1fr))}
   /* listas em coluna viram grade de N colunas */
-  .gtile.has-cols .checklist,.gtile.has-cols .ul-rich,.gtile.has-cols .agenda{
+  .gtile.has-cols .checklist,.gtile.has-cols .ul-rich{
     display:grid;grid-template-columns:repeat(var(--wcols),minmax(0,1fr));gap:10px;align-items:start}
   @media(max-width:600px){  /* no celular vira 1 coluna (evita colunas apertadas) */
     .gtile.has-cols .cards,.gtile.has-cols .stats,.gtile.has-cols .callout-grid,.gtile.has-cols .glist,
     .gtile.has-cols .sc-grid,.gtile.has-cols .cl-grid,.gtile.has-cols .gallery,.gtile.has-cols .nm-grid .nm-items,
     .gtile.has-cols .personas,.gtile.has-cols .bm .bcols,.gtile.has-cols .chan .ccols,.gtile.has-cols .dcols,
-    .gtile.has-cols .checklist,.gtile.has-cols .ul-rich,.gtile.has-cols .agenda{grid-template-columns:minmax(0,1fr)}
+    .gtile.has-cols .checklist,.gtile.has-cols .ul-rich{grid-template-columns:minmax(0,1fr)}
   }
   /* widget com caixas/itens: o lápis geral some (cada elemento tem o seu) */
   .gtile:has(.dnd-box) .gtile-fields, .gtile:has(.dnd-row) .gtile-fields{display:none}
@@ -3431,7 +3421,7 @@ const WIDGET_LABELS={ paragraph:'Parágrafo', lead:'Lead', callout:'Callout', ca
   channel:'Canal', diagnostic:'Diagnóstico', faq:'FAQ', signature:'Assinatura', expandall:'Expandir todas',
   placeholder:'Placeholder', hero:'Cabeçalho', secTitle:'Título da seção',
   checklist:'Checklist', quote:'Citação', pageHeader:'Cabeçalho de página',
-  agenda:'Agenda', shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
+  shortcuts:'Atalhos', clock:'Relógio', tabs:'Notas em abas', ytplaylist:'Playlist YouTube', navmenu:'Menu',
   learn:'O que aprendemos', thumb:'Miniatura', publico:'Públicos (ficha)', caracteristicas:'Características', b2b:'Públicos B2B', aprendizado:'Aprendizado', roadmap:'Road Map (Gantt)', matriz:'Matriz', arquetipo:'Arquétipos', documentos:'Documentos' };
 function widgetLabel(t){ return WIDGET_LABELS[t] || t || 'Widget'; }
 /* cor é clara? (p/ decidir contraste) — paleta Memphis + hex */
@@ -4033,22 +4023,6 @@ function renderBlock(b, sec, bi){
     case "secTitle":{
       const chKey=String(CUR.chapter), k='sec/'+chKey+'/'+CUR.section+'/titulo', so=curSecObj();
       return `<h3 class="ed" data-ed="${k}" style="margin:0">${esc(txt(k, so.titulo||''))}</h3>`;
-    }
-    case "agenda":{
-      const wid=b._id;
-      let x=`<div class="block agenda" data-wid="${wid}" ${dz(wid,'items')}>`;
-      if(b.showTitle!==false) x+=`<div class="wtitle wed wedrich" data-wedit="${wid}|title">${richHtml(b.title||'Agenda')}</div>`;
-      (b.items||[]).forEach((it,i)=>{
-        const cor=it.color||b.color||'var(--orange)';
-        x+=`<div class="ag-item dnd-row">
-          <div class="ag-date" style="background:${cor}"><span class="ag-d wed" data-wedit="${wid}|o/${i}/data">${esc(it.data||'')}</span><span class="ag-h wed" data-wedit="${wid}|o/${i}/hora">${esc(it.hora||'')}</span></div>
-          <div class="ag-body"><div class="ag-t wed wedrich" data-wedit="${wid}|o/${i}/titulo">${richHtml(it.titulo||'')}</div>
-            <div class="ag-l wed" data-wedit="${wid}|o/${i}/local">${esc(it.local||'')}</div></div>
-          <span class="ck-acts">${grip(wid,'items',i)}<button data-agmove="${wid}|${i}|-1" title="Subir">▲</button><button data-agmove="${wid}|${i}|1" title="Descer">▼</button><button class="danger" data-agdel="${wid}|${i}" title="Apagar">×</button></span>
-        </div>`;
-      });
-      x+=`<button class="ck-add" data-agadd="${wid}">＋ Adicionar evento</button>`;
-      return x+`</div>`;
     }
     case "shortcuts":{
       const wid=b._id;
@@ -4763,9 +4737,6 @@ function wireBlockEvents(){
   $$("[data-rmlen]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.rmlen.split('|'); rmLen(id,+i,+d); }));
   $$("[data-pubtoggle]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); e.preventDefault(); const pres=b.closest('.pub-pres'); if(!pres) return; const open=pres.classList.toggle('open'); b.textContent=open?'Ler menos ▴':'Ler completo ▾'; }));
   // agenda
-  $$("[data-agmove]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i,d]=b.dataset.agmove.split('|'); agMove(id,+i,+d); }));
-  $$("[data-agdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.agdel.split('|'); agDel(id,+i); }));
-  $$("[data-agadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); agAdd(b.dataset.agadd); }));
   // atalhos
   $$("[data-scadd]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); scAdd(b.dataset.scadd); }));
   $$("[data-scdel]").forEach(b=> b.addEventListener("click",e=>{ e.stopPropagation(); const [id,i]=b.dataset.scdel.split('|'); scDel(id,+i); }));
@@ -5149,10 +5120,6 @@ function uploadMedia(file, btn, onUrl){
 let _upSeq=0;
 function _uploadStamp(){ _upSeq=(_upSeq+1)%100000; return Date.now()+'_'+_upSeq; }
 function safeUrl(u){ u=(u||'').trim(); if(!u) return '#'; if(/^https?:\/\//i.test(u)) return esc(u); if(/^[\w.-]+\.[a-z]{2,}/i.test(u)) return esc('https://'+u); return '#'; }
-// AGENDA
-function agMove(id,i,d){ const b=findWidgetBlock(id); if(!b) return; const j=i+d; if(j<0||j>=b.items.length) return; const t=b.items[i]; b.items[i]=b.items[j]; b.items[j]=t; pushHistory("Agenda","agenda"); saveState(); render(); }
-function agDel(id,i){ const b=findWidgetBlock(id); if(!b) return; b.items.splice(i,1); pushHistory("Agenda","agenda"); saveState(); render(); }
-function agAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({data:"00 mês",hora:"00h",titulo:"Novo evento",local:"Local"}); pushHistory("Agenda","agenda"); saveState(); render(); }
 // ATALHOS
 const SC_COLORS=['var(--ink)','var(--orange)','var(--cyan)','var(--green)','var(--magenta)'];
 function scAdd(id){ const b=findWidgetBlock(id); if(!b) return; b.items=b.items||[]; b.items.push({label:"Atalho",url:"",icon:"🔗",color:SC_COLORS[b.items.length%SC_COLORS.length]}); pushHistory("Atalhos","shortcuts"); saveState(); render(); }
@@ -5752,8 +5719,6 @@ const WIDGET_CATALOG=[
   {ic:"❓", label:"FAQ", desc:"Perguntas e respostas", make:id=>({type:"faq", _id:id, key:id+"/f", items:[{q:"Pergunta de exemplo?", a:"Resposta de exemplo."}]})},
   {ic:"▶", label:"Vídeo", desc:"Player de vídeo", make:id=>({type:"video", _id:id, key:id+"/v", caption:"Vídeo"})},
   {ic:"✓", label:"Ação", desc:"Card completo do plano de ação", w:16, h:16, make:id=>({type:"action", _id:id, id:id, num:"1", titulo:"Nova ação", prioridade:"Média", desc:"Descreva o que é esta ação.", quando:"", onde:"", quem:"", objReal:"", objMacro:"", porque:"", como:"", resultados:"", paraquem:"", quanto:"", comomedir:[], subacoes:[]})},
-  {ic:"📅", label:"Agenda", desc:"Eventos com data", make:id=>({type:"agenda", _id:id, title:"Agenda", showTitle:true, color:"var(--orange)", items:[{data:"10 jun",hora:"14h",titulo:"Reunião de kickoff",local:"Online"},{data:"24 jun",hora:"10h",titulo:"Alinhamento de marca",local:"Macapá"}]})},
-  {ic:"🤝", label:"Próximos encontros", desc:"Reuniões marcadas", make:id=>({type:"agenda", _id:id, title:"Próximos encontros", showTitle:true, color:"var(--ink)", items:[{data:"A definir",hora:"",titulo:"Próxima reunião",local:"Online"}]})},
   {ic:"🔗", label:"Atalhos", desc:"Botões de link", make:id=>({type:"shortcuts", _id:id, title:"Atalhos", items:[{label:"Site",url:"",icon:"🌐",color:"var(--cyan)"},{label:"Drive",url:"",icon:"📁",color:"var(--green)"}]})},
   {ic:"🕐", label:"Relógio / fuso", desc:"Hora ao vivo", make:id=>({type:"clock", _id:id, title:"Horários", zones:[{label:"Macapá",tz:"America/Belem"},{label:"São Paulo",tz:"America/Sao_Paulo"}]})},
   {ic:"🗂", label:"Notas em abas", desc:"Conteúdo com abas", make:id=>({type:"tabs", _id:id, active:0, items:[{label:"Resumo",text:"Conteúdo da primeira aba."},{label:"Detalhes",text:"Conteúdo da segunda aba."}]})},
